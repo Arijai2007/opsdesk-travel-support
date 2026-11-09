@@ -614,6 +614,20 @@ try {
   );
   assert.equal((await call("/health/ready", null)).status, "ready");
   assert.equal((await call("/health/worker", null)).status, "ready");
+  const activeCases = (await call("/ops/workspace", manager)).tickets.filter(
+    (value) => !["RESOLVED", "CLOSED"].includes(value.status),
+  ).length;
+  const candidateSweep = await call(
+    "/ops/clock/advance",
+    manager,
+    { minutes: 1 },
+    "POST",
+    201,
+  );
+  assert(
+    candidateSweep.checked < activeCases,
+    "The sweep should skip future refund cases without supplier deadlines.",
+  );
   notes.push(
     "Role and agency isolation, message privacy, booking linking and schedule edits, specialty settings and routing, parallel supplier threads, resolution/reopening, durable records and repeat-safe deadline alerts passed.",
   );

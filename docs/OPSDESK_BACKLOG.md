@@ -84,7 +84,7 @@ Start: backend/src/travel/travel.rules.ts, service locks, profiles and ticket-de
 
 [GitHub issue #7](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/7)
 
-GET /ops/workspace loads the complete authorized dataset; the browser computes demo reports. A global advisory lock serializes routing/escalation.
+GET /ops/workspace loads the complete authorized dataset; the browser computes demo reports. Assignment load counts and deadline candidate filtering run in PostgreSQL. A global advisory lock still serializes routing and escalation.
 
 Acceptance:
 - Add paginated cases/messages/threads and server-side search/filter/report aggregates.

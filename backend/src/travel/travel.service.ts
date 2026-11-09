@@ -21,6 +21,7 @@ import {
 } from './travel.dto';
 import {
   active,
+  CHECK_IN_HIGH_HOURS,
   chooseAgent,
   classify,
   effectiveDeadline,
@@ -868,9 +869,31 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   async sweep() {
     const result = await this.locked(async (tx) => {
       const now = await this.now(tx);
+      const pendingSupplier = { status: 'AWAITING_REPLY', dueAt: { lte: now } };
+      const highPriorityWindow = new Date(
+        now.getTime() + CHECK_IN_HIGH_HOURS * 3600000,
+      );
       const tickets = await tx.travelTicket.findMany({
-        where: { status: { notIn: ['RESOLVED', 'CLOSED'] } },
-        include: { booking: true, conversations: true },
+        where: {
+          status: { notIn: ['RESOLVED', 'CLOSED'] },
+          OR: [
+            { deadline: { lte: now } },
+            {
+              category: { not: 'REFUND' },
+              booking: {
+                is: { checkInAt: { gt: now, lte: highPriorityWindow } },
+              },
+            },
+            { conversations: { some: pendingSupplier } },
+          ],
+        },
+        include: {
+          booking: { select: { checkInAt: true } },
+          conversations: {
+            where: pendingSupplier,
+            select: { id: true, dueAt: true, subject: true },
+          },
+        },
       });
       for (const t of tickets) {
         const rule = urgency(
@@ -906,9 +929,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
               data: { priority: rule.priority, updatedAt: now },
             });
         }
-        for (const c of t.conversations.filter(
-          (c) => c.status === 'AWAITING_REPLY' && c.dueAt <= now,
-        )) {
+        for (const c of t.conversations) {
           const key = `${c.id}:overdue:${c.dueAt.toISOString()}`;
           await tx.travelEvent.upsert({
             where: { uniqueKey: key },

@@ -28,6 +28,7 @@ export function classify(text: string): string {
   return 'OTHER';
 }
 export const RESPONSE_WINDOW_MS = 24 * 3600000;
+export const CHECK_IN_HIGH_HOURS = 24;
 
 export function responseDeadlineFor(now: Date, hours = 24) {
   return new Date(now.getTime() + hours * 3600000);
@@ -72,7 +73,7 @@ export function urgency(
     const hours = (checkInAt.getTime() - now.getTime()) / 3600000;
     if (hours <= 6)
       return { priority: 'URGENT', reason: 'Check-in is within 6 hours' };
-    if (hours <= 24)
+    if (hours <= CHECK_IN_HIGH_HOURS)
       return { priority: 'HIGH', reason: 'Check-in is within 24 hours' };
   }
   return null;
