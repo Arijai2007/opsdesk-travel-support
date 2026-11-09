@@ -8,7 +8,7 @@ Read [the complete handoff](docs/OPSDESK_HANDOFF.md) for architecture, setup, co
 
 ## Run locally
 
-Requirements: Node.js 22 and npm. No Docker, paid API, email provider or external database account is required for the local demo.
+Requirements: Node.js 22.23.x and npm. No Docker, paid API, email provider or external database account is required for the local demo.
 
 On Windows, open **Start-OpsDesk.cmd**. For any supported host:
 
@@ -48,7 +48,8 @@ All accounts use **OpsDeskDemo!2026**. These are explicit synthetic demo account
 - Customer replies, staff-only notes and separate supplier conversations with dedicated supplier login.
 - Response deadlines, check-in urgency, manager notifications, idempotent escalation and a persistent manager-only demo clock.
 - Connected booking history, source-labelled record briefs and event timelines.
-- Booking directory, operational insights, search, filters and CSV export.
+- Searchable, paginated booking and people directories, operational Insights, inbox filters and current-page case CSV export.
+- On-demand case details, paginated histories and compact workspace metadata.
 - Responsive interface, server-side validation, JWT/HTTP-only-cookie login and inherited token rotation/revocation.
 
 The demo starts with 3 agencies, 20 travelers, 30 bookings, 60 cases, 4 agents, 1 manager and 5 suppliers. All operational records are synthetic. The seeder does not reset an existing workspace.
@@ -86,10 +87,13 @@ With the app running:
 
 ```sh
 npm run ops:test
-npm run build
+npx playwright install chromium
+npm run ops:test:browser
 ```
 
-`ops:test` runs policy unit tests and real HTTP checks against the local API. The smoke script creates its own temporary cases, cleans those cases up, restores the demo clock and agent availability, and checks isolation, validation, routing, supplier privacy, workflow transitions and duplicate-free escalation. It is intended for the isolated seeded demo, not a production database.
+`ops:test` runs 9 policy unit tests and 400 real HTTP checks against the local API. `ops:test:browser` exercises the five-role Chromium workflow. Stop the preview before running `npm run build` independently. The smoke script creates its own temporary cases, cleans those cases up, restores the demo clock and agent availability, and checks isolation, validation, routing, supplier privacy, workflow transitions and duplicate-free escalation. It is intended for the isolated seeded demo, not a production database.
+
+For query-plan measurements, generate Prisma and build the backend, then supply a local maintenance connection in `OPSDESK_PROFILE_DATABASE_URL` and run `npm run ops:profile`. The harness uses a disposable synthetic database. See the [query profile](docs/OPSDESK_QUERY_PROFILE.md) and [validation notes](docs/OPSDESK_VALIDATION.md) for the full method and limitations.
 
 ## Deployment boundary
 
