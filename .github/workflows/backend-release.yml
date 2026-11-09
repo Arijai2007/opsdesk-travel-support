@@ -45,7 +45,7 @@ jobs:
     # retrigger workflows, so this job's own release commit can't normally
     # cause a recursive run — but skip explicitly anyway in case that ever
     # changes or a PAT gets swapped in later.
-    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    if: "github.repository == 'Molnar-Zoltan/it-helpdesk' && !contains(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
     outputs:
       released: ${{ steps.version.outputs.released }}
@@ -195,7 +195,7 @@ jobs:
   changes:
     # Cheap path check, run in parallel with `release` rather than after it —
     # nothing here depends on the version bump, only on what this push touched.
-    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    if: "github.repository == 'Molnar-Zoltan/it-helpdesk' && !contains(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}

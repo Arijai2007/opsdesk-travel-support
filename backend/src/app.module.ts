@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
+import { TravelModule } from './travel/travel.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AiModule } from './ai/ai.module';
     TicketsModule,
     AdminModule,
     AiModule,
+    TravelModule,
   ],
   controllers: [AppController],
   providers: [AppService],

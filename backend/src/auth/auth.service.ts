@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { hashToken, requireEnv } from './token.util';
 import { PwnedPasswordService } from '../common/services/pwned-password.service';
@@ -87,7 +88,7 @@ export class AuthService {
   async issueTokens(userId: string, role: string) {
     // Sign the refresh token first — its own payload doesn't need the row id
     const refreshToken = this.jwt.sign(
-      { sub: userId },
+      { sub: userId, jti: randomUUID() },
       {
         secret: requireEnv('JWT_REFRESH_SECRET'),
         expiresIn: JWT_REFRESH_EXPIRY_SECONDS,

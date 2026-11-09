@@ -15,3 +15,6 @@ backend/generated/
 # IDE
 .vscode/
 .idea/
+.opsdesk/
+*.tsbuildinfo
+*.log

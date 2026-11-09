@@ -1,0 +1,338 @@
+{
+  "source": "https://huggingface.co/datasets/bitext/Bitext-travel-llm-chatbot-training-dataset",
+  "author": "Bitext",
+  "license": "CDLA-Sharing-1.0",
+  "purpose": "Intent examples only; not supplier policies or booking facts.",
+  "examples": [
+    {
+      "instruction": "I want to know about my checked carry-on baggage allowance, how can I get more information?",
+      "intent": "check_baggage_allowance",
+      "category": "BAGGAGE"
+    },
+    {
+      "instruction": "I'm looking for information about my checked carry-on baggage allowance. Help me.",
+      "intent": "check_baggage_allowance",
+      "category": "BAGGAGE"
+    },
+    {
+      "instruction": "I'm trying to find my boarding pass",
+      "intent": "get_boarding_pass",
+      "category": "BOARDING_PASS"
+    },
+    {
+      "instruction": "I newd my boarding pass, can you help me obtaining it?",
+      "intent": "get_boarding_pass",
+      "category": "BOARDING_PASS"
+    },
+    {
+      "instruction": "I got to print my boarding pass, where do I do it?",
+      "intent": "print_boarding_pass",
+      "category": "BOARDING_PASS"
+    },
+    {
+      "instruction": "I want to print my boarding pass, will you help me?",
+      "intent": "print_boarding_pass",
+      "category": "BOARDING_PASS"
+    },
+    {
+      "instruction": "i have to see the cancellation fees how could i do it",
+      "intent": "check_cancellation_fee",
+      "category": "CANCELLATION_FEE"
+    },
+    {
+      "instruction": "i have to check the cancellation fees will uhelp me",
+      "intent": "check_cancellation_fee",
+      "category": "CANCELLATION_FEE"
+    },
+    {
+      "instruction": "i have to check in online how can i do it",
+      "intent": "check_in",
+      "category": "CHECK_IN"
+    },
+    {
+      "instruction": "I'd like to know about check in at the airport",
+      "intent": "check_in",
+      "category": "CHECK_IN"
+    },
+    {
+      "instruction": "I'd like to talk to someone where can I do it",
+      "intent": "human_agent",
+      "category": "CONTACT"
+    },
+    {
+      "instruction": "id like to talk to someone",
+      "intent": "human_agent",
+      "category": "CONTACT"
+    },
+    {
+      "instruction": "wannna book a flight ticket where can i do it",
+      "intent": "book_flight",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I have to book some flight tickets from Chicago to Madrid, will you help me?",
+      "intent": "book_flight",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I want to cancel my flight from Chicago to Madrid, can you help me?",
+      "intent": "cancel_flight",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "i cant travel can ya help me canceling a flight",
+      "intent": "cancel_flight",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "i want assistace to change my flight booking from chicago to madrid",
+      "intent": "change_flight",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "help me modifying a flight",
+      "intent": "change_flight",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I cannot find my insurance coverage, can you help me check it?",
+      "intent": "check_flight_insurance_coverage",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I want to know more about my flight insurance coverage, give me some information",
+      "intent": "check_flight_insurance_coverage",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I'm looking for discounts, could you help me find them?",
+      "intent": "check_flight_offers",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "i need flight offers how could i see them",
+      "intent": "check_flight_offers",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I need to see flight prices, how can I do it?",
+      "intent": "check_flight_prices",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "where can I find information about flight prices ?",
+      "intent": "check_flight_prices",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "can you give me information about a flight reservation?",
+      "intent": "check_flight_reservation",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "wanna see a flight booking how coulod i do it",
+      "intent": "check_flight_reservation",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I need my flight status I'd like to check it",
+      "intent": "check_flight_status",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I'm looking for the status of my flight i need assistance",
+      "intent": "check_flight_status",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I got to purchase my flight insurance",
+      "intent": "purchase_flight_insurance",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "i have to purchase my flight insuraqnce how to do it",
+      "intent": "purchase_flight_insurance",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "where can i find a flgiht from chicago to madrid",
+      "intent": "search_flight",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I am looking for some flights from Chicago to Madrid, can you help me?",
+      "intent": "search_flight",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "where can i search for flight insurances",
+      "intent": "search_flight_insurance",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "where can i find a flight insurance",
+      "intent": "search_flight_insurance",
+      "category": "FLIGHT"
+    },
+    {
+      "instruction": "I can't find getaway prices. How can I see them?",
+      "intent": "check_trip_prices",
+      "category": "PRICES"
+    },
+    {
+      "instruction": "I cannot find excursion prices, help me to check them",
+      "intent": "check_trip_prices",
+      "category": "PRICES"
+    },
+    {
+      "instruction": "I want a money refund, will you help me get it?",
+      "intent": "get_refund",
+      "category": "REFUND"
+    },
+    {
+      "instruction": "get an reimbursement",
+      "intent": "get_refund",
+      "category": "REFUND"
+    },
+    {
+      "instruction": "I do not want this seat, is it possible to change it?",
+      "intent": "change_seat",
+      "category": "SEAT"
+    },
+    {
+      "instruction": "could ya help me change my sseat",
+      "intent": "change_seat",
+      "category": "SEAT"
+    },
+    {
+      "instruction": "To choose your seat for your flight, please follow these steps:",
+      "intent": "choose_seat",
+      "category": "SEAT"
+    },
+    {
+      "instruction": "I'd like to select my seat, where do I do it?",
+      "intent": "choose_seat",
+      "category": "SEAT"
+    },
+    {
+      "instruction": "I can't find the time of arrival of my flight, help me checking it",
+      "intent": "check_arrival_time",
+      "category": "TIME"
+    },
+    {
+      "instruction": "I would like to see the arrival time, how could I do it?",
+      "intent": "check_arrival_time",
+      "category": "TIME"
+    },
+    {
+      "instruction": "i cant find the departure tiome i need assistance checking it",
+      "intent": "check_departure_time",
+      "category": "TIME"
+    },
+    {
+      "instruction": "i cant find the departure time  how do i check it",
+      "intent": "check_departure_time",
+      "category": "TIME"
+    },
+    {
+      "instruction": "To book your trip to {{DESTINATION_CITY}}, please follow these steps:",
+      "intent": "book_trip",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "book a getaway to madrid",
+      "intent": "book_trip",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "i have changed my mind cancel my excursion",
+      "intent": "cancel_trip",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "my travel dates have changed can i cancel my excursion",
+      "intent": "cancel_trip",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I need to modify my getaway, how could I do itr?",
+      "intent": "change_trip",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I do not want my trip, will you help me change it?",
+      "intent": "change_trip",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I want to check the details of my trip to Madrid, I need assistance",
+      "intent": "check_trip_details",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "id like to know more about the details of my trip give me some information",
+      "intent": "check_trip_details",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "i got to chcek my trip insurance coverage where can i do it",
+      "intent": "check_trip_insurance_coverage",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "i cant find my travel insurance coverage how can i download it",
+      "intent": "check_trip_insurance_coverage",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I need to see getaway offers to Madrid, can I get some help?",
+      "intent": "check_trip_offers",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "wanna know abuot trip offers",
+      "intent": "check_trip_offers",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "id like to see my excursion plan i nede assistance",
+      "intent": "check_trip_plan",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I can't find my excursion plan to Madrid, I want to check it",
+      "intent": "check_trip_plan",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I got to get a trip insurance, where can I do it?",
+      "intent": "purchase_trip_insurance",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I need to buy a trip insurance, where to do it?",
+      "intent": "purchase_trip_insurance",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I'd like to know about excursions to madrid could ya find some information",
+      "intent": "search_trip",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I'm looking for information about excursions, help me",
+      "intent": "search_trip",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "find trip insurances",
+      "intent": "search_trip_insurance",
+      "category": "TRIP"
+    },
+    {
+      "instruction": "I'm looking for a trip insurance, could you help me to find it?",
+      "intent": "search_trip_insurance",
+      "category": "TRIP"
+    }
+  ]
+}

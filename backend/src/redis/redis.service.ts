@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import Redis from 'ioredis';
 import { requireEnv } from '../auth/token.util';
+import { PostgresCounterClient } from './postgres-counter.client';
 
 /**
  * Thin wrapper around a single ioredis client, shared by every consumer
@@ -22,9 +23,20 @@ import { requireEnv } from '../auth/token.util';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private client!: Redis;
+  private client!: Redis | PostgresCounterClient;
 
-  onModuleInit() {
+  async onModuleInit() {
+    if (process.env.OPSDESK_LOCAL_COUNTERS === 'true') {
+      if (process.env.NODE_ENV === 'production')
+        throw new Error(
+          'Local counter mode is for development only. Configure Redis for production.',
+        );
+      const local = new PostgresCounterClient();
+      await local.init();
+      this.client = local;
+      this.logger.log('Local PostgreSQL-backed counters enabled.');
+      return;
+    }
     this.client = new Redis(requireEnv('REDIS_URL'), {
       // Cloud Run can scale to zero; don't let a cold-start's first Redis
       // command wait forever on a connection that failed to establish.
@@ -41,7 +53,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.quit();
   }
 
-  getClient(): Redis {
+  getClient(): Redis | PostgresCounterClient {
     return this.client;
   }
 }
