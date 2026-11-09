@@ -4,17 +4,15 @@ Prepared 9 November 2026. This document is the entry point for the next develope
 
 ## 1. Repository and review order
 
-- Repository: https://github.com/DhruvKhanna7777/opsdesk-travel-support (private).
+- Repository: https://github.com/DhruvKhanna7777/opsdesk-travel-support.
 - Implementation PR: https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/1.
 - Handoff PR: https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/10.
 - Remaining-work issues: https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues (issues #2–#9).
-- Implementation branch: `feat/opsdesk-travel-workspace`.
-- Handoff branch: `docs/opsdesk-handoff`, based on the implementation branch. **Use this branch to run the complete handoff version before the PRs merge.**
-- Implementation PR targets `main`. Handoff PR targets the implementation branch. Review the implementation first, then the documentation. Merge the documentation into the feature branch before merging the feature PR, or retarget the documentation PR to `main` after the feature PR merges. Do not squash the feature branch while leaving the dependent PR pointed at a deleted branch.
+- Both PRs have merged. Start from `main` for the current implementation and handoff.
 - Original code foundation: https://github.com/Molnar-Zoltan/it-helpdesk, baseline `51833aa3b6544522204caa7adac362936b381100` (`v0.13.0`). Its history and authorship are retained for provenance. All project branches, PRs and issues are in our repository; the local origin points only to our repository. No PR or push was made to the reference repository.
 - No release deployment or production data migration has been performed. PR creation is not a production-readiness claim.
 
-The repository is private. Its owner must invite the receiving developer through GitHub before they can clone it. No collaborator was added because the recipient's GitHub username has not been supplied.
+The repository is publicly readable. Publishing branches directly or merging a PR requires write access.
 
 ## 2. What the product does
 
@@ -27,7 +25,7 @@ The scope was a 3–5 day demonstration of connected support, not a full replace
 | Area | Delivered | Boundary / next work |
 | --- | --- | --- |
 | Ticket persistence | PostgreSQL-backed cases, messages, status, priority, ownership and history | No attachment upload, archive/delete UI or retention policy |
-| Connected history | Exact booking-reference matching inside agency/customer access boundaries, related cases, manual verification, record brief | No fuzzy identity resolution, external booking synchronization or cross-agency merge |
+| Connected history | Exact booking-reference matching inside agency/customer access boundaries, related cases, manual verification, record brief | Unmatched references are saved for staff review. No fuzzy identity resolution, external booking synchronization or cross-agency merge |
 | Assignment | Region coverage, agent availability, least-open-workload selection, global fallback, manager reassignment and unassigned queue | No shifts, skills matrix, configurable capacity, round-robin contracts or agent provisioning UI |
 | Supplier collaboration | Separate persistent supplier threads, scoped supplier login, replies, close/reopen, due dates | Messages stay inside the app; no real email, WhatsApp or supplier API delivery |
 | Travel urgency | Response deadline, check-in urgency, overdue supplier attention queue, manager notifications | Default policies are code-based, not per-contract SLAs or business-hour calendars |
@@ -46,7 +44,6 @@ Prerequisites: Git, Node.js `22.23.x`, npm, network access to install packages. 
 ```powershell
 git clone https://github.com/DhruvKhanna7777/opsdesk-travel-support.git
 cd opsdesk-travel-support
-git switch docs/opsdesk-handoff
 npm ci
 npm run ops:preview
 ```
@@ -117,7 +114,7 @@ Browser -> Next.js UI / cookie proxy -> NestJS /ops API -> Prisma -> PostgreSQL
 | `scripts/import-bitext.py` | Reproducible small complaint-text sample selection |
 | `.github/workflows/opsdesk-ci.yml` | Linux CI with PostgreSQL service; builds, starts isolated demo, tests and audits |
 
-The original IT Helpdesk app, generic endpoints, administration/reset logic, Gemini code, Docker files, infrastructure and old documentation remain in the repository. They are not all part of the OpsDesk product flow. Treat `OPSDESK_README.md` and this handoff as the current local startup instructions. In particular, the inherited `backend start:prod` command points at an upstream output path; the OpsDesk launcher correctly uses `backend/dist/src/main.js`.
+The original IT Helpdesk app, generic endpoints, administration/reset logic, Gemini code, Docker files, infrastructure and old documentation remain in the repository. Travel accounts are blocked from the generic ticket and AI endpoints. The generic demo reset refuses databases with travel profiles, and inherited self-service deletion cannot delete a travel account. Contact support for travel account closure. Treat `OPSDESK_README.md` and this handoff as the current local startup instructions. The OpsDesk launcher uses `backend/dist/src/main.js`.
 
 ## 8. Data model and invariants
 
@@ -130,7 +127,7 @@ The original IT Helpdesk app, generic endpoints, administration/reset logic, Gem
 - `TravelEvent`: auditable case event; unique escalation key prevents repeated notices for the same deadline.
 - `TravelClock`: optional demo offset. `OpsCounter`: durable development counters and session-revocation storage.
 
-Migrations added: `20261109134516_opsdesk_travel` and `20261109141500_local_counter_storage`. Apply with `prisma migrate deploy`; do not reset an existing database to resolve a migration issue. Existing generic ticket tables remain separate. Some travel identity/agent fields are plain string IDs rather than foreign keys; production lifecycle/deletion rules must explicitly preserve history and prevent orphaned references.
+Apply migrations with `prisma migrate deploy`. The travel-profile foreign key prevents deleting the underlying user while the profile exists. Some travel identity and agent fields are still plain string IDs. A production account closure policy must explicitly preserve or anonymize historical references.
 
 Core invariants: scope is derived from the persisted profile; verify agency/customer before booking linking; customer-facing history excludes internal and supplier content; suppliers see only their explicitly shared conversations; lock routing/escalation changes and keep unique escalation keys; use UTC in persistence and retain the booking timezone. The global advisory transaction lock is suitable for the small demo but serializes unrelated routing and escalation work.
 
@@ -233,8 +230,8 @@ These are not implemented promises. Start with product acceptance and production
 
 ## 15. Transfer checklist
 
-- [ ] Owner grants the named recipient access to the private repository; no credentials need to be shared in chat.
-- [ ] Recipient clones `docs/opsdesk-handoff` and runs the complete demo from a clean checkout.
+- [ ] Owner grants the named recipient write access if they will publish or merge changes.
+- [ ] Recipient clones `main` and runs the complete demo from a clean checkout.
 - [ ] Recipient reads this document, setup README, validation report, sources and prioritized backlog.
 - [ ] Both PRs and actual CI results are reviewed, including documented lint/tooling exceptions.
 - [ ] Recipient repeats the customer/agency/supplier privacy demonstration and main booking workflow.

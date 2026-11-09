@@ -222,7 +222,14 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
             : 'Booking reference needs verification.',
           `${threads.filter((c) => c.status === 'AWAITING_REPLY').length} supplier conversation(s) awaiting a reply.`,
         ].join(' ');
-        return { ...t, relatedIds: related.map((v) => v.id), summary };
+        const events = staff
+          ? t.events
+          : t.events.map((event) =>
+              event.kind === 'STATUS_CHANGED'
+                ? { ...event, text: event.text.split(':', 1)[0] }
+                : event,
+            );
+        return { ...t, events, relatedIds: related.map((v) => v.id), summary };
       }),
       notifications: staff
         ? await this.db.travelEvent.findMany({
@@ -237,7 +244,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
     };
   }
   async create(userId: string, dto: NewTravelTicketDto) {
-    const result = await this.locked(async (tx) => {
+    return this.locked(async (tx) => {
       const p = await this.profile(userId, tx);
       if (dto.title.trim().length < 5 || dto.description.trim().length < 10)
         throw new BadRequestException(
@@ -258,19 +265,16 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       });
       if (!customer)
         throw new BadRequestException('Customer is not part of this agency.');
-      const booking = dto.bookingReference
+      const reference = dto.bookingReference?.trim().toUpperCase();
+      const booking = reference
         ? await tx.travelBooking.findFirst({
             where: {
-              reference: dto.bookingReference.trim().toUpperCase(),
+              reference,
               agencyId,
               customerId,
             },
           })
         : null;
-      if (dto.bookingReference && !booking)
-        throw new BadRequestException(
-          'No accessible booking matches that reference. Leave it blank for manual review.',
-        );
       const region = booking?.region || customer.region || 'ASIA';
       if (p.kind === 'AGENT' && p.region !== 'GLOBAL' && p.region !== region)
         throw new ForbiddenException(
@@ -330,6 +334,15 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         userId,
         now,
       );
+      if (reference && !booking)
+        await this.event(
+          tx,
+          ticket.id,
+          'BOOKING_REVIEW_REQUIRED',
+          `Submitted reference ${reference} needs manual verification.`,
+          userId,
+          now,
+        );
       await this.event(
         tx,
         ticket.id,
@@ -342,8 +355,6 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       );
       return ticket;
     });
-    await this.sweep();
-    return result;
   }
   async update(userId: string, id: string, dto: UpdateTravelTicketDto) {
     return this.locked(async (tx) => {

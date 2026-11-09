@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { HelpdeskAccountGuard } from '../auth/guards/helpdesk-account.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { TicketsService } from './tickets.service';
@@ -26,7 +27,7 @@ import { TicketMessageRateLimitGuard } from './guards/ticket-message-rate-limit.
 import type { AuthenticatedRequest } from '../common/types/authenticated-request.type';
 import { Role } from '../../generated/prisma/client';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, HelpdeskAccountGuard)
 @Controller('tickets')
 export class TicketsController {
   constructor(private ticketsService: TicketsService) {}

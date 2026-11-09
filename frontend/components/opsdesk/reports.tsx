@@ -122,6 +122,11 @@ export function Insights({ data }: { data: Workspace }) {
         : null;
     })
     .filter((n): n is number => n !== null && n >= 0);
+  const resolutionHours = closed.flatMap((t) => {
+    if (!t.resolvedAt) return [];
+    const hours = (+new Date(t.resolvedAt) - +new Date(t.createdAt)) / 3600000;
+    return hours >= 0 ? [hours] : [];
+  });
   const repeatBookings = data.bookings.filter(
     (b) => data.tickets.filter((t) => t.bookingId === b.id).length > 1,
   ).length;
@@ -161,7 +166,10 @@ export function Insights({ data }: { data: Workspace }) {
     const day = new Date(+new Date(data.now) - (6 - i) * 86400000);
     const key = day.toISOString().slice(0, 10);
     return {
-      label: day.toLocaleDateString("en-GB", { weekday: "short" }),
+      label: day.toLocaleDateString("en-GB", {
+        weekday: "short",
+        timeZone: "UTC",
+      }),
       value: data.tickets.filter((t) => t.createdAt.slice(0, 10) === key)
         .length,
     };
@@ -183,6 +191,18 @@ export function Insights({ data }: { data: Workspace }) {
               ? `${Math.round((closed.length / data.tickets.length) * 100)}%`
               : "—",
             note: `${closed.length} of ${data.tickets.length} cases completed`,
+          },
+          {
+            label: "Median time to resolution",
+            value: resolutionHours.length
+              ? `${median(resolutionHours).toFixed(1)}h`
+              : "—",
+            note: "From intake to latest completion",
+          },
+          {
+            label: "Backlog",
+            value: open.length,
+            note: "Cases awaiting completion",
           },
           {
             label: "Repeat-contact bookings",
@@ -224,7 +244,7 @@ export function Insights({ data }: { data: Workspace }) {
         </section>
         <section className="od-panel od-chart">
           <h3>Conversations over time</h3>
-          <p>New cases in the last 7 days, using the workspace clock.</p>
+          <p>New cases in the last 7 UTC days, using the workspace clock.</p>
           <div className="od-column-chart">
             {trends.map((v, i) => (
               <div key={i}>

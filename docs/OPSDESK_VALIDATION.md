@@ -20,6 +20,19 @@ Validated on Windows x64 with Node.js 22.19.0, npm 10.9.3, PostgreSQL 18 (embedd
 - Inspected desktop and 390px mobile layouts; charts and controls reflow and wide tables retain horizontal scrolling.
 - Restarted the database/application from the final output folder; existing records were preserved rather than reseeded. The interactive browser example adds one case to the initial 60-case dataset.
 
+## Workflow acceptance map
+
+The workflow follow-up passed 7 unit tests and 52 HTTP checks on Windows with Node.js 22.23.4 and an isolated PostgreSQL 18 database. The new migration applied on a fresh database. NestJS compilation, the optimized Next.js build and the production dependency audit passed. The initial preview timed out waiting for PostgreSQL, so validation started the database separately.
+
+| Workflow area | Scenario to verify | Remaining scope |
+| --- | --- | --- |
+| Connected history | Submit another complaint for BK-1042 and confirm earlier cases appear as separate records. Submit an unmatched reference and confirm the complaint and review event are saved without a booking link. | Live booking synchronization and fuzzy matching remain separate work. |
+| Assignment | File an Asia case with the regional agent unavailable and check that eligible global coverage is used. When no eligible agent is available, the ticket stays unassigned. | Routing uses region, availability and workload. Category-based teams, shifts and capacity are pending. |
+| Supplier conversations | Open an Aster thread, verify a Skyline account cannot reply, then reply as Aster and confirm the main ticket returns to support. Verify the customer cannot read the thread or private resolution reason. | The prototype uses in-app replies. |
+| Travel deadlines | Verify the case deadline uses check-in for applicable service issues and a separate response target for refunds. | Dedicated departure and cancellation cutoffs and automatic recalculation on booking changes are pending. |
+| Escalation | Advance the demo clock, inspect the manager queue, and repeat the sweep to verify a single event per rule and deadline. | External alerts and a separately deployed worker are pending. |
+| Insights | Reconcile backlog, median response and resolution times, repeat contacts and breaches with the authorized saved cases and messages. | Reports aggregate the demo workspace. Scalable server-side analytics and performance targets are pending. |
+
 ## Boundaries
 
 GitHub validation: the initial hosted Windows run could not start embedded PostgreSQL and did not reach application tests. CI now uses Linux with an isolated PostgreSQL 18 service and `--external-db`. Hosted Windows embedded-package compatibility remains unverified. Check the actual [implementation PR](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/1/checks) and [handoff PR](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/10/checks) results. Local Windows builds, lint, unit/API tests and production dependency audit passed separately.

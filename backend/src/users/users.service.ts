@@ -241,6 +241,10 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException(USERS_ERRORS.USER_NOT_FOUND);
     this.assertNotDemoAccount(userId);
+    if (await this.prisma.travelProfile.findUnique({ where: { userId } }))
+      throw new ForbiddenException(
+        'Contact support to close an account with OpsDesk case history.',
+      );
 
     const rateLimitKey = buildAccountMutationRateLimitKey(userId);
     const valid = await bcrypt.compare(currentPassword, user.passwordHash);
