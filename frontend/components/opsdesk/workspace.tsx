@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -22,7 +23,7 @@ import {
   TicketCheck,
   X,
 } from "lucide-react";
-import type { Ticket, Workspace } from "@/lib/opsdesk-types";
+import type { Workspace } from "@/lib/opsdesk-types";
 import {
   active,
   Badge,
@@ -35,7 +36,7 @@ import {
   type Mutation,
 } from "./ui";
 import { OpsLogin } from "./login";
-import { NewTicket, TicketDetail, SupplierDesk } from "./ticket-detail";
+import { NewTicket, OnDemandTicket, SupplierDesk } from "./ticket-detail";
 import { useTravelQueue } from "./use-travel-queue";
 import {
   AgencyResponseSettings,
@@ -83,7 +84,7 @@ export function OpsDeskWorkspace() {
     data?.now,
   );
   const load = useCallback(() => {
-    return request("workspace")
+    return request("workspace?compact=1")
       .then((workspace: Workspace) => {
         setData(workspace);
         setError("");
@@ -137,34 +138,12 @@ export function OpsDeskWorkspace() {
   const staff = ["AGENT", "MANAGER"].includes(data.me.kind),
     manager = data.me.kind === "MANAGER",
     supplier = data.me.kind === "SUPPLIER";
-  const tickets = data.tickets,
-    open = tickets.filter(active),
-    urgent = open.filter((t) => t.priority === "URGENT"),
-    waiting = open.filter((t) => t.status === "WAITING_SUPPLIER");
-  const overdueSupplierCases = new Set(
-    data.conversations
-      .filter(
-        (c) =>
-          c.status === "AWAITING_REPLY" &&
-          +new Date(c.dueAt) <= +new Date(data.now),
-      )
-      .map((c) => c.ticketId),
-  );
-  const needsAttention = (t: Ticket) =>
-    active(t) &&
-    (t.priority === "URGENT" ||
-      !t.agentId ||
-      +new Date(t.deadline) <= +new Date(data.now) ||
-      overdueSupplierCases.has(t.id));
+  const counts = data.counts;
   const person = (id: string | null) =>
     data.people.find((p) => p.id === id)?.name || "Unassigned";
   const agency = (id: string) =>
     data.agencies.find((a) => a.id === id)?.name || "Agency";
-  const current = tickets.find((t) => t.id === selected);
-  const ticketsById = new Map(tickets.map((ticket) => [ticket.id, ticket]));
-  const rows = (queue.data?.ids ?? [])
-    .map((id) => ticketsById.get(id))
-    .filter((ticket): ticket is Ticket => ticket !== undefined);
+  const rows = queue.data?.items ?? [];
   const currentPage = queue.data?.page ?? 1;
   function navigate(next: string) {
     setView(next);
@@ -182,7 +161,7 @@ export function OpsDeskWorkspace() {
       id: "inbox",
       label: "All conversations",
       icon: Inbox,
-      count: open.length,
+      count: counts.open,
     },
     ...(staff
       ? [
@@ -190,7 +169,7 @@ export function OpsDeskWorkspace() {
             id: "manager",
             label: "Needs attention",
             icon: Clock3,
-            count: open.filter(needsAttention).length,
+            count: counts.attention,
           },
         ]
       : []),
@@ -222,7 +201,7 @@ export function OpsDeskWorkspace() {
         "Status",
         "Deadline",
       ],
-      ...tickets.map((t) => [
+      ...rows.map((t) => [
         t.reference,
         t.title,
         t.booking?.reference || "",
@@ -251,19 +230,19 @@ export function OpsDeskWorkspace() {
     );
     const a = document.createElement("a");
     a.href = url;
-    a.download = "opsdesk-cases.csv";
+    a.download = "opsdesk-current-page.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
   return (
     <div className="od-app">
       <aside className="od-sidebar">
-        <a href="/" className="od-brand">
+        <Link href="/" className="od-brand">
           <span className="od-brandmark">
             <Layers3 size={22} />
           </span>
           opsdesk<span className="od-brand-dot">.</span>
-        </a>
+        </Link>
         <div className="od-workspace-switch">
           <span className="od-workspace-icon">O</span>
           <div>
@@ -277,7 +256,7 @@ export function OpsDeskWorkspace() {
           {supplier ? (
             <button className="active">
               <MessageSquare size={18} />
-              Supplier conversations<span>{data.conversations.length}</span>
+              Supplier conversations<span>{counts.supplierThreads}</span>
             </button>
           ) : (
             nav.map((n) => (
@@ -409,10 +388,10 @@ export function OpsDeskWorkspace() {
           )}
           {supplier ? (
             <SupplierDesk data={data} busy={busy} mutate={mutate} />
-          ) : current ? (
-            <TicketDetail
-              key={current.id}
-              ticket={current}
+          ) : selected ? (
+            <OnDemandTicket
+              key={selected}
+              id={selected}
               data={data}
               onBack={() => setSelected(null)}
               onSelect={setSelected}
@@ -450,10 +429,14 @@ export function OpsDeskWorkspace() {
                   </p>
                 </div>
                 <div className="od-flex">
-                  {staff && (
-                    <button className="od-secondary" onClick={exportCsv}>
+                  {staff && ["inbox", "manager"].includes(view) && (
+                    <button
+                      className="od-secondary"
+                      onClick={exportCsv}
+                      disabled={!queue.data}
+                    >
                       <ArrowDownToLine size={16} />
-                      Export
+                      Export page
                     </button>
                   )}
                   <button
@@ -494,28 +477,28 @@ export function OpsDeskWorkspace() {
                     {[
                       {
                         label: "Open conversations",
-                        value: open.length,
+                        value: counts.open,
                         icon: Inbox,
                         note: "Across your authorized workspace",
                         color: "green",
                       },
                       {
                         label: "Urgent cases",
-                        value: urgent.length,
+                        value: counts.urgent,
                         icon: Clock3,
                         note: "A timely response matters",
                         color: "orange",
                       },
                       {
                         label: "Awaiting supplier",
-                        value: waiting.length,
+                        value: counts.waiting,
                         icon: MessageSquare,
                         note: "Keep the conversation moving",
                         color: "blue",
                       },
                       {
                         label: "Resolved cases",
-                        value: tickets.length - open.length,
+                        value: counts.total - counts.open,
                         icon: TicketCheck,
                         note: "Travelers back on track",
                         color: "purple",
@@ -533,7 +516,7 @@ export function OpsDeskWorkspace() {
                       </div>
                     ))}
                   </div>
-                  {urgent.length > 0 && (
+                  {counts.urgent > 0 && (
                     <div className="od-urgent-banner">
                       <span className="od-banner-icon">
                         <Clock3 size={20} />
@@ -541,8 +524,8 @@ export function OpsDeskWorkspace() {
                       <div>
                         <b>Some journeys can’t wait.</b>
                         <span>
-                          {urgent.length} active case
-                          {urgent.length === 1 ? "" : "s"} need an urgent
+                          {counts.urgent} active case
+                          {counts.urgent === 1 ? "" : "s"} need an urgent
                           response. Check the booking deadline before your next
                           step.
                         </span>
@@ -560,20 +543,13 @@ export function OpsDeskWorkspace() {
                   <section className="od-panel od-inbox">
                     <div className="od-tabs">
                       {[
-                        ["active", "Active", open.length],
-                        ["waiting", "Awaiting supplier", waiting.length],
+                        ["active", "Active", counts.open],
+                        ["waiting", "Awaiting supplier", counts.waiting],
                         ...(staff
-                          ? [
-                              [
-                                "mine",
-                                "Assigned to me",
-                                open.filter((t) => t.agentId === data.me.id)
-                                  .length,
-                              ],
-                            ]
+                          ? [["mine", "Assigned to me", counts.mine]]
                           : []),
-                        ["resolved", "Resolved", tickets.length - open.length],
-                        ["all", "All cases", tickets.length],
+                        ["resolved", "Resolved", counts.total - counts.open],
+                        ["all", "All cases", counts.total],
                       ].map(([id, label, count]) => (
                         <button
                           key={id}
@@ -721,10 +697,10 @@ export function OpsDeskWorkspace() {
                                     <BookOpen size={12} />
                                     {t.booking?.reference || "Needs booking"}
                                   </span>
-                                  {t.relatedIds.length > 0 && (
+                                  {(t.relatedCount ?? 0) > 0 && (
                                     <span className="od-repeat">
                                       <Layers3 size={11} />
-                                      {t.relatedIds.length} linked
+                                      {t.relatedCount ?? 0} linked
                                     </span>
                                   )}
                                 </div>

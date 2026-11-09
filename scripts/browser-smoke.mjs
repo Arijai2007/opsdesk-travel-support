@@ -15,10 +15,18 @@ const pool = new pg.Pool({ connectionString: env.DATABASE_URL });
 const title = `Browser refund follow-up ${randomUUID().slice(0, 8)}`;
 const subject = `BK-1042: ${title}`;
 let browser;
+const opsReads = [];
 
 async function signIn(account, options) {
   const page = await browser.newPage(options);
   page.setDefaultTimeout(10_000);
+  page.on("request", (request) => {
+    if (
+      request.method() === "GET" &&
+      request.url().includes("/api/backend/ops/")
+    )
+      opsReads.push(request.url());
+  });
   await page.goto("http://127.0.0.1:3000");
   await page.getByLabel("Email address").fill(`${account}@opsdesk.demo`);
   await page.getByLabel("Password").fill("OpsDeskDemo!2026");
@@ -125,6 +133,39 @@ try {
   await manager.getByLabel("Message content").fill(customerReply);
   await manager.getByRole("button", { name: "Send reply" }).click();
   await customerThread.getByText(customerReply, { exact: true }).waitFor();
+  // Exercise actual browser page navigation with a history larger than one page.
+  const testCase = (
+    await pool.query('SELECT id FROM "TravelTicket" WHERE title = $1', [title])
+  ).rows[0];
+  for (let i = 0; i < 23; i++) {
+    await pool.query(
+      'INSERT INTO "TravelMessage" (id, "ticketId", "senderId", visibility, content, "createdAt") VALUES ($1,$2,$3,$4,$5,$6)',
+      [
+        randomUUID(),
+        testCase.id,
+        "agent-asia",
+        "CUSTOMER",
+        `Browser pagination message ${i}`,
+        new Date(Date.now() + i * 1000),
+      ],
+    );
+  }
+  await manager.reload();
+  await openCase(manager, title, title);
+  await manager
+    .getByRole("button", { name: "Older messages", exact: true })
+    .click();
+  await manager
+    .getByRole("navigation", { name: "messages pagination", exact: true })
+    .getByText(/Page 2 of 2/)
+    .waitFor();
+  await manager.getByText(customerReply, { exact: true }).waitFor();
+  await manager
+    .getByRole("button", { name: "Newer messages", exact: true })
+    .click();
+  await manager
+    .getByText("Browser pagination message 22", { exact: true })
+    .waitFor();
   await manager.getByRole("button", { name: "Resolve case" }).click();
   await manager
     .getByLabel("What was resolved?")
@@ -143,6 +184,9 @@ try {
   });
   await customer.getByRole("button", { name: /All cases/ }).click();
   await openCase(customer, title, title);
+  await customer
+    .getByRole("button", { name: "Older messages", exact: true })
+    .click();
   await customer.getByText(customerReply, { exact: true }).waitFor();
   assert.equal(await customer.getByText("Edit booking schedule").count(), 0);
   assert.equal(
@@ -170,6 +214,22 @@ try {
   await openCase(agent, title, title);
   await agent.getByRole("button", { name: /Supplier threads/ }).waitFor();
   assert.equal(await agent.getByText("Edit booking schedule").count(), 0);
+  assert(
+    opsReads.some(
+      (url) => url.includes("/tickets/") && url.includes("/messages"),
+    ),
+  );
+  assert(
+    opsReads.some(
+      (url) => url.includes("/conversations/") && url.includes("/messages"),
+    ),
+  );
+  assert(
+    opsReads
+      .filter((url) => url.includes("/workspace"))
+      .every((url) => url.includes("compact=1")),
+    "Browser must never load the full workspace snapshot",
+  );
   console.log(
     "PASS: five travel roles, booking-linked intake, supplier reply, resolution, private history and manager controls.",
   );

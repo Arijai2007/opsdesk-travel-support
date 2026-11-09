@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useOpsResource, useOpsPage, PageControls } from "./paged-data";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -16,6 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type {
+  CaseEvent,
   Conversation,
   Message,
   Ticket,
@@ -282,12 +284,14 @@ function Thread({ messages, data }: { messages: Message[]; data: Workspace }) {
           <div className="od-flex">
             <span className="od-avatar small">
               {initials(
-                data.people.find((p) => p.id === m.senderId)?.name ||
+                m.senderName ||
+                  data.people.find((p) => p.id === m.senderId)?.name ||
                   "Support team",
               )}
             </span>
             <b>
-              {data.people.find((p) => p.id === m.senderId)?.name ||
+              {m.senderName ||
+                data.people.find((p) => p.id === m.senderId)?.name ||
                 "Support team"}
             </b>
             {m.visibility === "INTERNAL" && (
@@ -300,6 +304,22 @@ function Thread({ messages, data }: { messages: Message[]; data: Workspace }) {
       ))}
     </div>
   );
+}
+export function OnDemandTicket({
+  id,
+  data,
+  ...props
+}: Omit<Parameters<typeof TicketDetail>[0], "ticket"> & { id: string }) {
+  const detail = useOpsResource<Ticket>(`tickets/${id}`, data.now);
+  if (detail.error)
+    return (
+      <p role="alert">
+        {detail.error} <button onClick={detail.retry}>Retry case</button>
+        <button onClick={props.onBack}>Back to conversations</button>
+      </p>
+    );
+  if (!detail.data) return <p role="status">Loading case…</p>;
+  return <TicketDetail ticket={detail.data} data={data} {...props} />;
 }
 export function TicketDetail({
   ticket: t,
@@ -327,21 +347,27 @@ export function TicketDetail({
     [verifiedRef, setVerifiedRef] = useState("");
   const staff = ["AGENT", "MANAGER"].includes(data.me.kind),
     manager = data.me.kind === "MANAGER";
-  const threads = data.conversations.filter((c) => c.ticketId === t.id),
-    related = data.tickets.filter((v) => t.relatedIds.includes(v.id));
+  const messages = useOpsPage<Message>(
+    tab === "conversation" ? `tickets/${t.id}/messages` : null,
+    data.now,
+  );
+  const activity = useOpsPage<CaseEvent>(
+    tab === "activity" ? `tickets/${t.id}/events` : null,
+    data.now,
+  );
+  const conversations = useOpsPage<Conversation>(
+    staff && tab === "supplier" ? `tickets/${t.id}/conversations` : null,
+    data.now,
+  );
+  const history = useOpsPage<Ticket>(`tickets/${t.id}/related`, data.now);
+  const threads = conversations.data?.items ?? [],
+    related = history.data?.items ?? [];
   const owner = data.people.find((p) => p.id === t.agentId),
     booking = data.bookings.find((b) => b.id === t.bookingId);
   const needsDraftDetails =
     visibility === "CUSTOMER" && content.includes("[add the confirmed details");
   function draftReply() {
-    const supplierUpdate = threads.some((thread) =>
-      thread.messages.some((message) =>
-        data.people.some(
-          (person) =>
-            person.id === message.senderId && person.kind === "SUPPLIER",
-        ),
-      ),
-    );
+    const supplierUpdate = t.supplierReplied;
     const reference = t.booking ? ` for booking ${t.booking.reference}` : "";
     setContent(
       [
@@ -409,26 +435,30 @@ export function TicketDetail({
                 className={tab === "conversation" ? "active" : ""}
                 onClick={() => setTab("conversation")}
               >
-                Conversation<span>{t.messages.length}</span>
+                Conversation
               </button>
               {staff && (
                 <button
                   className={tab === "supplier" ? "active" : ""}
                   onClick={() => setTab("supplier")}
                 >
-                  Supplier threads<span>{threads.length}</span>
+                  Supplier threads
                 </button>
               )}
               <button
                 className={tab === "activity" ? "active" : ""}
                 onClick={() => setTab("activity")}
               >
-                Activity<span>{t.events.length}</span>
+                Activity
               </button>
             </div>
             {tab === "conversation" ? (
               <>
-                <Thread messages={t.messages} data={data} />
+                <PageControls resource={messages} label="messages" />
+                <Thread
+                  messages={[...(messages.data?.items ?? [])].reverse()}
+                  data={data}
+                />
                 <form
                   className="od-composer"
                   onSubmit={(e) => {
@@ -506,7 +536,8 @@ export function TicketDetail({
               </>
             ) : tab === "activity" ? (
               <div className="od-activity">
-                {t.events.map((e) => (
+                <PageControls resource={activity} label="events" />
+                {(activity.data?.items ?? []).map((e) => (
                   <div key={e.id}>
                     <span className="od-event-dot" />
                     <div>
@@ -536,6 +567,7 @@ export function TicketDetail({
                     Contact supplier
                   </button>
                 </div>
+                <PageControls resource={conversations} label="threads" />
                 {threads.length ? (
                   threads.map((c) => (
                     <SupplierConversation
@@ -760,8 +792,9 @@ export function TicketDetail({
             <h3>
               <Layers3 size={16} />
               Connected history{" "}
-              <span className="od-count">{related.length}</span>
+              <span className="od-count">{history.data?.total ?? 0}</span>
             </h3>
+            <PageControls resource={history} label="related cases" />
             {related.length ? (
               related.map((v) => (
                 <button
@@ -885,6 +918,10 @@ export function SupplierConversation({
   busy: boolean;
 }) {
   const [content, setContent] = useState("");
+  const messages = useOpsPage<Message>(
+    `conversations/${c.id}/messages`,
+    data.now,
+  );
   return (
     <article className="od-supplier-conversation">
       <div className="od-flex od-space">
@@ -918,7 +955,11 @@ export function SupplierConversation({
             ? "Reply received"
             : remaining(c.dueAt, data.now)}
       </small>
-      <Thread messages={c.messages} data={data} />
+      <PageControls resource={messages} label="supplier messages" />
+      <Thread
+        messages={[...(messages.data?.items ?? [])].reverse()}
+        data={data}
+      />
       {c.status !== "CLOSED" && (
         <form
           onSubmit={(e) => {
@@ -963,6 +1004,8 @@ export function SupplierDesk({
   busy: boolean;
   mutate: Mutation;
 }) {
+  const conversations = useOpsPage<Conversation>("conversations", data.now);
+  const threads = conversations.data?.items ?? [];
   return (
     <>
       <div className="od-page-heading">
@@ -980,8 +1023,9 @@ export function SupplierDesk({
         </span>
       </div>
       <div className="od-supplier-desk">
-        {data.conversations.length ? (
-          data.conversations.map((c) => (
+        <PageControls resource={conversations} label="threads" />
+        {threads.length ? (
+          threads.map((c) => (
             <SupplierConversation
               key={c.id}
               conversation={c}

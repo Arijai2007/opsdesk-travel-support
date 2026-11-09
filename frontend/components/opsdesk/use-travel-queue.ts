@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from "react";
 import type { TravelQueuePage } from "@helpdesk/shared";
+import type { Ticket } from "@/lib/opsdesk-types";
+type QueueRows = TravelQueuePage & {
+  items: Omit<
+    Ticket,
+    "description" | "messages" | "events" | "relatedIds" | "summary"
+  >[];
+};
 import { request } from "./ui";
 
 export function useTravelQueue(
@@ -20,7 +27,7 @@ export function useTravelQueue(
   const resultKey = `${key}:${page}`;
   const [result, setResult] = useState<{
     key: string;
-    data?: TravelQueuePage;
+    data?: QueueRows;
     error?: string;
   }>();
 
@@ -29,7 +36,7 @@ export function useTravelQueue(
     let cancelled = false;
     const timer = setTimeout(() => {
       void request(`queue?${query}`)
-        .then((data: TravelQueuePage) => {
+        .then((data: QueueRows) => {
           if (!cancelled) setResult({ key: resultKey, data });
         })
         .catch((cause: unknown) => {

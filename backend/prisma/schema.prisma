@@ -183,6 +183,7 @@ model TravelTicket {
   events TravelEvent[]
   @@index([agencyId, customerId])
   @@index([status, deadline])
+  @@index([bookingId, createdAt, id])
 }
 
 model TravelConversation {
@@ -197,6 +198,8 @@ model TravelConversation {
   createdAt DateTime @default(now())
   messages TravelMessage[]
   @@index([supplierId])
+  @@index([supplierId, createdAt, id])
+  @@index([ticketId, createdAt, id])
 }
 
 model TravelMessage {
@@ -210,6 +213,7 @@ model TravelMessage {
   content String
   createdAt DateTime @default(now())
   @@index([ticketId, createdAt])
+  @@index([conversationId, createdAt, id])
 }
 
 model TravelEvent {

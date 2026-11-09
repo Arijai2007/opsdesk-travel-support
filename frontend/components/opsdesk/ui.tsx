@@ -2,7 +2,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import type { Ticket } from "@/lib/opsdesk-types";
-export const active = (t: Ticket) => !["RESOLVED", "CLOSED"].includes(t.status);
+export const active = (t: Pick<Ticket, "status">) =>
+  !["RESOLVED", "CLOSED"].includes(t.status);
 export const human = (s: string) =>
   s
     .toLowerCase()

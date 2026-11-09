@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/types/authenticated-request.type';
 import { TravelService } from './travel.service';
 import { TravelQueueDto } from './travel-queue.dto';
+import { TravelPageDto } from './travel-page.dto';
 import {
   AgencyResponsePolicyDto,
   AgentSpecialtiesDto,
@@ -30,8 +31,65 @@ import {
 @UseGuards(JwtAuthGuard)
 export class TravelController {
   constructor(private readonly travel: TravelService) {}
-  @Get('workspace') workspace(@Req() req: AuthenticatedRequest) {
-    return this.travel.workspace(req.user.userId);
+  @Get('workspace') workspace(
+    @Req() req: AuthenticatedRequest,
+    @Query('compact') compact?: string,
+  ) {
+    return this.travel.workspace(req.user.userId, compact === '1');
+  }
+  @Get('tickets/:id') detail(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.travel.detail(req.user.userId, id);
+  }
+  @Get('tickets/:id/messages') messages(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query() query: TravelPageDto,
+  ) {
+    return this.travel.messages(req.user.userId, id, query);
+  }
+  @Get('tickets/:id/events') events(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query() query: TravelPageDto,
+  ) {
+    return this.travel.events(req.user.userId, id, query);
+  }
+  @Get('tickets/:id/related') related(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query() query: TravelPageDto,
+  ) {
+    return this.travel.related(req.user.userId, id, query);
+  }
+  @Get('bookings/:id/tickets') bookingTickets(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query() query: TravelPageDto,
+  ) {
+    return this.travel.bookingTickets(req.user.userId, id, query);
+  }
+  @Get('tickets/:id/conversations') conversations(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query() query: TravelPageDto,
+  ) {
+    return this.travel.conversations(req.user.userId, query, id);
+  }
+  @Get('conversations') supplierConversations(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: TravelPageDto,
+  ) {
+    return this.travel.conversations(req.user.userId, query);
+  }
+  @Get('conversations/:id/messages') conversationMessages(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query() query: TravelPageDto,
+  ) {
+    return this.travel.conversationMessages(req.user.userId, id, query);
   }
   @Get('insights') insights(@Req() req: AuthenticatedRequest) {
     return this.travel.insights(req.user.userId);
