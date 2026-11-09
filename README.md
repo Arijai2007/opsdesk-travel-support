@@ -1,3 +1,5 @@
+> **OpsDesk travel-support implementation:** Start with [OPSDESK_README.md](OPSDESK_README.md) for the local launcher, demo accounts, workflow and validation. The original IT Helpdesk documentation follows below.
+
 # IT Helpdesk Platform
 
 An IT helpdesk application where users can file tickets manually or by chatting with an AI assistant that extracts structured ticket details automatically. Built as a full-stack TypeScript monorepo to explore tool-calling AI integration, Redis-backed rate limiting, and role-based access control end to end.

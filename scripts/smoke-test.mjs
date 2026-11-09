@@ -1,0 +1,354 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import dotenv from "dotenv";
+import pg from "pg";
+const base = process.env.OPSDESK_TEST_URL || "http://127.0.0.1:3001";
+const env = dotenv.parse(
+  readFileSync(new URL("../backend/.env", import.meta.url)),
+);
+const pool = new pg.Pool({ connectionString: env.DATABASE_URL });
+const created = [];
+const notes = [];
+let checks = 0;
+let previousClock;
+async function call(path, token, body, method = "POST", expected = 200) {
+  const r = await fetch(base + path, {
+    method: body === undefined ? "GET" : method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const data = await r.json();
+  assert.equal(
+    r.status,
+    expected,
+    `${method} ${path}: ${data.message || data.error || "unexpected status"}`,
+  );
+  checks++;
+  return data;
+}
+async function login(id) {
+  return (
+    await call(
+      "/auth/login",
+      null,
+      { email: `${id}@opsdesk.demo`, password: "OpsDeskDemo!2026" },
+      "POST",
+      200,
+    )
+  ).accessToken;
+}
+try {
+  await call("/ops/workspace", null, undefined, "GET", 401);
+  const manager = await login("manager"),
+    customer = await login("maya"),
+    agency = await login("agency"),
+    other = await login("horizon"),
+    agent = await login("asia"),
+    supplier = await login("supplier"),
+    wrongSupplier = await login("skyline");
+  const initial = await call("/ops/workspace", manager);
+  assert(initial.tickets.length >= 60);
+  assert.equal(initial.bookings.length, 30);
+  assert.equal(initial.me.kind, "MANAGER");
+  const customerData = await call("/ops/workspace", customer);
+  assert(customerData.tickets.every((t) => t.customerId === "customer-0"));
+  assert(
+    customerData.tickets
+      .flatMap((t) => t.messages)
+      .every((m) => m.visibility === "CUSTOMER"),
+  );
+  assert.equal(customerData.conversations.length, 0);
+  const agencyData = await call("/ops/workspace", agency),
+    otherData = await call("/ops/workspace", other);
+  assert(agencyData.tickets.every((t) => t.agencyId === "atlas"));
+  assert(otherData.tickets.every((t) => t.agencyId === "horizon"));
+  const agentData = await call("/ops/workspace", agent);
+  assert(agentData.tickets.every((t) => t.region === "ASIA"));
+  await call(
+    "/ops/tickets",
+    other,
+    {
+      title: "Cross agency probe",
+      description: "Cannot access someone else's booking.",
+      bookingReference: "BK-1042",
+      customerId: "customer-0",
+      agencyId: "atlas",
+    },
+    "POST",
+    400,
+  );
+  await call(
+    "/ops/tickets",
+    customer,
+    {
+      title: "Unknown booking reference",
+      description: "Please verify the booking reference.",
+      bookingReference: "NO-SUCH-BOOKING",
+    },
+    "POST",
+    400,
+  );
+  await call(
+    "/ops/tickets",
+    customer,
+    {
+      title: "Forbidden field probe",
+      description: "Validation should reject privilege fields.",
+      role: "MANAGER",
+    },
+    "POST",
+    400,
+  );
+  const ticket = await call(
+    "/ops/tickets",
+    customer,
+    {
+      title: "Smoke test recurring refund",
+      description:
+        "Our refund for booking BK-1042 is still pending after previous contacts.",
+      bookingReference: "BK-1042",
+    },
+    "POST",
+    201,
+  );
+  created.push(ticket.id);
+  assert.equal(ticket.bookingId, "booking-0");
+  assert.equal(ticket.category, "REFUND");
+  assert(ticket.agentId);
+  const current = await call("/ops/workspace", manager);
+  const saved = current.tickets.find((t) => t.id === ticket.id);
+  assert(saved.relatedIds.includes("ticket-0"));
+  assert(saved.relatedIds.includes("ticket-30"));
+  await call(
+    `/ops/tickets/${ticket.id}`,
+    other,
+    { status: "CLOSED", reason: "Unauthorized" },
+    "PATCH",
+    404,
+  );
+  await call(
+    `/ops/tickets/${ticket.id}`,
+    customer,
+    { priority: "URGENT" },
+    "PATCH",
+    403,
+  );
+  await call(
+    `/ops/tickets/${ticket.id}/messages`,
+    customer,
+    { content: "Forbidden private note.", visibility: "INTERNAL" },
+    "POST",
+    403,
+  );
+  await call(
+    `/ops/tickets/${ticket.id}/messages`,
+    agent,
+    { content: "A staff-only refund note.", visibility: "INTERNAL" },
+    "POST",
+    201,
+  );
+  const afterNote = await call("/ops/workspace", customer);
+  assert(
+    !afterNote.tickets
+      .find((t) => t.id === ticket.id)
+      .messages.some((m) => m.content.includes("staff-only")),
+  );
+  const conversation = await call(
+    `/ops/tickets/${ticket.id}/conversations`,
+    agent,
+    {
+      subject: "Refund approval request",
+      content: "Please confirm whether this refund has been approved.",
+    },
+    "POST",
+    201,
+  );
+  const supplierData = await call("/ops/workspace", supplier);
+  assert.equal(supplierData.tickets.length, 0);
+  assert.equal(supplierData.bookings.length, 0);
+  assert(supplierData.conversations.some((c) => c.id === conversation.id));
+  assert(!JSON.stringify(supplierData).includes("staff-only"));
+  await call(
+    `/ops/conversations/${conversation.id}/reply`,
+    wrongSupplier,
+    { content: "Unauthorized supplier reply" },
+    "POST",
+    404,
+  );
+  await call(
+    `/ops/conversations/${conversation.id}/reply`,
+    supplier,
+    {
+      content:
+        "Refund approved. Reference RF-SMOKE. Please notify the traveler.",
+    },
+    "POST",
+    201,
+  );
+  const afterReply = await call("/ops/workspace", manager);
+  await call(
+    `/ops/conversations/${conversation.id}`,
+    customer,
+    { status: "CLOSED" },
+    "PATCH",
+    403,
+  );
+  await call(
+    `/ops/conversations/${conversation.id}`,
+    supplier,
+    { status: "CLOSED" },
+    "PATCH",
+    403,
+  );
+  await call(
+    `/ops/conversations/${conversation.id}`,
+    agent,
+    { status: "CLOSED" },
+    "PATCH",
+  );
+  await call(
+    `/ops/conversations/${conversation.id}/reply`,
+    supplier,
+    { content: "A reply to a closed thread must be rejected." },
+    "POST",
+    400,
+  );
+  await call(
+    `/ops/conversations/${conversation.id}`,
+    agent,
+    { status: "AWAITING_REPLY" },
+    "PATCH",
+  );
+  assert.equal(
+    afterReply.tickets.find((t) => t.id === ticket.id).status,
+    "IN_PROGRESS",
+  );
+  assert.equal(
+    afterReply.conversations.find((c) => c.id === conversation.id).status,
+    "REPLIED",
+  );
+  await call(
+    `/ops/tickets/${ticket.id}`,
+    agent,
+    { agentId: "agent-europe" },
+    "PATCH",
+    403,
+  );
+  await call(
+    `/ops/tickets/${ticket.id}`,
+    manager,
+    { agentId: "agent-europe" },
+    "PATCH",
+    400,
+  );
+  await call(
+    `/ops/tickets/${ticket.id}`,
+    agent,
+    { status: "RESOLVED" },
+    "PATCH",
+    400,
+  );
+  await call(
+    `/ops/tickets/${ticket.id}`,
+    agent,
+    {
+      status: "RESOLVED",
+      reason: "Refund confirmation received and customer informed.",
+    },
+    "PATCH",
+  );
+  await call(
+    `/ops/tickets/${ticket.id}`,
+    customer,
+    { status: "OPEN", reason: "Refund has not arrived yet." },
+    "PATCH",
+  );
+  const manual = await call(
+    "/ops/tickets",
+    customer,
+    {
+      title: "Missing reference requires review",
+      description:
+        "I cannot find my booking reference. Please help the support team locate it.",
+    },
+    "POST",
+    201,
+  );
+  created.push(manual.id);
+  assert.equal(manual.bookingId, null);
+  await call(
+    `/ops/tickets/${manual.id}`,
+    agent,
+    { bookingReference: "BK-1042" },
+    "PATCH",
+  );
+  // Durable state survives a fresh database connection; lifecycle restart tested separately.
+  assert.equal(
+    (
+      await pool.query(
+        'SELECT count(*)::int AS n FROM "TravelTicket" WHERE id=$1',
+        [ticket.id],
+      )
+    ).rows[0].n,
+    1,
+  );
+  const clock = (
+    await pool.query(
+      'SELECT "offsetMinutes" FROM "TravelClock" WHERE id=\'demo\'',
+    )
+  ).rows[0].offsetMinutes;
+  previousClock = clock;
+  await call("/ops/clock/advance", customer, { minutes: 1 }, "POST", 403);
+  await call("/ops/clock/advance", manager, { minutes: -1 }, "POST", 400);
+  // Make only the test case overdue, then trigger two passes and assert exactly one event.
+  await pool.query(
+    "UPDATE \"TravelTicket\" SET deadline=(now() AT TIME ZONE 'UTC')-interval '1 minute' WHERE id=$1",
+    [ticket.id],
+  );
+  await call("/ops/clock/advance", manager, { minutes: 1 }, "POST", 201);
+  await call("/ops/clock/advance", manager, { minutes: 1 }, "POST", 201);
+  const events = await pool.query(
+    "SELECT count(*)::int AS n FROM \"TravelEvent\" WHERE \"ticketId\"=$1 AND kind='ESCALATED' AND text='Response deadline breached'",
+    [ticket.id],
+  );
+  assert.equal(events.rows[0].n, 1);
+  await pool.query(
+    'UPDATE "TravelClock" SET "offsetMinutes"=$1 WHERE id=\'demo\'',
+    [clock],
+  );
+  await call("/ops/availability", agent, { available: false }, "PATCH");
+  const routed = await call(
+    "/ops/tickets",
+    customer,
+    {
+      title: "Check-in routing while agent away",
+      description: "The voucher needs confirmation before our arrival.",
+      bookingReference: "BK-1042",
+    },
+    "POST",
+    201,
+  );
+  created.push(routed.id);
+  assert.equal(routed.agentId, "agent-global");
+  await call("/ops/availability", agent, { available: true }, "PATCH");
+  notes.push(
+    "Role and agency isolation, message privacy, booking validation/linking, least-load routing, supplier-only replies, resolution/reopening, durable records and idempotent escalation passed.",
+  );
+  console.log(`PASS: ${checks} real HTTP checks. ${notes.join(" ")}`);
+} finally {
+  if (previousClock !== undefined)
+    await pool.query(
+      'UPDATE "TravelClock" SET "offsetMinutes"=$1 WHERE id=\'demo\'',
+      [previousClock],
+    );
+  await pool.query('DELETE FROM "TravelTicket" WHERE id=ANY($1::text[])', [
+    created,
+  ]);
+  await pool.query(
+    'UPDATE "TravelProfile" SET available=true WHERE "userId"=\'agent-asia\'',
+  );
+  await pool.end();
+}

@@ -27,6 +27,8 @@ on:
 
 jobs:
   reset:
+    # Original upstream automation; OpsDesk has no configured reset endpoint.
+    if: github.repository == 'Molnar-Zoltan/it-helpdesk'
     runs-on: ubuntu-latest
     steps:
       - name: Call POST /admin/demo-reset

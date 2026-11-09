@@ -42,6 +42,7 @@ model User {
   ticketsAsAgent    Ticket[]       @relation("AgentTickets")
   messages          Message[]
   refreshTokens     RefreshToken[]
+  travelProfile     TravelProfile?
 }
 
 model Ticket {
@@ -100,4 +101,130 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TravelAgency {
+  id String @id
+  name String
+  code String @unique
+  bookings TravelBooking[]
+  profiles TravelProfile[]
+  tickets TravelTicket[]
+}
+
+model TravelSupplier {
+  id String @id
+  name String
+  email String
+  bookings TravelBooking[]
+  profiles TravelProfile[]
+  conversations TravelConversation[]
+}
+
+model TravelProfile {
+  userId String @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind String
+  agencyId String?
+  agency TravelAgency? @relation(fields: [agencyId], references: [id])
+  supplierId String?
+  supplier TravelSupplier? @relation(fields: [supplierId], references: [id])
+  region String?
+  available Boolean @default(true)
+}
+
+model TravelBooking {
+  id String @id @default(cuid())
+  reference String
+  agencyId String
+  agency TravelAgency @relation(fields: [agencyId], references: [id])
+  customerId String
+  supplierId String
+  supplier TravelSupplier @relation(fields: [supplierId], references: [id])
+  destination String
+  region String
+  service String
+  checkInAt DateTime
+  timezone String
+  tickets TravelTicket[]
+  @@unique([agencyId, reference])
+  @@index([customerId])
+}
+
+model TravelTicket {
+  id String @id @default(cuid())
+  reference String @unique
+  title String
+  description String
+  agencyId String
+  agency TravelAgency @relation(fields: [agencyId], references: [id])
+  customerId String
+  bookingId String?
+  booking TravelBooking? @relation(fields: [bookingId], references: [id])
+  category String
+  status String @default("OPEN")
+  priority String @default("MEDIUM")
+  region String
+  agentId String?
+  deadline DateTime
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages TravelMessage[]
+  conversations TravelConversation[]
+  events TravelEvent[]
+  @@index([agencyId, customerId])
+  @@index([status, deadline])
+}
+
+model TravelConversation {
+  id String @id @default(cuid())
+  ticketId String
+  ticket TravelTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier TravelSupplier @relation(fields: [supplierId], references: [id])
+  subject String
+  status String @default("AWAITING_REPLY")
+  dueAt DateTime
+  createdAt DateTime @default(now())
+  messages TravelMessage[]
+  @@index([supplierId])
+}
+
+model TravelMessage {
+  id String @id @default(cuid())
+  ticketId String
+  ticket TravelTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation TravelConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId String
+  visibility String
+  content String
+  createdAt DateTime @default(now())
+  @@index([ticketId, createdAt])
+}
+
+model TravelEvent {
+  id String @id @default(cuid())
+  ticketId String
+  ticket TravelTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  kind String
+  text String
+  actorId String
+  uniqueKey String? @unique
+  createdAt DateTime @default(now())
+  @@index([ticketId, createdAt])
+}
+
+model TravelClock {
+  id String @id
+  offsetMinutes Int @default(0)
+}
+
+// Track the development counter table in migrations as well as using it through pg.
+// This prevents schema-drift prompts when developers add future Prisma migrations.
+model OpsCounter {
+  key String @id
+  value String
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
 }

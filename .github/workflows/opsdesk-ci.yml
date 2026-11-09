@@ -1,0 +1,50 @@
+name: OpsDesk validation
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/opsdesk-*', 'docs/opsdesk-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: opsdesk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.x'
+          cache: npm
+      - run: npm ci
+      - name: Build and start isolated demo
+        shell: pwsh
+        run: |
+          $previewProcess = Start-Process node -ArgumentList @('scripts/run-local.mjs', '--preview') -WindowStyle Hidden -PassThru -RedirectStandardOutput 'opsdesk-ci.stdout.log' -RedirectStandardError 'opsdesk-ci.stderr.log'
+          $ready = $false
+          for ($attempt = 0; $attempt -lt 360; $attempt++) {
+            if ($previewProcess.HasExited) { break }
+            try {
+              $webResponse = Invoke-WebRequest 'http://127.0.0.1:3000' -TimeoutSec 2 -SkipHttpErrorCheck
+              $apiResponse = Invoke-WebRequest 'http://127.0.0.1:3001/ops/workspace' -TimeoutSec 2 -SkipHttpErrorCheck
+              if ($webResponse.StatusCode -eq 200 -and $apiResponse.StatusCode -eq 401) { $ready = $true; break }
+            } catch { }
+            Start-Sleep -Seconds 1
+          }
+          if (-not $ready) {
+            Get-Content 'opsdesk-ci.stdout.log', 'opsdesk-ci.stderr.log' -ErrorAction SilentlyContinue
+            throw 'OpsDesk did not start successfully.'
+          }
+      - run: npm run ops:test
+      - run: npm audit --omit=dev
+      - name: Show startup diagnostics
+        if: failure()
+        shell: pwsh
+        run: Get-Content 'opsdesk-ci.stdout.log', 'opsdesk-ci.stderr.log' -ErrorAction SilentlyContinue

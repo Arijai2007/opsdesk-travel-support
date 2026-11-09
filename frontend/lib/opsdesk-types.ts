@@ -1,0 +1,85 @@
+export type Person = {
+  id: string;
+  name: string;
+  kind: string;
+  region: string | null;
+  available: boolean;
+};
+export type Agency = { id: string; name: string; code: string };
+export type Supplier = { id: string; name: string; email: string };
+export type Booking = {
+  id: string;
+  reference: string;
+  agencyId: string;
+  customerId: string;
+  supplierId: string;
+  destination: string;
+  region: string;
+  service: string;
+  checkInAt: string;
+  timezone: string;
+  agency: Agency;
+  supplier: Supplier;
+};
+export type Message = {
+  id: string;
+  content: string;
+  senderId: string;
+  visibility: string;
+  createdAt: string;
+  conversationId: string | null;
+};
+export type CaseEvent = {
+  id: string;
+  ticketId: string;
+  kind: string;
+  text: string;
+  createdAt: string;
+  actorId: string;
+};
+export type Ticket = {
+  id: string;
+  reference: string;
+  title: string;
+  description: string;
+  agencyId: string;
+  customerId: string;
+  bookingId: string | null;
+  booking: Omit<Booking, "agency" | "supplier"> | null;
+  category: string;
+  region: string;
+  status: string;
+  priority: string;
+  agentId: string | null;
+  deadline: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  messages: Message[];
+  events: CaseEvent[];
+  relatedIds: string[];
+  summary: string;
+};
+export type Conversation = {
+  id: string;
+  ticketId: string;
+  subject: string;
+  status: string;
+  dueAt: string;
+  createdAt: string;
+  supplier: Supplier;
+  messages: Message[];
+};
+export type Workspace = {
+  me: Person & { agencyId: string | null };
+  now: string;
+  clockOffsetMinutes: number;
+  demoClockEnabled: boolean;
+  assistant: { mode: string; description: string };
+  tickets: Ticket[];
+  bookings: Booking[];
+  agencies: Agency[];
+  people: Person[];
+  conversations: Conversation[];
+  notifications: CaseEvent[];
+};

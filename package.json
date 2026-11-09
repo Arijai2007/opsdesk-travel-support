@@ -1,8 +1,8 @@
 {
-  "name": "it-helpdesk",
+  "name": "opsdesk-travel-support",
   "version": "0.13.0",
   "private": true,
-  "description": "An IT helpdesk application where users can file tickets manually or by chatting with an AI assistant that extracts structured ticket details automatically. Built as a full-stack TypeScript monorepo to explore tool-calling AI integration, Redis-backed rate limiting, and role-based access control end to end.",
+  "description": "Connected travel-support tickets, booking history, supplier conversations, assignment and deadline escalation.",
   "main": "index.js",
   "directories": {
     "doc": "docs"
@@ -18,20 +18,26 @@
     "prisma:generate": "npm run prisma:generate --workspace=backend",
     "prisma:migrate": "npm run prisma:migrate --workspace=backend",
     "prisma:seed": "npm run prisma:seed --workspace=backend",
-    "prisma:reset": "npm run prisma:reset --workspace=backend"
+    "prisma:reset": "npm run prisma:reset --workspace=backend",
+    "ops:dev": "node scripts/run-local.mjs",
+    "ops:setup": "node scripts/local-setup.mjs",
+    "ops:db": "node scripts/local-db.mjs",
+    "ops:seed": "npm exec --workspace=backend -- tsx prisma/seed-travel.ts",
+    "ops:test": "npm run test --workspace=backend -- --runInBand && node scripts/smoke-test.mjs",
+    "ops:preview": "node scripts/run-local.mjs --preview"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Molnar-Zoltan/it-helpdesk.git"
+    "url": "git+https://github.com/DhruvKhanna7777/opsdesk-travel-support.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/Molnar-Zoltan/it-helpdesk/issues"
+    "url": "https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues"
   },
-  "homepage": "https://github.com/Molnar-Zoltan/it-helpdesk#readme",
+  "homepage": "https://github.com/DhruvKhanna7777/opsdesk-travel-support#readme",
   "workspaces": [
     "frontend",
     "backend",
@@ -44,6 +50,7 @@
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
     "concurrently": "^10.0.4",
+    "embedded-postgres": "^18.6.0-beta.19",
     "husky": "^9.1.7",
     "lint-staged": "^17.2.0"
   }
