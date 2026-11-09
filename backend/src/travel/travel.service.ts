@@ -1,3 +1,4 @@
+import { TravelDirectoryDto } from './travel-directory.dto';
 import {
   BadRequestException,
   ForbiddenException,
@@ -150,6 +151,21 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       },
       _count: true,
     });
+    const names = await this.db.user.findMany({
+      where: {
+        id: {
+          in: tickets.flatMap((t) => [
+            t.customerId,
+            ...(t.agentId ? [t.agentId] : []),
+          ]),
+        },
+      },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    const name = (id: string | null) =>
+      names
+        .filter((u) => u.id === id)
+        .map((u) => `${u.firstName} ${u.lastName}`)[0];
     return {
       ...page,
       items: page.ids.flatMap((id) => {
@@ -158,6 +174,8 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           ? [
               {
                 ...ticket,
+                customerName: name(ticket.customerId),
+                ownerName: name(ticket.agentId),
                 relatedCount: ticket.bookingId
                   ? (groups.find((g) => g.bookingId === ticket.bookingId)
                       ?._count ?? 1) - 1
@@ -172,7 +190,10 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     const p = await this.profile(userId);
     const t = await this.ticket(p, id, this.db);
     const booking = t.bookingId
-      ? await this.db.travelBooking.findUnique({ where: { id: t.bookingId } })
+      ? await this.db.travelBooking.findUnique({
+          where: { id: t.bookingId },
+          include: { supplier: true, agency: true },
+        })
       : null;
     const relatedCount = t.bookingId
       ? await this.db.travelTicket.count({
@@ -195,10 +216,23 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           text: 'Supplier replied; agent review required.',
         },
       })) > 0;
+    const people = await this.db.travelProfile.findMany({
+      where: {
+        userId: { in: [t.customerId, ...(t.agentId ? [t.agentId] : [])] },
+      },
+      include: { user: { select: { firstName: true, lastName: true } } },
+    });
     return {
       ...t,
       booking,
       supplierReplied,
+      people: people.map((v) => ({
+        id: v.userId,
+        name: `${v.user.firstName} ${v.user.lastName}`,
+        kind: v.kind,
+        region: v.region,
+        available: v.available,
+      })),
       messages: [],
       events: [],
       relatedIds: [],
@@ -407,6 +441,134 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       data: { ticketId, kind, text, actorId, createdAt: now },
     });
   }
+  private bookingScope(p: Profile): Prisma.TravelBookingWhereInput {
+    if (p.kind === 'SUPPLIER') return { id: '__none__' };
+    if (STAFF.includes(p.kind)) {
+      const region = this.staffRegion(p);
+      return region === null ? {} : { region };
+    }
+    return {
+      agencyId: p.agencyId || 'NONE',
+      ...(p.kind === 'CUSTOMER' ? { customerId: p.userId } : {}),
+    };
+  }
+  async bookings(userId: string, query: TravelDirectoryDto) {
+    const p = await this.profile(userId);
+    const search = query.search?.trim();
+    const where: Prisma.TravelBookingWhereInput = {
+      AND: [
+        this.bookingScope(p),
+        search
+          ? {
+              OR: [
+                { reference: { contains: search, mode: 'insensitive' } },
+                { destination: { contains: search, mode: 'insensitive' } },
+                { agency: { name: { contains: search, mode: 'insensitive' } } },
+              ],
+            }
+          : {},
+      ],
+    };
+    const page = await readPage(
+      query,
+      () => this.db.travelBooking.count({ where }),
+      (skip, take) =>
+        this.db.travelBooking.findMany({
+          where,
+          skip,
+          take,
+          orderBy: [{ reference: 'asc' }, { id: 'asc' }],
+          include: { supplier: true, agency: true },
+        }),
+    );
+    const customers = await this.db.user.findMany({
+      where: { id: { in: page.items.map((b) => b.customerId) } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    return {
+      ...page,
+      items: page.items.map((b) => ({
+        ...b,
+        customerName:
+          customers
+            .filter((c) => c.id === b.customerId)
+            .map((c) => `${c.firstName} ${c.lastName}`)[0] || 'Traveler',
+      })),
+    };
+  }
+  async people(userId: string, query: TravelDirectoryDto) {
+    const p = await this.profile(userId);
+    const region = this.staffRegion(p);
+    const bookingScope =
+      p.kind === 'SUPPLIER'
+        ? Prisma.sql`FALSE`
+        : STAFF.includes(p.kind)
+          ? region === null
+            ? Prisma.sql`TRUE`
+            : Prisma.sql`b.region = ${region}`
+          : Prisma.sql`b."agencyId" = ${p.agencyId || 'NONE'} AND ${p.kind === 'CUSTOMER' ? Prisma.sql`b."customerId" = ${p.userId}` : Prisma.sql`TRUE`}`;
+    const ticketScope = STAFF.includes(p.kind)
+      ? region === null
+        ? Prisma.sql`TRUE`
+        : Prisma.sql`t.region = ${region}`
+      : p.kind === 'AGENCY'
+        ? Prisma.sql`t."agencyId" = ${p.agencyId || 'NONE'}`
+        : p.kind === 'CUSTOMER'
+          ? Prisma.sql`t."agencyId" = ${p.agencyId || 'NONE'} AND t."customerId" = ${p.userId}`
+          : Prisma.sql`FALSE`;
+    const threadScope =
+      p.kind === 'SUPPLIER'
+        ? Prisma.sql`c."supplierId" = ${p.supplierId || 'NONE'}`
+        : STAFF.includes(p.kind)
+          ? Prisma.sql`EXISTS (SELECT 1 FROM "TravelTicket" t WHERE t.id = c."ticketId" AND ${ticketScope})`
+          : Prisma.sql`FALSE`;
+    const visible = Prisma.sql`(p."userId" = ${p.userId} OR p.kind IN ('AGENT', 'MANAGER')
+      OR EXISTS (SELECT 1 FROM "TravelBooking" b WHERE b."customerId" = p."userId" AND ${bookingScope})
+      OR EXISTS (SELECT 1 FROM "TravelTicket" t WHERE t."customerId" = p."userId" AND ${ticketScope})
+      OR EXISTS (SELECT 1 FROM "TravelMessage" m JOIN "TravelConversation" c ON c.id = m."conversationId" WHERE m."senderId" = p."userId" AND ${threadScope}))`;
+    const search = query.search?.trim() || '';
+    const predicate = Prisma.sql`${visible} AND ${query.kind ? Prisma.sql`p.kind = ${query.kind}` : Prisma.sql`TRUE`} AND (strpos(lower(u."firstName"), lower(${search})) > 0 OR strpos(lower(u."lastName"), lower(${search})) > 0)`;
+    const from = Prisma.sql`FROM "TravelProfile" p JOIN "User" u ON u.id = p."userId" WHERE ${predicate}`;
+    const result = await readPage(
+      query,
+      async () =>
+        Number(
+          (
+            await this.db.$queryRaw<{ count: bigint }[]>(
+              Prisma.sql`SELECT count(*) ${from}`,
+            )
+          )[0].count,
+        ),
+      (skip, take) =>
+        this.db.$queryRaw<{ id: string }[]>(
+          Prisma.sql`SELECT p."userId" AS id ${from} ORDER BY u."firstName", p."userId" LIMIT ${take} OFFSET ${skip}`,
+        ),
+    );
+    const where = { userId: { in: result.items.map((v) => v.id) } };
+    const records = await this.db.travelProfile.findMany({
+      where,
+      include: { user: { select: { firstName: true, lastName: true } } },
+    });
+    const page = {
+      ...result,
+      items: result.items.flatMap((id) =>
+        records.filter((v) => v.userId === id.id),
+      ),
+    };
+    return {
+      ...page,
+      items: page.items.map((v) => ({
+        id: v.userId,
+        name: `${v.user.firstName} ${v.user.lastName}`,
+        kind: v.kind,
+        region: v.region,
+        available: v.available,
+        ...(p.kind === 'MANAGER' && v.kind === 'AGENT'
+          ? { specialties: v.specialties, maxActiveCases: v.maxActiveCases }
+          : {}),
+      })),
+    };
+  }
   async workspace(userId: string, compact = false) {
     const p = await this.profile(userId);
     const staff = STAFF.includes(p.kind);
@@ -489,7 +651,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           orderBy: { createdAt: 'desc' },
         });
     const bookings =
-      p.kind === 'SUPPLIER'
+      compact || p.kind === 'SUPPLIER'
         ? []
         : await this.db.travelBooking.findMany({
             where: staff
@@ -511,17 +673,19 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         ...conversations.flatMap((c) => c.messages.map((m) => m.senderId)),
       ]),
     ];
-    const people = await this.db.travelProfile.findMany({
-      where: {
-        OR: [
-          { userId: { in: visibleUserIds } },
-          { kind: { in: ['AGENT', 'MANAGER'] } },
-        ],
-      },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
+    const people = compact
+      ? []
+      : await this.db.travelProfile.findMany({
+          where: {
+            OR: [
+              { userId: { in: visibleUserIds } },
+              { kind: { in: ['AGENT', 'MANAGER'] } },
+            ],
+          },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true } },
+          },
+        });
     const agencies = await this.db.travelAgency.findMany({
       where: staff ? {} : { id: p.agencyId || 'NONE' },
     });

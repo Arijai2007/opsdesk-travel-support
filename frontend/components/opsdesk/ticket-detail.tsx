@@ -1,4 +1,5 @@
 "use client";
+import { DirectorySelect } from "./directory-select";
 import { useState } from "react";
 import { useOpsResource, useOpsPage, PageControls } from "./paged-data";
 import {
@@ -17,6 +18,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import type {
+  Booking,
+  Person,
   CaseEvent,
   Conversation,
   Message,
@@ -158,7 +161,7 @@ export function NewTicket({
       setError((e as Error).message);
     }
   }
-  const booking = data.bookings.find((b) => b.id === bookingId);
+  const [booking, setBooking] = useState<Booking>();
   return (
     <Modal title="Start a conversation" onClose={onClose}>
       <form
@@ -178,26 +181,29 @@ export function NewTicket({
           }).catch((e) => setError(e.message));
         }}
       >
-        <label>
+        <div>
           Booking
-          <select
+          <DirectorySelect<Booking>
+            path="bookings"
+            label="Booking"
+            refresh={data.now}
             value={bookingId}
-            onChange={(e) => setBookingId(e.target.value)}
             required={data.me.kind !== "CUSTOMER"}
+            onSelect={(id, item) => {
+              setBookingId(id);
+              setBooking(item);
+            }}
+            text={(b) =>
+              `${b.reference}  -  ${b.destination}  -  ${b.customerName || ""}`
+            }
           >
             <option value="">
               {data.me.kind === "CUSTOMER"
-                ? "My booking isn’t listed"
+                ? "My booking is not listed"
                 : "Select a verified booking"}
             </option>
-            {data.bookings.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.reference} · {b.destination} ·{" "}
-                {data.people.find((p) => p.id === b.customerId)?.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          </DirectorySelect>
+        </div>
         {data.me.kind === "CUSTOMER" && !booking && (
           <label>
             Booking reference (optional)
@@ -319,7 +325,17 @@ export function OnDemandTicket({
       </p>
     );
   if (!detail.data) return <p role="status">Loading case…</p>;
-  return <TicketDetail ticket={detail.data} data={data} {...props} />;
+  return (
+    <TicketDetail
+      ticket={detail.data}
+      data={{
+        ...data,
+        people: detail.data.people ?? [],
+        bookings: detail.data.booking ? [detail.data.booking as Booking] : [],
+      }}
+      {...props}
+    />
+  );
 }
 export function TicketDetail({
   ticket: t,
@@ -661,36 +677,26 @@ export function TicketDetail({
             <label>
               Owner
               {manager ? (
-                <select
-                  aria-label="Assign owner"
+                <DirectorySelect<Person>
+                  path="people?kind=AGENT"
+                  label="Assign agent"
+                  refresh={data.now}
                   disabled={busy}
                   value={t.agentId || ""}
-                  onChange={(e) =>
+                  text={(p) =>
+                    `${p.name}  -  ${p.region || ""}${p.available ? "" : " (unavailable)"}`
+                  }
+                  onSelect={(id) =>
                     void mutate(
                       `tickets/${t.id}`,
-                      {
-                        agentId: e.target.value,
-                        reason: "Manager reassignment.",
-                      },
+                      { agentId: id, reason: "Manager reassignment." },
                       "Assignment updated.",
                       "PATCH",
                     ).catch(() => {})
                   }
                 >
                   <option value="">Unassigned</option>
-                  {data.people
-                    .filter(
-                      (p) =>
-                        p.kind === "AGENT" &&
-                        p.available &&
-                        [t.region, "GLOBAL"].includes(p.region || ""),
-                    )
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                </select>
+                </DirectorySelect>
               ) : (
                 <span>
                   {owner?.name || "Unassigned"}

@@ -82,10 +82,10 @@ Start: backend/src/travel/travel.rules.ts, service locks, profiles and ticket-de
 
 [GitHub issue #7](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/7)
 
-The inbox returns authorized case rows, and Insights, assignment load counts and deadline candidate filtering run in PostgreSQL. The case-read follow-up loads individual cases on demand and pages messages, activity, related cases and supplier threads. The browser uses compact workspace metadata instead of the complete case snapshot. A global advisory lock still serializes routing and escalation.
+The inbox returns authorized case rows, and Insights, assignment load counts and deadline candidate filtering run in PostgreSQL. The case-read follow-up loads individual cases on demand and pages messages, activity, related cases and supplier threads. The browser uses compact workspace metadata instead of the complete case snapshot. Booking and people directories now use server-filtered 20-row pages with search and deterministic ID tie breakers; selectors and routing settings page independently. A global advisory lock still serializes routing and escalation.
 
 Acceptance:
-- Paginate booking and people directories, and retire the legacy full-workspace endpoint after migrating its remaining callers.
+- Retire the legacy full-workspace endpoint after migrating compatibility/test callers. Booking and people directory pagination is implemented; realistic-volume query plans and load measurements remain open.
 - Review indexes with query plans on realistic synthetic volume.
 - Replace global contention with appropriately scoped locks and robust worker/outbox scheduling.
 - Define reporting metrics/timezones and incremental data updates.

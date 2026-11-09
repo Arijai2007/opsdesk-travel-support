@@ -16,6 +16,7 @@ export type Agency = {
 };
 export type Supplier = { id: string; name: string; email: string };
 export type Booking = {
+  customerName?: string;
   id: string;
   reference: string;
   agencyId: string;
@@ -49,6 +50,9 @@ export type CaseEvent = {
   actorId: string;
 };
 export type Ticket = {
+  people?: Person[];
+  customerName?: string;
+  ownerName?: string;
   supplierReplied?: boolean;
   relatedCount?: number;
   id: string;
