@@ -2,6 +2,10 @@
 
 A working local prototype built on [Molnar-Zoltan/it-helpdesk](https://github.com/Molnar-Zoltan/it-helpdesk). The original application and its documentation remain in the repository. OpsDesk's entry point is `/`; its API is `/ops/*`.
 
+## Developer handoff
+
+Read [the complete handoff](docs/OPSDESK_HANDOFF.md) for architecture, setup, completed work, boundaries and transfer steps. [Prioritized remaining work](docs/OPSDESK_BACKLOG.md) is tracked in our GitHub issues. The implementation and handoff PRs are in `DhruvKhanna7777/opsdesk-travel-support` only.
+
 ## Run locally
 
 Requirements: Node.js 22 and npm. No Docker, paid API, email provider or external database account is required for the local demo.
@@ -16,6 +20,8 @@ npm run ops:preview
 The launcher generates local-only secrets, starts embedded PostgreSQL on `127.0.0.1:55432`, applies migrations, seeds an empty travel workspace, builds both applications, and starts the API and optimized web preview. Open **http://127.0.0.1:3000**. First startup takes longer because packages and database binaries must install. For frontend development with live reload, use `npm run ops:dev` instead.
 
 Run one launcher at a time. Existing records and `.env` files are preserved. Database files live in `.opsdesk/postgres`, are ignored by Git, and must be backed up if you want to retain your local cases. Closing the app does not delete records. The embedded database package supports Windows x64, Linux and macOS; this build was exercised on Windows x64.
+
+For an existing dedicated development PostgreSQL instance, set `DATABASE_URL` in `backend/.env` and run `npm run ops:preview -- --external-db`. This skips embedded PostgreSQL but still applies migrations and seeds an empty demo. CI uses this mode with a PostgreSQL service. Use a separate development database.
 
 ## Demo accounts
 
