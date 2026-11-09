@@ -91,7 +91,15 @@ async function main() {
     });
     await db.travelProfile.upsert({
       where: { userId: id },
-      create: { userId: id, kind, agencyId, region, supplierId },
+      create: {
+        userId: id,
+        kind,
+        agencyId,
+        region,
+        supplierId,
+        specialties:
+          kind === 'AGENT' && region === 'ASIA' ? ['CHECK_IN', 'REFUND'] : [],
+      },
       update: {},
     });
   }
@@ -205,6 +213,10 @@ async function main() {
   for (let i = 0; i < 30; i++) {
     const customer = i % 20,
       r = customer % 3;
+    const flight = i % 5 === 1;
+    const checkInAt = new Date(
+      now.getTime() + (i === 0 ? 20 : i === 1 ? 3 : 24 + i * 5) * hour,
+    );
     await db.travelBooking.create({
       data: {
         id: `booking-${i}`,
@@ -214,10 +226,10 @@ async function main() {
         supplierId: `supplier-${i % 5}`,
         destination: destinations[r + (i % 2) * 3],
         region: regions[r],
-        service: i % 5 === 1 ? 'Flight' : 'Hotel stay',
-        checkInAt: new Date(
-          now.getTime() + (i === 0 ? 20 : i === 1 ? 3 : 24 + i * 5) * hour,
-        ),
+        service: flight ? 'Flight' : 'Hotel stay',
+        checkInAt,
+        departureAt: flight ? new Date(+checkInAt + 2 * hour) : null,
+        cancellationCutoffAt: new Date(+checkInAt - 8 * hour),
         timezone: zones[r + (i % 2) * 3],
       },
     });

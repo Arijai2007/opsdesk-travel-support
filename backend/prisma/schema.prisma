@@ -107,6 +107,8 @@ model TravelAgency {
   id String @id
   name String
   code String @unique
+  responseTargetHours Int @default(24)
+  responsePolicyVersion Int @default(1)
   bookings TravelBooking[]
   profiles TravelProfile[]
   tickets TravelTicket[]
@@ -131,6 +133,8 @@ model TravelProfile {
   supplier TravelSupplier? @relation(fields: [supplierId], references: [id])
   region String?
   available Boolean @default(true)
+  specialties String[] @default([])
+  maxActiveCases Int?
 }
 
 model TravelBooking {
@@ -145,6 +149,8 @@ model TravelBooking {
   region String
   service String
   checkInAt DateTime
+  departureAt DateTime?
+  cancellationCutoffAt DateTime?
   timezone String
   tickets TravelTicket[]
   @@unique([agencyId, reference])
@@ -167,6 +173,8 @@ model TravelTicket {
   region String
   agentId String?
   deadline DateTime
+  responseDeadline DateTime?
+  responseStartedAt DateTime?
   resolvedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

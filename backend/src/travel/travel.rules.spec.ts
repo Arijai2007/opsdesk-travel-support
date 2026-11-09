@@ -1,16 +1,54 @@
-import { chooseAgent, classify, deadlineFor, urgency } from './travel.rules';
+import {
+  chooseAgent,
+  classify,
+  effectiveDeadline,
+  responseDeadlineFor,
+  urgency,
+} from './travel.rules';
 describe('travel policy decisions', () => {
   const now = new Date('2026-11-09T10:00:00Z');
   const later = (hours: number) => new Date(now.getTime() + hours * 3600000);
   it('keeps a post-trip refund on its own response target', () => {
-    expect(deadlineFor('REFUND', now, later(-24))).toEqual(later(24));
+    const booking = {
+      checkInAt: later(-24),
+      departureAt: later(-23),
+      cancellationCutoffAt: later(-48),
+    };
+    expect(
+      effectiveDeadline('REFUND', responseDeadlineFor(now), booking, now),
+    ).toEqual(later(24));
     expect(urgency('REFUND', later(24), later(2), now)).toBeNull();
   });
   it('uses the earlier check-in deadline for an unresolved service issue', () => {
-    expect(deadlineFor('CHECK_IN', now, later(4))).toEqual(later(4));
+    const booking = {
+      checkInAt: later(4),
+      departureAt: later(6),
+      cancellationCutoffAt: later(2),
+    };
+    expect(
+      effectiveDeadline('CHECK_IN', responseDeadlineFor(now), booking, now),
+    ).toEqual(later(4));
     expect(urgency('CHECK_IN', later(24), later(4), now)?.priority).toBe(
       'URGENT',
     );
+  });
+  it('uses cancellation cutoff only for cancellations and records a travel breach', () => {
+    const booking = {
+      checkInAt: later(20),
+      departureAt: later(10),
+      cancellationCutoffAt: later(4),
+    };
+    const response = responseDeadlineFor(now);
+    expect(effectiveDeadline('CANCELLATION', response, booking, now)).toEqual(
+      later(4),
+    );
+    expect(effectiveDeadline('BOOKING_CHANGE', response, booking, now)).toEqual(
+      later(10),
+    );
+    expect(
+      urgency('CANCELLATION', later(4), booking.checkInAt, later(5), response)
+        ?.reason,
+    ).toBe('Travel deadline breached');
   });
   it('raises a near check-in to high, then urgent at the six-hour boundary', () => {
     expect(
@@ -19,6 +57,34 @@ describe('travel policy decisions', () => {
     expect(urgency('BOOKING_CHANGE', later(24), later(6), now)?.priority).toBe(
       'URGENT',
     );
+  });
+  it('prefers qualified specialists and excludes unrelated or unavailable specialists', () => {
+    const specialist = {
+      userId: 'refund',
+      region: 'ASIA',
+      available: true,
+      specialties: ['REFUND'],
+    };
+    const generalist = {
+      userId: 'global',
+      region: 'GLOBAL',
+      available: true,
+      specialties: [],
+    };
+    expect(
+      chooseAgent([specialist, generalist], 'ASIA', { refund: 4 }, 'REFUND'),
+    ).toBe(specialist);
+    expect(chooseAgent([specialist, generalist], 'ASIA', {}, 'CHECK_IN')).toBe(
+      generalist,
+    );
+    expect(
+      chooseAgent(
+        [{ ...specialist, available: false }, generalist],
+        'ASIA',
+        {},
+        'REFUND',
+      ),
+    ).toBe(generalist);
   });
   it('escalates a missed response target even for a refund', () => {
     expect(urgency('REFUND', later(-1), undefined, now)?.reason).toBe(

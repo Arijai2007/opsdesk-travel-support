@@ -51,11 +51,15 @@ jobs:
             if ! kill -0 "$preview_pid" 2>/dev/null; then break; fi
             web_status=$(curl --max-time 2 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000 || true)
             api_status=$(curl --max-time 2 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ops/workspace || true)
-            if [ "$web_status" = 200 ] && [ "$api_status" = 401 ]; then ready=true; break; fi
+            ready_status=$(curl --max-time 2 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/health/ready || true)
+            worker_status=$(curl --max-time 2 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/health/worker || true)
+            if [ "$web_status" = 200 ] && [ "$api_status" = 401 ] && [ "$ready_status" = 200 ] && [ "$worker_status" = 200 ]; then ready=true; break; fi
             sleep 1
           done
           if [ "$ready" != true ]; then cat opsdesk-ci.log; exit 1; fi
       - run: npm run ops:test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run ops:test:browser
       - run: npm audit --omit=dev
       - name: Show startup diagnostics
         if: failure()

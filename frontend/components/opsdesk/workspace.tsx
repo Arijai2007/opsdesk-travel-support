@@ -36,7 +36,13 @@ import {
 } from "./ui";
 import { OpsLogin } from "./login";
 import { NewTicket, TicketDetail, SupplierDesk } from "./ticket-detail";
-import { Bookings, Insights } from "./reports";
+import { useTravelQueue } from "./use-travel-queue";
+import {
+  AgencyResponseSettings,
+  Bookings,
+  Insights,
+  RoutingSettings,
+} from "./reports";
 export function OpsDeskWorkspace() {
   const [data, setData] = useState<Workspace | null>(null),
     [ready, setReady] = useState(false),
@@ -49,10 +55,33 @@ export function OpsDeskWorkspace() {
     [search, setSearch] = useState(""),
     [priority, setPriority] = useState("ALL"),
     [region, setRegion] = useState("ALL"),
+    [status, setStatus] = useState("ALL"),
+    [owner, setOwner] = useState("ALL"),
+    [deadline, setDeadline] = useState("ALL"),
     [showNew, setShowNew] = useState(false),
     [showNotices, setShowNotices] = useState(false),
     [showClock, setShowClock] = useState(false),
     [showHelp, setShowHelp] = useState(false);
+  const queue = useTravelQueue(
+    data?.me.id,
+    Boolean(
+      data &&
+      data.me.kind !== "SUPPLIER" &&
+      !selected &&
+      ["inbox", "manager"].includes(view),
+    ),
+    {
+      search,
+      tab,
+      priority,
+      region,
+      status,
+      owner,
+      deadline,
+      attention: view === "manager" ? "1" : "",
+    },
+    data?.now,
+  );
   const load = useCallback(() => {
     return request("workspace")
       .then((workspace: Workspace) => {
@@ -132,26 +161,11 @@ export function OpsDeskWorkspace() {
   const agency = (id: string) =>
     data.agencies.find((a) => a.id === id)?.name || "Agency";
   const current = tickets.find((t) => t.id === selected);
-  const rows = tickets
-    .filter((t) => {
-      if (view === "manager" && !needsAttention(t)) return false;
-      if (tab === "active" && !active(t)) return false;
-      if (tab === "waiting" && t.status !== "WAITING_SUPPLIER") return false;
-      if (tab === "resolved" && active(t)) return false;
-      if (tab === "mine" && (t.agentId !== data.me.id || !active(t)))
-        return false;
-      if (priority !== "ALL" && t.priority !== priority) return false;
-      if (region !== "ALL" && t.region !== region) return false;
-      return `${t.title} ${t.reference} ${t.booking?.reference || ""} ${person(t.customerId)} ${agency(t.agencyId)}`
-        .toLowerCase()
-        .includes(search.toLowerCase());
-    })
-    .sort(
-      (a, b) =>
-        ["URGENT", "HIGH", "MEDIUM", "LOW"].indexOf(a.priority) -
-          ["URGENT", "HIGH", "MEDIUM", "LOW"].indexOf(b.priority) ||
-        +new Date(a.deadline) - +new Date(b.deadline),
-    );
+  const ticketsById = new Map(tickets.map((ticket) => [ticket.id, ticket]));
+  const rows = (queue.data?.ids ?? [])
+    .map((id) => ticketsById.get(id))
+    .filter((ticket): ticket is Ticket => ticket !== undefined);
+  const currentPage = queue.data?.page ?? 1;
   function navigate(next: string) {
     setView(next);
     setSelected(null);
@@ -159,6 +173,9 @@ export function OpsDeskWorkspace() {
     setTab("active");
     setPriority("ALL");
     setRegion("ALL");
+    setStatus("ALL");
+    setOwner("ALL");
+    setDeadline("ALL");
   }
   const nav = [
     {
@@ -456,9 +473,23 @@ export function OpsDeskWorkspace() {
                   onSelect={setSelected}
                 />
               ) : view === "insights" ? (
-                <Insights data={data} />
+                <Insights />
               ) : (
                 <>
+                  {view === "manager" && data.me.kind === "MANAGER" && (
+                    <>
+                      <RoutingSettings
+                        data={data}
+                        busy={busy}
+                        mutate={mutate}
+                      />
+                      <AgencyResponseSettings
+                        data={data}
+                        busy={busy}
+                        mutate={mutate}
+                      />
+                    </>
+                  )}
                   <div className="od-stats">
                     {[
                       {
@@ -547,7 +578,10 @@ export function OpsDeskWorkspace() {
                         <button
                           key={id}
                           className={tab === id ? "active" : ""}
-                          onClick={() => setTab(String(id))}
+                          onClick={() => {
+                            setTab(String(id));
+                            setStatus("ALL");
+                          }}
                         >
                           {label}
                           <span>{count}</span>
@@ -564,6 +598,7 @@ export function OpsDeskWorkspace() {
                         <input
                           aria-label="Search conversations"
                           placeholder="Search traveler, booking or conversation…"
+                          maxLength={180}
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                         />
@@ -606,6 +641,56 @@ export function OpsDeskWorkspace() {
                         </button>
                       )}
                     </div>
+                    {staff && (
+                      <div className="od-filters">
+                        <select
+                          aria-label="Filter status"
+                          value={status}
+                          onChange={(e) => {
+                            setStatus(e.target.value);
+                            setTab("all");
+                          }}
+                        >
+                          <option value="ALL">All statuses</option>
+                          {[
+                            "OPEN",
+                            "IN_PROGRESS",
+                            "WAITING_SUPPLIER",
+                            "WAITING_CUSTOMER",
+                            "RESOLVED",
+                            "CLOSED",
+                          ].map((value) => (
+                            <option value={value} key={value}>
+                              {human(value)}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label="Filter owner"
+                          value={owner}
+                          onChange={(e) => setOwner(e.target.value)}
+                        >
+                          <option value="ALL">All owners</option>
+                          <option value="UNASSIGNED">Unassigned</option>
+                          {data.people
+                            .filter((person) => person.kind === "AGENT")
+                            .map((person) => (
+                              <option value={person.id} key={person.id}>
+                                {person.name}
+                              </option>
+                            ))}
+                        </select>
+                        <select
+                          aria-label="Filter deadline"
+                          value={deadline}
+                          onChange={(e) => setDeadline(e.target.value)}
+                        >
+                          <option value="ALL">All deadlines</option>
+                          <option value="OVERDUE">Overdue</option>
+                          <option value="NEXT_DAY">Due within 24 hours</option>
+                        </select>
+                      </div>
+                    )}
                     <div className="od-table-wrap">
                       <table className="od-table">
                         <thead>
@@ -686,7 +771,15 @@ export function OpsDeskWorkspace() {
                           ))}
                         </tbody>
                       </table>
-                      {rows.length === 0 && (
+                      {queue.error && (
+                        <p role="alert" className="od-error">
+                          {queue.error}
+                        </p>
+                      )}
+                      {!queue.data && !queue.error && (
+                        <p role="status">Loading conversations…</p>
+                      )}
+                      {queue.data && queue.data.total === 0 && (
                         <div className="od-empty">
                           <Inbox size={30} />
                           <h3>No conversations here</h3>
@@ -696,6 +789,9 @@ export function OpsDeskWorkspace() {
                             onClick={() => {
                               setPriority("ALL");
                               setRegion("ALL");
+                              setStatus("ALL");
+                              setOwner("ALL");
+                              setDeadline("ALL");
                               setSearch("");
                               setTab("all");
                             }}
@@ -707,8 +803,31 @@ export function OpsDeskWorkspace() {
                     </div>
                     <div className="od-table-footer">
                       <span>
-                        Showing {rows.length} of {tickets.length} conversations
+                        {queue.data
+                          ? `Showing ${rows.length} of ${queue.data.total} matching conversations`
+                          : "Conversations"}
                       </span>
+                      {queue.data && queue.data.totalPages > 1 && (
+                        <nav className="od-flex" aria-label="Inbox pages">
+                          <button
+                            className="od-secondary"
+                            disabled={currentPage === 1}
+                            onClick={() => queue.goToPage(currentPage - 1)}
+                          >
+                            Previous page
+                          </button>
+                          <span>
+                            Page {currentPage} of {queue.data.totalPages}
+                          </span>
+                          <button
+                            className="od-secondary"
+                            disabled={currentPage >= queue.data.totalPages}
+                            onClick={() => queue.goToPage(currentPage + 1)}
+                          >
+                            Next page
+                          </button>
+                        </nav>
+                      )}
                       <span>
                         <ShieldCheck size={13} />
                         Visibility follows your workspace role

@@ -28,7 +28,7 @@ Acceptance:
 - Remove demo accounts and disable demo clock; keep OPSDESK_LOCAL_COUNTERS disabled in production.
 - Provision users/travel profiles through a reviewed operational path.
 - Review migrations on a staging restore; prove backup/restore and define retention.
-- Add health/worker monitoring, logging and ownership/on-call runbook.
+- Connect the readiness and worker probes to deployment monitoring and assign on-call ownership.
 - Select deployment target; inherited infrastructure is reference material, not a ready OpsDesk deployment.
 
 Start: scripts/local-setup.mjs, backend/src/main.ts, RedisService, infra/, docs/OPSDESK_HANDOFF.md.
@@ -68,11 +68,11 @@ Start: TravelBooking, TravelProfile, ticket create/update logic and seed-travel.
 
 [GitHub issue #6](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/6)
 
-The prototype uses code-defined deadlines and available-agent least-workload routing.
+Managers can edit booking schedules, agent specialties and capacity, and elapsed-hour agency response targets. Automatic routing considers category, region, availability, capacity and workload. New and reopened cases record the response policy applied.
 
 Acceptance:
 - Define per-contract SLA/business-hour/holiday calendars and escalation ownership/acknowledgment.
-- Add shifts, skills, capacities and controlled manual override policies.
+- Add shifts and more detailed manual override policies.
 - Add manager administration for agencies, suppliers, agents, customers and travel memberships.
 - Specify reopen behavior and routing when coverage is unavailable.
 - Version policy changes and retain an auditable reason for priority/assignment.
@@ -84,10 +84,10 @@ Start: backend/src/travel/travel.rules.ts, service locks, profiles and ticket-de
 
 [GitHub issue #7](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/7)
 
-GET /ops/workspace loads the complete authorized dataset; the browser computes demo reports. A global advisory lock serializes routing/escalation.
+The inbox requests authorized case pages, and Insights, assignment load counts and deadline candidate filtering run in PostgreSQL. The browser still loads the complete authorized workspace to display ticket details. A global advisory lock still serializes routing and escalation.
 
 Acceptance:
-- Add paginated cases/messages/threads and server-side search/filter/report aggregates.
+- Load individual cases and paginate messages and supplier threads so the browser can replace the complete workspace snapshot.
 - Review indexes with query plans on realistic synthetic volume.
 - Replace global contention with appropriately scoped locks and robust worker/outbox scheduling.
 - Define reporting metrics/timezones and incremental data updates.
@@ -119,7 +119,7 @@ API key needed only once this work begins. Do not claim model accuracy before me
 Local validation covers 7 unit tests, 47 real HTTP checks and manual desktop/mobile workflows. This does not establish complete browser, load or production-security coverage.
 
 Acceptance:
-- Add automated end-to-end tests for all travel roles and the main booking-to-supplier-to-resolution scenario.
+- Extend the automated five-role booking-to-supplier-to-resolution flow to cover failure recovery and additional browsers.
 - Audit keyboard navigation, focus, screen reader labels and contrast.
 - Exercise clean-clone Windows setup and process shutdown, then supported alternate platforms.
 - Review inherited app surfaces and remaining development-tool advisories without unvalidated force upgrades.

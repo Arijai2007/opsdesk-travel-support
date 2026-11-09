@@ -5,14 +5,19 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/types/authenticated-request.type';
 import { TravelService } from './travel.service';
+import { TravelQueueDto } from './travel-queue.dto';
 import {
+  AgencyResponsePolicyDto,
+  AgentSpecialtiesDto,
   AvailabilityDto,
+  BookingScheduleDto,
   ConversationStatusDto,
   ClockDto,
   NewConversationDto,
@@ -27,6 +32,15 @@ export class TravelController {
   constructor(private readonly travel: TravelService) {}
   @Get('workspace') workspace(@Req() req: AuthenticatedRequest) {
     return this.travel.workspace(req.user.userId);
+  }
+  @Get('insights') insights(@Req() req: AuthenticatedRequest) {
+    return this.travel.insights(req.user.userId);
+  }
+  @Get('queue') queue(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: TravelQueueDto,
+  ) {
+    return this.travel.queue(req.user.userId, query);
   }
   @Post('tickets') create(
     @Req() req: AuthenticatedRequest,
@@ -80,5 +94,30 @@ export class TravelController {
     @Body() dto: AvailabilityDto,
   ) {
     return this.travel.availability(req.user.userId, dto.available);
+  }
+  @Patch('bookings/:id/schedule') schedule(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: BookingScheduleDto,
+  ) {
+    return this.travel.updateSchedule(req.user.userId, id, dto);
+  }
+  @Patch('agents/:id/specialties') specialties(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: AgentSpecialtiesDto,
+  ) {
+    return this.travel.updateSpecialties(req.user.userId, id, dto);
+  }
+  @Patch('agencies/:id/response-policy') agencyResponsePolicy(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: AgencyResponsePolicyDto,
+  ) {
+    return this.travel.updateAgencyResponsePolicy(
+      req.user.userId,
+      id,
+      dto.responseTargetHours,
+    );
   }
 }

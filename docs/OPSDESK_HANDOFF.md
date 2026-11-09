@@ -26,13 +26,13 @@ The scope was a 3–5 day demonstration of connected support, not a full replace
 | --- | --- | --- |
 | Ticket persistence | PostgreSQL-backed cases, messages, status, priority, ownership and history | No attachment upload, archive/delete UI or retention policy |
 | Connected history | Exact booking-reference matching inside agency/customer access boundaries, related cases, manual verification, record brief | Unmatched references are saved for staff review. No fuzzy identity resolution, external booking synchronization or cross-agency merge |
-| Assignment | Region coverage, agent availability, least-open-workload selection, global fallback, manager reassignment and unassigned queue | No shifts, skills matrix, configurable capacity, round-robin contracts or agent provisioning UI |
+| Assignment | Region and category coverage, availability, least-open workload, generalist fallback, manager overrides and an unassigned queue | Shifts, capacity, round-robin policies and agent provisioning remain pending |
 | Supplier collaboration | Separate persistent supplier threads, scoped supplier login, replies, close/reopen, due dates | Messages stay inside the app; no real email, WhatsApp or supplier API delivery |
-| Travel urgency | Response deadline, check-in urgency, overdue supplier attention queue, manager notifications | Default policies are code-based, not per-contract SLAs or business-hour calendars |
+| Travel urgency | Separate response and travel deadlines, manager schedule edits, check-in urgency, supplier due dates and manager notifications | Default policies are code-based. Contract SLAs and business-hour calendars remain pending |
 | Escalation | 15-second sweep, durable events, unique escalation keys, transaction lock, manager-only persistent demo clock | No external alert delivery, acknowledgment workflow or dedicated job service |
-| Insights | Category and 7-day volume charts, resolution rate, median first response, repeat bookings, supplier counts, CSV export | Calculated from loaded authorized demo records; not a scalable analytics pipeline |
+| Insights | Server-side totals, response and resolution medians, repeat bookings, seven UTC days of intake, supplier delays and CSV export | Reports use the current authorized records. Incremental aggregation and load targets remain pending |
 | Access roles | Manager, regional/global agent, agency, customer and supplier | Single shared support organization; no organization-admin or SSO onboarding |
-| Assistance | Rules-based category suggestions and source-labelled briefs from saved records | No connected LLM, model training or measured classification accuracy |
+| Assistance | Rules-based category suggestions, source-labelled briefs and editable reply drafts based on saved facts | External LLM evaluation and provider integration remain pending |
 | Demo data | 3 agencies, 20 travelers, 30 bookings, 60 initial cases, 4 agents, 1 manager, 5 suppliers | Synthetic operations; one browser-created case exists only in the original local database |
 | Complaint examples | 66 Bitext Travel instructions across 33 intents, with source/license metadata | Text examples only; not real booking histories, supplier policies or a production training corpus |
 | Local setup | One launcher, embedded PostgreSQL, generated local secrets, migrations and non-destructive seed | Production Redis/database/deployment still require configuration and review |
@@ -138,6 +138,8 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/ops/workspace` | Authorized tickets, people, bookings, supplier threads and configuration |
+| GET | `/ops/queue` | Authorized inbox ordering, search, filters and 20 ticket IDs per page |
+| GET | `/ops/insights` | Staff-only aggregate report using the caller’s authorized case scope |
 | POST | `/ops/tickets` | Create and link/classify/route a case |
 | PATCH | `/ops/tickets/:id` | Status, priority, assignment and booking verification |
 | POST | `/ops/tickets/:id/messages` | Customer-visible response or private staff note |
@@ -145,18 +147,29 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 | POST | `/ops/conversations/:id/reply` | Reply as authorized staff or matching supplier |
 | PATCH | `/ops/conversations/:id` | Staff close/reopen supplier thread |
 | PATCH | `/ops/availability` | Set own support availability |
+| PATCH | `/ops/bookings/:id/schedule` | Manager edits check-in, departure and cancellation cutoff as UTC timestamps and recalculates active case deadlines |
+| PATCH | `/ops/agents/:id/specialties` | Manager sets an agent’s supported categories. An empty list provides general coverage |
+| PATCH | `/ops/agencies/:id/response-policy` | Manager sets a 1–168 hour response target for future case cycles |
+| GET | `/health/ready` | Returns 200 when PostgreSQL and the counters backend are ready, otherwise 503 |
+| GET | `/health/worker` | Returns 200 when a deadline sweep completed in the last minute, otherwise 503 |
 | POST | `/ops/clock/advance` | Manager-only demo time advance |
 
 See DTOs for exact fields. Do not bypass the service authorization with direct UI role checks. New integrations must authenticate their own webhook source and map identities to existing authorized records.
 
+The inbox requests a filtered page from PostgreSQL and uses the workspace snapshot to display those cases. Ticket detail, booking history, messages and supplier threads still come from the workspace response.
+
 ## 10. Current business rules
 
 - Keyword rules suggest one of the supported travel issue categories; they are not an LLM classifier.
-- Routing picks an available eligible regional/global support agent with the lowest active-case workload. No eligible agent leaves the case unassigned.
-- Non-refund service issues use the earlier relevant travel/response deadline. Imminent check-in raises priority: within 24 hours High, within 6 hours Urgent. Missed response targets are Urgent. Refund follow-ups use response deadlines independently of check-in.
+- Routing selects available regional or global agents, prefers the matching specialty and breaks ties by active workload. Generalists cover categories without an available specialist. If no eligible agent is available, the ticket stays unassigned. Managers edit specialties from Needs attention.
+- Managers can set each agent’s maximum active cases from Needs attention. Automatic routing skips agents at capacity, including during simultaneous intake. Existing assignments are preserved and managers can still reassign deliberately.
+- Agency response targets use elapsed hours and default to 24. Policy changes apply to new and reopened cases. Case activity records the policy version and duration used. Existing active cases retain their response target. Reopening starts a new response cycle and preserves ownership.
+- Non-refund cases use the earliest applicable response, check-in or departure deadline. Cancellation cases also consider the cancellation cutoff. Imminent check-in raises priority to High within 24 hours and Urgent within 6 hours. A missed case deadline is Urgent. Refunds keep their independent response target.
+- Managers can edit the booking schedule from a linked case. The form accepts UTC timestamps and the context panel displays dates in the booking timezone. Schedule edits recalculate active case deadlines and record changes without extending the response target. Previously stored case deadlines serve as the response target until a separate one is stored. Existing bookings can have unset departure and cancellation dates.
 - Urgency automation does not lower an existing higher priority. Default timing is encoded in `travel.rules.ts` and supplier-thread creation, not a customer-configurable SLA module.
-- A supplier reply returns work to support. Closed threads reject replies until staff reopen them.
+- A reply or closure returns the case to support when its last pending supplier thread is handled. Reopening a thread requests another reply and starts a new due date. Repeating the same status request preserves that due date.
 - Case briefs are assembled from authorized saved facts and source references. Supplier text and complaint examples are not policy truth.
+- Staff can start a customer reply from a draft that uses the case reference, verified booking reference and whether a supplier replied. The draft never quotes the supplier message. Add confirmed details before sending.
 - The sweep runs every 15 seconds and after relevant clock changes; it persists events rather than delivering email or push messages.
 
 ## 11. Environment, secrets and local data
@@ -223,6 +236,8 @@ These are not implemented promises. Start with product acceptance and production
 | No travel access after registration | Add a valid travel profile through a reviewed provisioning path; generic registration does not create one. Use seeded accounts for the demo. |
 | Many overdue cases after a break | Persisted seed dates and demo offset are still in effect; inspect actual check-in/response deadlines. This is not a reseed on every start. |
 | Login throttled during repeated tests | Wait for the local rate-limit window; do not weaken production rate limiting. The smoke suite authenticates multiple distinct accounts. |
+| Readiness returns 503 | Check the PostgreSQL connection and migrations, then Redis connectivity or local counters startup. The public response omits connection details. |
+| Worker probe returns 503 | Inspect deadline check errors in the backend log and verify PostgreSQL connectivity and transaction latency. After recovery, confirm a successful sweep and check the manager queue. Stored alerts remain protected by their unique keys. |
 | Build after moving the repository fails | Workspace dependency links can contain old absolute paths. Use a fresh clone plus `npm ci`, regenerate Prisma and build the shared package. |
 | Development React eval/CSP warning | Use `ops:preview` for the optimized demo. Do not broadly weaken the inherited CSP to quiet development tooling. |
 | Shutdown leaves a Windows process | Check the listener's owning process and stop only the identified OpsDesk child process; preserve local data. |

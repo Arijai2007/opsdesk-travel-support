@@ -4,13 +4,18 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnApplicationBootstrap,
   OnModuleDestroy,
-  OnModuleInit,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
+import { readTravelInsights } from './travel-insights';
+import { TravelQueueDto } from './travel-queue.dto';
+import { readTravelQueue, type TravelTicketScope } from './travel-queue';
 import {
+  AgentSpecialtiesDto,
+  BookingScheduleDto,
   NewConversationDto,
   NewTravelTicketDto,
   SupplierReplyDto,
@@ -19,10 +24,13 @@ import {
 } from './travel.dto';
 import {
   active,
+  CHECK_IN_HIGH_HOURS,
   chooseAgent,
   classify,
-  deadlineFor,
+  effectiveDeadline,
   PRIORITIES,
+  responseDeadlineFor,
+  RESPONSE_WINDOW_MS,
   STAFF,
   urgency,
 } from './travel.rules';
@@ -30,22 +38,39 @@ type Tx = Prisma.TransactionClient;
 type Profile = Prisma.TravelProfileGetPayload<{ include: { user: true } }>;
 type Case = Prisma.TravelTicketGetPayload<object>;
 @Injectable()
-export class TravelService implements OnModuleInit, OnModuleDestroy {
+export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   private timer: ReturnType<typeof setInterval>;
+  private sweepRunning = false;
+  private lastSweepCompletedAt: number | undefined;
+  private static readonly sweepIntervalMs = 15_000;
   private readonly logger = new Logger(TravelService.name);
   constructor(private readonly db: PrismaService) {}
-  onModuleInit() {
-    this.timer = setInterval(() => {
-      void this.sweep().catch((e: unknown) =>
-        this.logger.error(
-          `Deadline check failed: ${e instanceof Error ? e.message : String(e)}`,
-        ),
-      );
-    }, 15000);
+  onApplicationBootstrap() {
+    const check = () => {
+      if (this.sweepRunning) return;
+      this.sweepRunning = true;
+      void this.sweep()
+        .catch((e: unknown) =>
+          this.logger.error(
+            `Deadline check failed: ${e instanceof Error ? e.message : String(e)}`,
+          ),
+        )
+        .finally(() => {
+          this.sweepRunning = false;
+        });
+    };
+    this.timer = setInterval(check, TravelService.sweepIntervalMs);
     this.timer.unref();
+    check();
   }
   onModuleDestroy() {
     clearInterval(this.timer);
+  }
+  workerHealthy() {
+    return (
+      this.lastSweepCompletedAt !== undefined &&
+      Date.now() - this.lastSweepCompletedAt < 4 * TravelService.sweepIntervalMs
+    );
   }
   private locked<T>(fn: (tx: Tx) => Promise<T>) {
     return this.db.$transaction(
@@ -75,14 +100,36 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
     if (p.kind !== 'MANAGER')
       throw new ForbiddenException('Manager access required.');
   }
-  private scope(p: Profile): Prisma.TravelTicketWhereInput {
-    if (p.kind === 'MANAGER') return {};
-    if (p.kind === 'AGENT')
-      return p.region === 'GLOBAL' ? {} : { region: p.region || 'NONE' };
+  private staffRegion(p: Profile): string | null {
+    return p.kind === 'MANAGER' || p.region === 'GLOBAL'
+      ? null
+      : p.region || 'NONE';
+  }
+  private scope(p: Profile): TravelTicketScope {
+    if (STAFF.includes(p.kind)) {
+      const region = this.staffRegion(p);
+      return region === null ? {} : { region };
+    }
     if (p.kind === 'AGENCY') return { agencyId: p.agencyId || 'NONE' };
     if (p.kind === 'CUSTOMER')
       return { customerId: p.userId, agencyId: p.agencyId || 'NONE' };
     return { id: '__not_visible__' };
+  }
+  async insights(userId: string) {
+    const p = await this.profile(userId);
+    this.staff(p);
+    return readTravelInsights(this.db, this.staffRegion(p), await this.now());
+  }
+  async queue(userId: string, query: TravelQueueDto) {
+    const p = await this.profile(userId);
+    if (query.attention) this.staff(p);
+    return readTravelQueue(
+      this.db,
+      this.scope(p),
+      query,
+      userId,
+      await this.now(),
+    );
   }
   private async ticket(p: Profile, id: string, tx: Tx): Promise<Case> {
     const ticket = await tx.travelTicket.findFirst({
@@ -209,6 +256,9 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         kind: v.kind,
         region: v.region,
         available: v.available,
+        ...(p.kind === 'MANAGER' && v.kind === 'AGENT'
+          ? { specialties: v.specialties, maxActiveCases: v.maxActiveCases }
+          : {}),
       })),
       tickets: tickets.map((t) => {
         const related = t.bookingId
@@ -286,16 +336,31 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       const agents = await tx.travelProfile.findMany({
         where: { kind: 'AGENT' },
       });
-      const current = await tx.travelTicket.findMany({
-        where: { status: { notIn: ['RESOLVED', 'CLOSED'] } },
-        select: { agentId: true },
+      const current = await tx.travelTicket.groupBy({
+        by: ['agentId'],
+        where: {
+          agentId: { not: null },
+          status: { notIn: ['RESOLVED', 'CLOSED'] },
+        },
+        _count: { _all: true },
       });
       const loads: Record<string, number> = {};
-      current.forEach((t) => {
-        if (t.agentId) loads[t.agentId] = (loads[t.agentId] || 0) + 1;
+      for (const group of current)
+        if (group.agentId) loads[group.agentId] = group._count._all;
+      const agent = chooseAgent(agents, region, loads, category);
+      const policy = await tx.travelAgency.findUniqueOrThrow({
+        where: { id: agencyId },
       });
-      const agent = chooseAgent(agents, region, loads);
-      const deadline = deadlineFor(category, now, booking?.checkInAt);
+      const responseDeadline = responseDeadlineFor(
+        now,
+        policy.responseTargetHours,
+      );
+      const deadline = effectiveDeadline(
+        category,
+        responseDeadline,
+        booking,
+        now,
+      );
       const ticket = await tx.travelTicket.create({
         data: {
           reference: `OPS-${randomUUID().slice(0, 8).toUpperCase()}`,
@@ -307,6 +372,8 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
           category,
           region,
           deadline,
+          responseDeadline,
+          responseStartedAt: now,
           agentId: agent?.userId,
           priority:
             urgency(category, deadline, booking?.checkInAt, now)?.priority ||
@@ -334,6 +401,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         userId,
         now,
       );
+      await this.recordResponseTarget(tx, ticket.id, policy, userId, now);
       if (reference && !booking)
         await this.event(
           tx,
@@ -348,8 +416,8 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         ticket.id,
         'ASSIGNED',
         agent
-          ? `Routed to ${region}; assigned the available agent with the lowest active workload.`
-          : `No eligible available agent in ${region}; retained in unassigned queue.`,
+          ? `Routed ${category} to ${region}; assigned the least-loaded eligible ${agent.specialties.length ? 'specialist' : 'generalist'}.`
+          : `No eligible available agent for ${category} in ${region}; retained in unassigned queue.`,
         userId,
         now,
       );
@@ -368,8 +436,11 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       )
         throw new ForbiddenException('Support team action required.');
       const data: Prisma.TravelTicketUncheckedUpdateInput = { updatedAt: now };
+      let booking = t.bookingId
+        ? await tx.travelBooking.findUnique({ where: { id: t.bookingId } })
+        : null;
       if (dto.bookingReference) {
-        const booking = await tx.travelBooking.findFirst({
+        booking = await tx.travelBooking.findFirst({
           where: {
             reference: dto.bookingReference.trim().toUpperCase(),
             agencyId: t.agencyId,
@@ -382,7 +453,13 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
             'No accessible booking matches this customer and region.',
           );
         data.bookingId = booking.id;
-        data.deadline = deadlineFor(t.category, now, booking.checkInAt);
+        data.responseDeadline = t.responseDeadline ?? t.deadline;
+        data.deadline = effectiveDeadline(
+          t.category,
+          data.responseDeadline,
+          booking,
+          this.responseCycleStart(t),
+        );
         await this.event(
           tx,
           id,
@@ -403,8 +480,23 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
           throw new BadRequestException('Add a resolution or closure reason.');
         data.status = dto.status;
         data.resolvedAt = active(dto.status) ? null : now;
-        if (!active(t.status) && active(dto.status))
-          data.deadline = new Date(now.getTime() + 24 * 3600000);
+        if (!active(t.status) && active(dto.status)) {
+          const policy = await tx.travelAgency.findUniqueOrThrow({
+            where: { id: t.agencyId },
+          });
+          data.responseDeadline = responseDeadlineFor(
+            now,
+            policy.responseTargetHours,
+          );
+          data.responseStartedAt = now;
+          data.deadline = effectiveDeadline(
+            t.category,
+            data.responseDeadline,
+            booking,
+            now,
+          );
+          await this.recordResponseTarget(tx, t.id, policy, userId, now);
+        }
         await this.event(
           tx,
           id,
@@ -575,14 +667,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       const ticket = await tx.travelTicket.findUniqueOrThrow({
         where: { id: c.ticketId },
       });
-      if (active(ticket.status))
-        await tx.travelTicket.update({
-          where: { id: c.ticketId },
-          data: {
-            status: p.kind === 'SUPPLIER' ? 'IN_PROGRESS' : 'WAITING_SUPPLIER',
-            updatedAt: now,
-          },
-        });
+      await this.syncSupplierWait(tx, ticket, p.kind !== 'SUPPLIER', now);
       await this.event(
         tx,
         c.ticketId,
@@ -596,6 +681,30 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       return { success: true };
     });
   }
+
+  private async syncSupplierWait(
+    tx: Tx,
+    ticket: Case,
+    requestedReply: boolean,
+    now: Date,
+  ) {
+    if (!active(ticket.status)) return;
+    let status = ticket.status;
+    if (requestedReply) {
+      status = 'WAITING_SUPPLIER';
+    } else if (status === 'WAITING_SUPPLIER') {
+      const pending = await tx.travelConversation.findFirst({
+        where: { ticketId: ticket.id, status: 'AWAITING_REPLY' },
+        select: { id: true },
+      });
+      if (!pending) status = 'IN_PROGRESS';
+    }
+    await tx.travelTicket.update({
+      where: { id: ticket.id },
+      data: { status, updatedAt: now },
+    });
+  }
+
   async conversationStatus(userId: string, id: string, status: string) {
     return this.locked(async (tx) => {
       const p = await this.profile(userId, tx);
@@ -605,6 +714,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       });
       if (!conversation) throw new NotFoundException('Conversation not found.');
       const ticket = await this.ticket(p, conversation.ticketId, tx);
+      if (conversation.status === status) return { success: true };
       if (!active(ticket.status) && status !== 'CLOSED')
         throw new BadRequestException(
           'Reopen the ticket before reopening a supplier conversation.',
@@ -619,6 +729,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
             : {}),
         },
       });
+      await this.syncSupplierWait(tx, ticket, status === 'AWAITING_REPLY', now);
       await this.event(
         tx,
         ticket.id,
@@ -651,15 +762,172 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       data: { available },
     });
   }
-  async sweep() {
+  private responseCycleStart(ticket: Case) {
+    return (
+      ticket.responseStartedAt ??
+      new Date(
+        Math.max(
+          ticket.createdAt.getTime(),
+          (ticket.responseDeadline?.getTime() ?? 0) - RESPONSE_WINDOW_MS,
+        ),
+      )
+    );
+  }
+  private recordResponseTarget(
+    tx: Tx,
+    ticketId: string,
+    policy: { responseTargetHours: number; responsePolicyVersion: number },
+    userId: string,
+    now: Date,
+  ) {
+    return this.event(
+      tx,
+      ticketId,
+      'RESPONSE_TARGET_SET',
+      `Agency policy v${policy.responsePolicyVersion}: ${policy.responseTargetHours} elapsed hours to respond.`,
+      userId,
+      now,
+    );
+  }
+  async updateSchedule(userId: string, id: string, dto: BookingScheduleDto) {
     return this.locked(async (tx) => {
-      const now = await this.now(tx);
+      this.manager(await this.profile(userId, tx));
+      const previous = await tx.travelBooking.findUnique({ where: { id } });
+      if (!previous) throw new NotFoundException('Booking not found.');
+      const schedule = {
+        checkInAt: dto.checkInAt ? new Date(dto.checkInAt) : previous.checkInAt,
+        departureAt:
+          dto.departureAt === undefined
+            ? previous.departureAt
+            : dto.departureAt && new Date(dto.departureAt),
+        cancellationCutoffAt:
+          dto.cancellationCutoffAt === undefined
+            ? previous.cancellationCutoffAt
+            : dto.cancellationCutoffAt && new Date(dto.cancellationCutoffAt),
+      };
+      if (
+        schedule.cancellationCutoffAt &&
+        (schedule.cancellationCutoffAt > schedule.checkInAt ||
+          (schedule.departureAt &&
+            schedule.cancellationCutoffAt > schedule.departureAt))
+      )
+        throw new BadRequestException(
+          'The cancellation cutoff must precede travel.',
+        );
+      if (
+        +schedule.checkInAt === +previous.checkInAt &&
+        Number(schedule.departureAt) === Number(previous.departureAt) &&
+        Number(schedule.cancellationCutoffAt) ===
+          Number(previous.cancellationCutoffAt)
+      )
+        return previous;
+      const booking = await tx.travelBooking.update({
+        where: { id },
+        data: schedule,
+      });
       const tickets = await tx.travelTicket.findMany({
-        where: { status: { notIn: ['RESOLVED', 'CLOSED'] } },
-        include: { booking: true, conversations: true },
+        where: { bookingId: id, status: { notIn: ['RESOLVED', 'CLOSED'] } },
+      });
+      const now = await this.now(tx);
+      for (const ticket of tickets) {
+        const responseDeadline = ticket.responseDeadline ?? ticket.deadline;
+        const deadline = effectiveDeadline(
+          ticket.category,
+          responseDeadline,
+          booking,
+          this.responseCycleStart(ticket),
+        );
+        if (+deadline === +ticket.deadline) continue;
+        await tx.travelTicket.update({
+          where: { id: ticket.id },
+          data: { deadline, responseDeadline, updatedAt: now },
+        });
+        await this.event(
+          tx,
+          ticket.id,
+          'DEADLINE_CHANGED',
+          `Booking schedule changed the case deadline from ${ticket.deadline.toISOString()} to ${deadline.toISOString()}.`,
+          userId,
+          now,
+        );
+      }
+      return booking;
+    });
+  }
+  async updateSpecialties(
+    userId: string,
+    id: string,
+    dto: AgentSpecialtiesDto,
+  ) {
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      const agent = await tx.travelProfile.findUnique({
+        where: { userId: id },
+      });
+      if (agent?.kind !== 'AGENT')
+        throw new NotFoundException('Agent not found.');
+      return tx.travelProfile.update({
+        where: { userId: id },
+        data: {
+          specialties: dto.specialties,
+          maxActiveCases: dto.maxActiveCases,
+        },
+        select: { userId: true, specialties: true, maxActiveCases: true },
+      });
+    });
+  }
+  async updateAgencyResponsePolicy(userId: string, id: string, hours: number) {
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      const agency = await tx.travelAgency.findUnique({ where: { id } });
+      if (!agency) throw new NotFoundException('Agency not found.');
+      if (agency.responseTargetHours === hours) return agency;
+      return tx.travelAgency.update({
+        where: { id },
+        data: {
+          responseTargetHours: hours,
+          responsePolicyVersion: { increment: 1 },
+        },
+      });
+    });
+  }
+  async sweep() {
+    const result = await this.locked(async (tx) => {
+      const now = await this.now(tx);
+      const pendingSupplier = { status: 'AWAITING_REPLY', dueAt: { lte: now } };
+      const highPriorityWindow = new Date(
+        now.getTime() + CHECK_IN_HIGH_HOURS * 3600000,
+      );
+      const tickets = await tx.travelTicket.findMany({
+        where: {
+          status: { notIn: ['RESOLVED', 'CLOSED'] },
+          OR: [
+            { deadline: { lte: now } },
+            {
+              category: { not: 'REFUND' },
+              booking: {
+                is: { checkInAt: { gt: now, lte: highPriorityWindow } },
+              },
+            },
+            { conversations: { some: pendingSupplier } },
+          ],
+        },
+        include: {
+          booking: { select: { checkInAt: true } },
+          conversations: {
+            where: pendingSupplier,
+            select: { id: true, dueAt: true, subject: true },
+          },
+        },
       });
       for (const t of tickets) {
-        const rule = urgency(t.category, t.deadline, t.booking?.checkInAt, now);
+        const rule = urgency(
+          t.category,
+          t.deadline,
+          t.booking?.checkInAt,
+          now,
+          t.responseDeadline,
+        );
         if (rule) {
           const key = `${t.id}:${rule.reason}:${t.deadline.toISOString()}`;
           const exists = await tx.travelEvent.findUnique({
@@ -686,9 +954,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
               data: { priority: rule.priority, updatedAt: now },
             });
         }
-        for (const c of t.conversations.filter(
-          (c) => c.status === 'AWAITING_REPLY' && c.dueAt <= now,
-        )) {
+        for (const c of t.conversations) {
           const key = `${c.id}:overdue:${c.dueAt.toISOString()}`;
           await tx.travelEvent.upsert({
             where: { uniqueKey: key },
@@ -706,5 +972,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       }
       return { now: now.toISOString(), checked: tickets.length };
     });
+    this.lastSweepCompletedAt = Date.now();
+    return result;
   }
 }

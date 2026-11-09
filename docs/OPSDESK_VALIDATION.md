@@ -13,6 +13,8 @@ Validated on Windows x64 with Node.js 22.19.0, npm 10.9.3, PostgreSQL 18 (embedd
 
 ## Browser checks
 
+`npm run ops:test:browser` runs the booking-to-supplier-to-resolution flow across manager, regional agent, agency, customer and supplier browser sessions. Run it with the isolated demo preview active. Install Chromium with `npx playwright install chromium`, or set `OPSDESK_BROWSER_CHANNEL=msedge` to use a locally installed Microsoft Edge. The test deletes the temporary case it creates. The Linux CI job runs it in Chromium.
+
 - Signed in through the HTTP-only-cookie proxy.
 - Created a new refund case for BK-1042 using the browser form. Verified two related cases, automatic agent selection and saved booking context.
 - Opened a separate supplier conversation from that case. Verified it changed the ticket to Waiting supplier and appeared as its own thread.
@@ -24,14 +26,24 @@ Validated on Windows x64 with Node.js 22.19.0, npm 10.9.3, PostgreSQL 18 (embedd
 
 The workflow follow-up passed 7 unit tests and 52 HTTP checks on Windows with Node.js 22.23.4 and an isolated PostgreSQL 18 database. The new migration applied on a fresh database. NestJS compilation, the optimized Next.js build and the production dependency audit passed. The initial preview timed out waiting for PostgreSQL, so validation started the database separately.
 
+The schedule and routing follow-up passed 9 unit tests, 63 HTTP checks and the five-role browser flow in Microsoft Edge on Windows. Prisma reported no schema drift, and the preview built and started both applications with existing data preserved.
+
+The final local pass passed 9 unit tests, 70 HTTP checks and the five-role browser flow. The HTTP suite covers parallel supplier threads, unchanged reply deadlines on retries and deduplicated case and supplier alerts. The browser flow verifies that a draft remains private until staff edit and send a customer reply.
+
+The policy and readiness follow-up passed 9 unit tests, 83 HTTP checks and the five-role browser flow. The API checks cover simultaneous intake with one capacity slot remaining, preservation of existing targets after a policy change, and health probes after a preview restart. The migration applied to the existing database and Prisma reported no schema drift.
+
+The deadline candidate filter brought the HTTP suite to 85 checks. It still detects overdue response and supplier targets and skips future refund cases that have no supplier deadline due.
+
+The reporting and inbox follow-up passed 9 unit tests, 99 HTTP checks and the five-role browser flow. The checks reconcile PostgreSQL reports against authorized case records and verify that pagination has no overlap, honors filters and cannot reveal cross-agency booking matches. The browser flow opens Insights and navigates between inbox pages.
+
 | Workflow area | Scenario to verify | Remaining scope |
 | --- | --- | --- |
 | Connected history | Submit another complaint for BK-1042 and confirm earlier cases appear as separate records. Submit an unmatched reference and confirm the complaint and review event are saved without a booking link. | Live booking synchronization and fuzzy matching remain separate work. |
-| Assignment | File an Asia case with the regional agent unavailable and check that eligible global coverage is used. When no eligible agent is available, the ticket stays unassigned. | Routing uses region, availability and workload. Category-based teams, shifts and capacity are pending. |
+| Assignment | Configure agent specialties from Needs attention. Verify that matching specialties take precedence, that general coverage remains available, and that no eligible agent leaves a case unassigned. Check the inbox filters for status, owner and deadline. | Shifts, capacity and separate category teams remain pending. |
 | Supplier conversations | Open an Aster thread, verify a Skyline account cannot reply, then reply as Aster and confirm the main ticket returns to support. Verify the customer cannot read the thread or private resolution reason. | The prototype uses in-app replies. |
-| Travel deadlines | Verify the case deadline uses check-in for applicable service issues and a separate response target for refunds. | Dedicated departure and cancellation cutoffs and automatic recalculation on booking changes are pending. |
+| Travel deadlines | Set a departure and cancellation cutoff on a booking. Verify a cancellation uses the earlier cutoff, clearing it recalculates the active case deadline, and refunds retain their separate response target. | Live schedule synchronization and contract SLA calendars remain pending. |
 | Escalation | Advance the demo clock, inspect the manager queue, and repeat the sweep to verify a single event per rule and deadline. | External alerts and a separately deployed worker are pending. |
-| Insights | Reconcile backlog, median response and resolution times, repeat contacts and breaches with the authorized saved cases and messages. | Reports aggregate the demo workspace. Scalable server-side analytics and performance targets are pending. |
+| Insights | Reconcile server totals, medians, repeat contacts and breaches with authorized cases. Confirm managers and regional agents see only their respective totals and non-staff cannot access the report. | Incremental reports and performance targets are pending. |
 
 ## Boundaries
 

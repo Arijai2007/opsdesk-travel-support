@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import pg from "pg";
@@ -11,6 +12,9 @@ const created = [];
 const notes = [];
 let checks = 0;
 let previousClock;
+let temporaryBookingId;
+let previousAgencyPolicy;
+let previousCapacities;
 async function call(path, token, body, method = "POST", expected = 200) {
   const r = await fetch(base + path, {
     method: body === undefined ? "GET" : method,
@@ -53,6 +57,66 @@ try {
   assert(initial.tickets.length >= 60);
   assert.equal(initial.bookings.length, 30);
   assert.equal(initial.me.kind, "MANAGER");
+  await call("/ops/insights", null, undefined, "GET", 401);
+  await call("/ops/insights", customer, undefined, "GET", 403);
+  await call("/ops/insights", agency, undefined, "GET", 403);
+  await call("/ops/insights", supplier, undefined, "GET", 403);
+  const managerReport = await call("/ops/insights", manager);
+  assert.equal(managerReport.total, initial.tickets.length);
+  assert.equal(
+    managerReport.closed + managerReport.backlog,
+    managerReport.total,
+  );
+  assert.equal(
+    managerReport.categories.reduce((total, row) => total + row.count, 0),
+    managerReport.total,
+  );
+  assert.equal(managerReport.days.length, 7);
+  assert(
+    managerReport.days.every((day) => /^\d{4}-\d{2}-\d{2}$/.test(day.date)),
+  );
+  assert.equal(typeof managerReport.medianFirstResponseHours, "number");
+  assert(managerReport.medianFirstResponseHours >= 0);
+  const resolutions = initial.tickets
+    .filter(
+      (value) =>
+        value.resolvedAt && ["RESOLVED", "CLOSED"].includes(value.status),
+    )
+    .map(
+      (value) =>
+        (Date.parse(value.resolvedAt) - Date.parse(value.createdAt)) / 3600000,
+    )
+    .filter((hours) => hours >= 0)
+    .sort((a, b) => a - b);
+  const middle = (resolutions.length - 1) / 2;
+  const medianResolution =
+    (resolutions[Math.floor(middle)] + resolutions[Math.ceil(middle)]) / 2;
+  assert(
+    Math.abs(managerReport.medianResolutionHours - medianResolution) < 1e-9,
+  );
+  const asiaSpecialties = initial.people.find(
+    (p) => p.id === "agent-asia",
+  ).specialties;
+  await call(
+    "/ops/agents/agent-asia/specialties",
+    agent,
+    { specialties: ["REFUND"] },
+    "PATCH",
+    403,
+  );
+  await call(
+    "/ops/agents/agent-asia/specialties",
+    manager,
+    { specialties: "REFUND" },
+    "PATCH",
+    400,
+  );
+  await call(
+    "/ops/agents/agent-asia/specialties",
+    manager,
+    { specialties: asiaSpecialties },
+    "PATCH",
+  );
   const customerData = await call("/ops/workspace", customer);
   assert(customerData.tickets.every((t) => t.customerId === "customer-0"));
   assert(
@@ -67,6 +131,45 @@ try {
   assert(otherData.tickets.every((t) => t.agencyId === "horizon"));
   const agentData = await call("/ops/workspace", agent);
   assert(agentData.tickets.every((t) => t.region === "ASIA"));
+  const regionReport = await call("/ops/insights", agent);
+  assert.equal(regionReport.total, agentData.tickets.length);
+  assert(regionReport.total < managerReport.total);
+  assert.equal(
+    regionReport.suppliers.reduce((sum, row) => sum + row.cases, 0),
+    agentData.tickets.filter((ticket) => ticket.bookingId).length,
+  );
+  await call("/ops/queue", null, undefined, "GET", 401);
+  await call("/ops/queue?page=0", manager, undefined, "GET", 400);
+  await call("/ops/queue?attention=1", customer, undefined, "GET", 403);
+  const queue1 = await call("/ops/queue?tab=all", manager);
+  const queue2 = await call("/ops/queue?tab=all&page=2", manager);
+  assert.equal(queue1.total, initial.tickets.length);
+  assert.equal(queue1.ids.length, queue1.pageSize);
+  assert.equal(queue2.page, 2);
+  assert.equal(queue2.ids.filter((id) => queue1.ids.includes(id)).length, 0);
+  const matches = await call("/ops/queue?tab=all&search=bk-1042", customer);
+  assert(matches.ids.includes("ticket-0"));
+  assert(
+    matches.ids.every((id) =>
+      customerData.tickets.some((ticket) => ticket.id === id),
+    ),
+  );
+  const foreignMatches = await call("/ops/queue?tab=all&search=bk-1042", other);
+  assert.equal(foreignMatches.total, 0);
+  const assignedRegion = await call(
+    "/ops/queue?tab=all&owner=agent-asia&region=ASIA",
+    agent,
+  );
+  assert.equal(
+    assignedRegion.total,
+    agentData.tickets.filter((ticket) => ticket.agentId === "agent-asia")
+      .length,
+  );
+  assert(
+    assignedRegion.ids.every((id) =>
+      agentData.tickets.some((ticket) => ticket.id === id),
+    ),
+  );
   await call("/tickets/queue", agent, undefined, "GET", 403);
   await call("/tickets/queue", manager, undefined, "GET", 403);
   await call(
@@ -205,6 +308,16 @@ try {
     "POST",
     201,
   );
+  const parallelConversation = await call(
+    `/ops/tickets/${ticket.id}/conversations`,
+    agent,
+    {
+      subject: "Separate supplier follow-up",
+      content: "Please confirm the refund reference separately.",
+    },
+    "POST",
+    201,
+  );
   const supplierData = await call("/ops/workspace", supplier);
   assert.equal(supplierData.tickets.length, 0);
   assert.equal(supplierData.bookings.length, 0);
@@ -228,6 +341,21 @@ try {
     201,
   );
   const afterReply = await call("/ops/workspace", manager);
+  assert.equal(
+    afterReply.tickets.find((t) => t.id === ticket.id).status,
+    "WAITING_SUPPLIER",
+  );
+  await call(
+    `/ops/conversations/${parallelConversation.id}`,
+    agent,
+    { status: "CLOSED" },
+    "PATCH",
+  );
+  const afterLastPending = await call("/ops/workspace", manager);
+  assert.equal(
+    afterLastPending.tickets.find((t) => t.id === ticket.id).status,
+    "IN_PROGRESS",
+  );
   await call(
     `/ops/conversations/${conversation.id}`,
     customer,
@@ -261,9 +389,24 @@ try {
     { status: "AWAITING_REPLY" },
     "PATCH",
   );
+  const afterReopen = await call("/ops/workspace", manager);
   assert.equal(
-    afterReply.tickets.find((t) => t.id === ticket.id).status,
-    "IN_PROGRESS",
+    afterReopen.tickets.find((t) => t.id === ticket.id).status,
+    "WAITING_SUPPLIER",
+  );
+  const reopenedDueAt = afterReopen.conversations.find(
+    (c) => c.id === conversation.id,
+  ).dueAt;
+  await call(
+    `/ops/conversations/${conversation.id}`,
+    agent,
+    { status: "AWAITING_REPLY" },
+    "PATCH",
+  );
+  const afterRetry = await call("/ops/workspace", manager);
+  assert.equal(
+    afterRetry.conversations.find((c) => c.id === conversation.id).dueAt,
+    reopenedDueAt,
   );
   assert.equal(
     afterReply.conversations.find((c) => c.id === conversation.id).status,
@@ -303,7 +446,9 @@ try {
   const resolved = resolvedCustomer.tickets.find((t) => t.id === ticket.id);
   assert.equal(resolved.status, "RESOLVED");
   assert(
-    resolved.events.some((event) => event.text === "IN_PROGRESS → RESOLVED"),
+    resolved.events.some(
+      (event) => event.text === "WAITING_SUPPLIER → RESOLVED",
+    ),
   );
   assert(!JSON.stringify(resolved).includes("Private resolution detail"));
   await call(
@@ -349,10 +494,19 @@ try {
   previousClock = clock;
   await call("/ops/clock/advance", customer, { minutes: 1 }, "POST", 403);
   await call("/ops/clock/advance", manager, { minutes: -1 }, "POST", 400);
-  // Make only the test case overdue, then trigger two passes and assert exactly one event.
+  // Expire this test case and its supplier target, then verify repeat-safe alerts.
   await pool.query(
-    "UPDATE \"TravelTicket\" SET deadline=(now() AT TIME ZONE 'UTC')-interval '1 minute' WHERE id=$1",
+    `UPDATE "TravelTicket"
+     SET deadline=(now() AT TIME ZONE 'UTC')-interval '1 minute',
+         "responseDeadline"=(now() AT TIME ZONE 'UTC')-interval '1 minute'
+     WHERE id=$1`,
     [ticket.id],
+  );
+  await pool.query(
+    `UPDATE "TravelConversation"
+     SET "dueAt"=(now() AT TIME ZONE 'UTC')-interval '1 minute'
+     WHERE id=$1`,
+    [conversation.id],
   );
   await call("/ops/clock/advance", manager, { minutes: 1 }, "POST", 201);
   await call("/ops/clock/advance", manager, { minutes: 1 }, "POST", 201);
@@ -361,6 +515,14 @@ try {
     [ticket.id],
   );
   assert.equal(events.rows[0].n, 1);
+  const alerts = (await call("/ops/workspace", manager)).notifications.filter(
+    (event) => event.ticketId === ticket.id,
+  );
+  assert.equal(alerts.filter((event) => event.kind === "ESCALATED").length, 1);
+  assert.equal(
+    alerts.filter((event) => event.kind === "SUPPLIER_OVERDUE").length,
+    1,
+  );
   await pool.query(
     'UPDATE "TravelClock" SET "offsetMinutes"=$1 WHERE id=\'demo\'',
     [clock],
@@ -380,11 +542,188 @@ try {
   created.push(routed.id);
   assert.equal(routed.agentId, "agent-global");
   await call("/ops/availability", agent, { available: true }, "PATCH");
+
+  temporaryBookingId = randomUUID();
+  const schedulePath = `/ops/bookings/${temporaryBookingId}/schedule`;
+  const workspaceTime = Date.parse((await call("/ops/workspace", manager)).now);
+  const at = (hours) => new Date(workspaceTime + hours * 3600000).toISOString();
+  await pool.query(
+    `INSERT INTO "TravelBooking"
+       (id, reference, "agencyId", "customerId", "supplierId", destination, region, service, timezone, "checkInAt")
+     SELECT $1, $2, "agencyId", "customerId", "supplierId", destination, region, service, timezone, $3
+     FROM "TravelBooking" WHERE id = 'booking-0'`,
+    [temporaryBookingId, temporaryBookingId.toUpperCase(), at(22)],
+  );
+  await call(schedulePath, agent, { departureAt: at(10) }, "PATCH", 403);
+  await call(
+    schedulePath,
+    manager,
+    { departureAt: "2026-11-09T12:00:00" },
+    "PATCH",
+    400,
+  );
+  await call(
+    schedulePath,
+    manager,
+    { departureAt: at(10), cancellationCutoffAt: at(11) },
+    "PATCH",
+    400,
+  );
+  await call(
+    schedulePath,
+    manager,
+    { departureAt: at(10), cancellationCutoffAt: at(4) },
+    "PATCH",
+  );
+  const cancellation = await call(
+    "/ops/tickets",
+    customer,
+    {
+      title: "Cancellation before cutoff",
+      description: "Please cancel my booking before the cutoff.",
+      bookingReference: temporaryBookingId,
+    },
+    "POST",
+    201,
+  );
+  created.push(cancellation.id);
+  assert.equal(cancellation.deadline, at(4));
+  await call(schedulePath, manager, { cancellationCutoffAt: null }, "PATCH");
+  const rescheduled = (await call("/ops/workspace", manager)).tickets.find(
+    (t) => t.id === cancellation.id,
+  );
+  assert.equal(rescheduled.deadline, at(10));
+  assert.equal(rescheduled.responseDeadline, cancellation.responseDeadline);
+  assert.equal(
+    rescheduled.events.filter((event) => event.kind === "DEADLINE_CHANGED")
+      .length,
+    1,
+  );
+  const policyPath = "/ops/agencies/atlas/response-policy";
+  previousAgencyPolicy = initial.agencies.find((value) => value.id === "atlas");
+  await call(policyPath, agency, { responseTargetHours: 6 }, "PATCH", 403);
+  await call(policyPath, manager, { responseTargetHours: 0 }, "PATCH", 400);
+  const policy = await call(
+    policyPath,
+    manager,
+    { responseTargetHours: 6 },
+    "PATCH",
+  );
+  const unchangedPolicy = await call(
+    policyPath,
+    manager,
+    { responseTargetHours: 6 },
+    "PATCH",
+  );
+  assert.equal(
+    unchangedPolicy.responsePolicyVersion,
+    policy.responsePolicyVersion,
+  );
+  const routingAgents = initial.people.filter((person) =>
+    ["agent-asia", "agent-global"].includes(person.id),
+  );
+  previousCapacities = routingAgents;
+  const globalCount = (
+    await pool.query(
+      `SELECT count(*)::int AS n FROM "TravelTicket"
+     WHERE "agentId"='agent-global' AND status NOT IN ('RESOLVED','CLOSED')`,
+    )
+  ).rows[0].n;
+  for (const person of routingAgents)
+    await call(
+      `/ops/agents/${person.id}/specialties`,
+      manager,
+      {
+        specialties: person.specialties,
+        maxActiveCases: person.id === "agent-global" ? globalCount + 1 : 1,
+      },
+      "PATCH",
+    );
+  const routedAtCapacity = await Promise.all(
+    [1, 2].map(async (attempt) => {
+      const result = await call(
+        "/ops/tickets",
+        customer,
+        {
+          title: `Capacity routing probe ${attempt}`,
+          description: "Please review the refund for this booking.",
+          bookingReference: "BK-1042",
+        },
+        "POST",
+        201,
+      );
+      created.push(result.id);
+      return result;
+    }),
+  );
+  assert.deepEqual(routedAtCapacity.map((value) => value.agentId).sort(), [
+    "agent-global",
+    null,
+  ]);
+  for (const result of routedAtCapacity)
+    assert.equal(
+      Date.parse(result.responseDeadline) -
+        Date.parse(result.responseStartedAt),
+      6 * 3600000,
+    );
+  const afterPolicy = (await call("/ops/workspace", manager)).tickets.find(
+    (value) => value.id === cancellation.id,
+  );
+  assert.equal(afterPolicy.responseDeadline, cancellation.responseDeadline);
+  const completed = routedAtCapacity[0];
+  await call(
+    `/ops/tickets/${completed.id}`,
+    manager,
+    { status: "RESOLVED", reason: "Capacity test complete." },
+    "PATCH",
+  );
+  const renewed = await call(
+    `/ops/tickets/${completed.id}`,
+    customer,
+    { status: "OPEN", reason: "Reopen test." },
+    "PATCH",
+  );
+  assert.equal(
+    Date.parse(renewed.responseDeadline) -
+      Date.parse(renewed.responseStartedAt),
+    6 * 3600000,
+  );
+  assert.equal((await call("/health/ready", null)).status, "ready");
+  assert.equal((await call("/health/worker", null)).status, "ready");
+  const activeCases = (await call("/ops/workspace", manager)).tickets.filter(
+    (value) => !["RESOLVED", "CLOSED"].includes(value.status),
+  ).length;
+  const candidateSweep = await call(
+    "/ops/clock/advance",
+    manager,
+    { minutes: 1 },
+    "POST",
+    201,
+  );
+  assert(
+    candidateSweep.checked < activeCases,
+    "The sweep should skip future refund cases without supplier deadlines.",
+  );
   notes.push(
-    "Role and agency isolation, message privacy, booking validation/linking, least-load routing, supplier-only replies, resolution/reopening, durable records and idempotent escalation passed.",
+    "Role and agency isolation, message privacy, booking linking and schedule edits, specialty settings and routing, parallel supplier threads, resolution/reopening, durable records and repeat-safe deadline alerts passed.",
   );
   console.log(`PASS: ${checks} real HTTP checks. ${notes.join(" ")}`);
 } finally {
+  if (previousAgencyPolicy)
+    await pool.query(
+      'UPDATE "TravelAgency" SET "responseTargetHours"=$1, "responsePolicyVersion"=$2 WHERE id=$3',
+      [
+        previousAgencyPolicy.responseTargetHours,
+        previousAgencyPolicy.responsePolicyVersion,
+        previousAgencyPolicy.id,
+      ],
+    );
+  if (previousCapacities)
+    for (const person of previousCapacities)
+      await pool.query(
+        'UPDATE "TravelProfile" SET "maxActiveCases"=$1 WHERE "userId"=$2',
+        [person.maxActiveCases, person.id],
+      );
   if (previousClock !== undefined)
     await pool.query(
       'UPDATE "TravelClock" SET "offsetMinutes"=$1 WHERE id=\'demo\'',
@@ -393,6 +732,10 @@ try {
   await pool.query('DELETE FROM "TravelTicket" WHERE id=ANY($1::text[])', [
     created,
   ]);
+  if (temporaryBookingId)
+    await pool.query('DELETE FROM "TravelBooking" WHERE id=$1', [
+      temporaryBookingId,
+    ]);
   await pool.query(
     'UPDATE "TravelProfile" SET available=true WHERE "userId"=\'agent-asia\'',
   );

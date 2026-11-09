@@ -24,6 +24,7 @@
     "ops:db": "node scripts/local-db.mjs",
     "ops:seed": "npm exec --workspace=backend -- tsx prisma/seed-travel.ts",
     "ops:test": "npm run test --workspace=backend -- --runInBand && node scripts/smoke-test.mjs",
+    "ops:test:browser": "node scripts/browser-smoke.mjs",
     "ops:preview": "node scripts/run-local.mjs --preview"
   },
   "repository": {
@@ -52,6 +53,7 @@
     "concurrently": "^10.0.4",
     "embedded-postgres": "^18.6.0-beta.19",
     "husky": "^9.1.7",
-    "lint-staged": "^17.2.0"
+    "lint-staged": "^17.2.0",
+    "playwright": "1.62.1"
   }
 }
