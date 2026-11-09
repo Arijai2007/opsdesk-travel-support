@@ -11,6 +11,8 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import { readTravelInsights } from './travel-insights';
+import { TravelQueueDto } from './travel-queue.dto';
+import { readTravelQueue, type TravelTicketScope } from './travel-queue';
 import {
   AgentSpecialtiesDto,
   BookingScheduleDto,
@@ -103,7 +105,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       ? null
       : p.region || 'NONE';
   }
-  private scope(p: Profile): Prisma.TravelTicketWhereInput {
+  private scope(p: Profile): TravelTicketScope {
     if (STAFF.includes(p.kind)) {
       const region = this.staffRegion(p);
       return region === null ? {} : { region };
@@ -117,6 +119,17 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     const p = await this.profile(userId);
     this.staff(p);
     return readTravelInsights(this.db, this.staffRegion(p), await this.now());
+  }
+  async queue(userId: string, query: TravelQueueDto) {
+    const p = await this.profile(userId);
+    if (query.attention) this.staff(p);
+    return readTravelQueue(
+      this.db,
+      this.scope(p),
+      query,
+      userId,
+      await this.now(),
+    );
   }
   private async ticket(p: Profile, id: string, tx: Tx): Promise<Case> {
     const ticket = await tx.travelTicket.findFirst({

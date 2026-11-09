@@ -36,6 +36,11 @@ try {
   browser = await chromium.launch(channel ? { channel } : {});
 
   const manager = await signIn("manager");
+  await manager.getByRole("button", { name: /All cases/ }).click();
+  await manager.getByRole("button", { name: "Next page" }).click();
+  await manager.getByText(/^Page 2 of /).waitFor();
+  await manager.getByRole("button", { name: "Previous page" }).click();
+  await manager.getByText(/^Page 1 of /).waitFor();
   await manager.getByLabel("Filter status").selectOption("OPEN");
   await manager.getByLabel("Filter owner").selectOption("agent-asia");
   await manager.getByLabel("Filter deadline").selectOption("ALL");

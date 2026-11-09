@@ -5,12 +5,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/types/authenticated-request.type';
 import { TravelService } from './travel.service';
+import { TravelQueueDto } from './travel-queue.dto';
 import {
   AgencyResponsePolicyDto,
   AgentSpecialtiesDto,
@@ -33,6 +35,12 @@ export class TravelController {
   }
   @Get('insights') insights(@Req() req: AuthenticatedRequest) {
     return this.travel.insights(req.user.userId);
+  }
+  @Get('queue') queue(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: TravelQueueDto,
+  ) {
+    return this.travel.queue(req.user.userId, query);
   }
   @Post('tickets') create(
     @Req() req: AuthenticatedRequest,

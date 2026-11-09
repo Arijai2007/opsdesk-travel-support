@@ -138,6 +138,38 @@ try {
     regionReport.suppliers.reduce((sum, row) => sum + row.cases, 0),
     agentData.tickets.filter((ticket) => ticket.bookingId).length,
   );
+  await call("/ops/queue", null, undefined, "GET", 401);
+  await call("/ops/queue?page=0", manager, undefined, "GET", 400);
+  await call("/ops/queue?attention=1", customer, undefined, "GET", 403);
+  const queue1 = await call("/ops/queue?tab=all", manager);
+  const queue2 = await call("/ops/queue?tab=all&page=2", manager);
+  assert.equal(queue1.total, initial.tickets.length);
+  assert.equal(queue1.ids.length, queue1.pageSize);
+  assert.equal(queue2.page, 2);
+  assert.equal(queue2.ids.filter((id) => queue1.ids.includes(id)).length, 0);
+  const matches = await call("/ops/queue?tab=all&search=bk-1042", customer);
+  assert(matches.ids.includes("ticket-0"));
+  assert(
+    matches.ids.every((id) =>
+      customerData.tickets.some((ticket) => ticket.id === id),
+    ),
+  );
+  const foreignMatches = await call("/ops/queue?tab=all&search=bk-1042", other);
+  assert.equal(foreignMatches.total, 0);
+  const assignedRegion = await call(
+    "/ops/queue?tab=all&owner=agent-asia&region=ASIA",
+    agent,
+  );
+  assert.equal(
+    assignedRegion.total,
+    agentData.tickets.filter((ticket) => ticket.agentId === "agent-asia")
+      .length,
+  );
+  assert(
+    assignedRegion.ids.every((id) =>
+      agentData.tickets.some((ticket) => ticket.id === id),
+    ),
+  );
   await call("/tickets/queue", agent, undefined, "GET", 403);
   await call("/tickets/queue", manager, undefined, "GET", 403);
   await call(

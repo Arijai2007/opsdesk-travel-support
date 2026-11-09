@@ -138,6 +138,7 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/ops/workspace` | Authorized tickets, people, bookings, supplier threads and configuration |
+| GET | `/ops/queue` | Authorized inbox ordering, search, filters and 20 ticket IDs per page |
 | GET | `/ops/insights` | Staff-only aggregate report using the caller’s authorized case scope |
 | POST | `/ops/tickets` | Create and link/classify/route a case |
 | PATCH | `/ops/tickets/:id` | Status, priority, assignment and booking verification |
@@ -154,6 +155,8 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 | POST | `/ops/clock/advance` | Manager-only demo time advance |
 
 See DTOs for exact fields. Do not bypass the service authorization with direct UI role checks. New integrations must authenticate their own webhook source and map identities to existing authorized records.
+
+The inbox requests a filtered page from PostgreSQL and uses the workspace snapshot to display those cases. Ticket detail, booking history, messages and supplier threads still come from the workspace response.
 
 ## 10. Current business rules
 

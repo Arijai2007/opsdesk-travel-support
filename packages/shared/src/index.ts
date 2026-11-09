@@ -4,6 +4,7 @@
 // unchanged, so `@helpdesk/shared`'s public API doesn't change.
 export type { Role, TicketStatus, TicketPriority } from './enums';
 export type { TravelInsights } from './travel-insights';
+export type { TravelQueuePage } from './travel-queue';
 
 export { ACCESS_TOKEN_TTL_MS, REFRESH_TOKEN_TTL_MS } from './auth-config';
 
