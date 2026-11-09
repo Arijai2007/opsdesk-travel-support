@@ -68,11 +68,11 @@ Start: TravelBooking, TravelProfile, ticket create/update logic and seed-travel.
 
 [GitHub issue #6](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/6)
 
-The prototype uses code-defined deadlines and available-agent least-workload routing.
+Managers can edit booking schedules and agent specialties. Automatic routing considers category, region, availability and workload. Response targets still use a fixed policy.
 
 Acceptance:
 - Define per-contract SLA/business-hour/holiday calendars and escalation ownership/acknowledgment.
-- Add shifts, skills, capacities and controlled manual override policies.
+- Add shifts, capacities and controlled manual override policies.
 - Add manager administration for agencies, suppliers, agents, customers and travel memberships.
 - Specify reopen behavior and routing when coverage is unavailable.
 - Version policy changes and retain an auditable reason for priority/assignment.
@@ -119,7 +119,7 @@ API key needed only once this work begins. Do not claim model accuracy before me
 Local validation covers 7 unit tests, 47 real HTTP checks and manual desktop/mobile workflows. This does not establish complete browser, load or production-security coverage.
 
 Acceptance:
-- Add automated end-to-end tests for all travel roles and the main booking-to-supplier-to-resolution scenario.
+- Extend the automated five-role booking-to-supplier-to-resolution flow to cover failure recovery and additional browsers.
 - Audit keyboard navigation, focus, screen reader labels and contrast.
 - Exercise clean-clone Windows setup and process shutdown, then supported alternate platforms.
 - Review inherited app surfaces and remaining development-tool advisories without unvalidated force upgrades.

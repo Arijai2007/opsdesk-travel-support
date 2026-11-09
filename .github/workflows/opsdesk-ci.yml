@@ -56,6 +56,8 @@ jobs:
           done
           if [ "$ready" != true ]; then cat opsdesk-ci.log; exit 1; fi
       - run: npm run ops:test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run ops:test:browser
       - run: npm audit --omit=dev
       - name: Show startup diagnostics
         if: failure()
