@@ -56,7 +56,7 @@ async function allPages(path, token, expected) {
   assert.equal(last.page, last.totalPages);
   for (const invalid of ["0", "-1", "1.5", "abc", "10001"])
     await call(`${path}?page=${invalid}`, token, 400);
-  return {...first, allItems};
+  return { ...first, allItems };
 }
 try {
   const roles = [
@@ -99,6 +99,35 @@ try {
       [id],
     );
   }
+  // People reachable only through an authorized case/thread must remain visible.
+  for (const suffix of ["unbooked", "thread-author"]) {
+    const id = `${prefix}-${suffix}`;
+    await pool.query(
+      `INSERT INTO "User" (id,email,"passwordHash","firstName","lastName",role,"updatedAt") VALUES ($1,$2,'unused','Context','Participant','CUSTOMER',NOW())`,
+      [id, `${id}@example.invalid`],
+    );
+    await pool.query(
+      `INSERT INTO "TravelProfile" ("userId",kind,"agencyId",available,specialties) VALUES ($1,'CUSTOMER',$2,true,'{}')`,
+      [id, source.agencyId],
+    );
+  }
+  await pool.query(
+    `INSERT INTO "TravelTicket" (id,reference,title,description,"agencyId","customerId",category,status,priority,region,deadline,"updatedAt") VALUES ($1,$1,'Unbooked context','Synthetic fixture',$2,$3,'REFUND','RESOLVED','LOW',$4,NOW(),NOW())`,
+    [`${prefix}-context`, source.agencyId, `${prefix}-unbooked`, source.region],
+  );
+  await pool.query(
+    `INSERT INTO "TravelConversation" (id,"ticketId","supplierId",subject,"dueAt") VALUES ($1,$2,$3,'Context fixture',NOW())`,
+    [`${prefix}-thread`, `${prefix}-context`, source.supplierId],
+  );
+  await pool.query(
+    `INSERT INTO "TravelMessage" (id,"ticketId","conversationId","senderId",visibility,content) VALUES ($1,$2,$3,$4,'SUPPLIER','Synthetic fixture')`,
+    [
+      `${prefix}-message`,
+      `${prefix}-context`,
+      `${prefix}-thread`,
+      `${prefix}-thread-author`,
+    ],
+  );
   if (process.env.OPSDESK_DIRECTORY_BROWSER === "1") {
     const { chromium } = await import("playwright");
     const browser = await chromium.launch();
@@ -156,10 +185,14 @@ try {
       legacy.bookings.length,
     );
     assert(
-      bookings.allItems.every((b) => legacy.bookings.some((v) => v.id === b.id)),
+      bookings.allItems.every((b) =>
+        legacy.bookings.some((v) => v.id === b.id),
+      ),
     );
     const people = await allPages("/ops/people", token, legacy.people.length);
-    assert(people.allItems.every((p) => legacy.people.some((v) => v.id === p.id)));
+    assert(
+      people.allItems.every((p) => legacy.people.some((v) => v.id === p.id)),
+    );
     if (role !== "manager")
       assert(
         people.allItems.every(
@@ -191,6 +224,9 @@ try {
     `PASS: ${checks} directory HTTP checks; multi-page fixtures, scope, search, validation, compact metadata.`,
   );
 } finally {
+  await pool.query('DELETE FROM "TravelTicket" WHERE id LIKE $1', [
+    `${prefix}%`,
+  ]);
   await pool.query('DELETE FROM "TravelBooking" WHERE id LIKE $1', [
     `${prefix}%`,
   ]);

@@ -2,6 +2,13 @@
 
 Prepared 10 November 2026. This document is the entry point for the next developer. It describes the delivered localhost prototype, the implementation boundaries, and the work required to turn it into an operational travel-support product.
 
+
+### Query-scaling follow-up (10 November 2026)
+
+PR #15 is merged. This follow-up was rebased onto latest main `f865ea9` after reviewing that merge; its source matches the tested `d75efbb` directory baseline. Profiling now covers 6,000 extra bookings, 18,000 cases and 54,000 messages using the real directory, inbox and Insights queries. People authorization now materializes the scoped ID set once rather than repeating correlated checks for every profile. A covering customer-message index improves first-response reporting. See [query plans, timings, reproduction and limits](OPSDESK_QUERY_PROFILE.md).
+
+Validation on pinned Node.js 22.23.0 passed both builds, 9 unit tests, 400 HTTP checks and browser flows. The directory tests now include people visible only through an unbooked case or supplier-thread message. Full backend lint errors in inherited files remain; changed-file lint passes. Global lock behavior was measured but locking is unchanged. Staging, real-world data distributions, read/write load targets and live-data readiness remain open.
+
 ## 1. Repository and review order
 
 - Repository: https://github.com/DhruvKhanna7777/opsdesk-travel-support.
@@ -267,6 +274,6 @@ These are not implemented promises. Start with product acceptance and production
 
 **Fully finished for the synthetic demo.** OpsDesk supports booking-linked intake and history, private supplier threads, routing, deadline escalation, resolution, scoped Insights and a searchable, paginated inbox. The case-read follow-up adds on-demand details and paginated messages, activity, related cases and supplier threads. Directory follow-up validation passed 9 unit tests, 400 HTTP checks, the five-role Chromium flow and directory selection across pages. Builds and changed-file lint passed; full backend lint has existing errors in inherited AI/role-guard files. See [validation details](OPSDESK_VALIDATION.md) for the prior merged baseline and follow-up checks.
 
-**Partially finished.** The browser uses compact metadata and loads case histories separately. Next profile realistic-volume queries, retire the compatibility workspace endpoint and reduce global lock contention. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
+**Partially finished.** The browser uses compact metadata and loads case histories separately. Initial synthetic-volume profiling is complete; next extend skew/concurrency/load coverage, retire the compatibility workspace endpoint and reduce global lock contention. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
 
 **Still to do.** Before live data, confirm production access rules and choose a staging target. Rehearse backup and restore, configure secrets and monitoring, then select providers for email, attachments and booking/supplier synchronization. External AI evaluation and broader accessibility, load and security reviews remain open. [Open issues](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues)

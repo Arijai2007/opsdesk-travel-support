@@ -522,26 +522,32 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         : STAFF.includes(p.kind)
           ? Prisma.sql`EXISTS (SELECT 1 FROM "TravelTicket" t WHERE t.id = c."ticketId" AND ${ticketScope})`
           : Prisma.sql`FALSE`;
-    const visible = Prisma.sql`(p."userId" = ${p.userId} OR p.kind IN ('AGENT', 'MANAGER')
-      OR EXISTS (SELECT 1 FROM "TravelBooking" b WHERE b."customerId" = p."userId" AND ${bookingScope})
-      OR EXISTS (SELECT 1 FROM "TravelTicket" t WHERE t."customerId" = p."userId" AND ${ticketScope})
-      OR EXISTS (SELECT 1 FROM "TravelMessage" m JOIN "TravelConversation" c ON c.id = m."conversationId" WHERE m."senderId" = p."userId" AND ${threadScope}))`;
+    // Build authorized IDs once. Correlated OR/EXISTS predicates repeated the
+    // ticket/thread scans for every profile, including out-of-region customers.
+    const visible = Prisma.sql`WITH visible AS MATERIALIZED (
+      SELECT ${p.userId}::text AS id
+      UNION SELECT "userId" FROM "TravelProfile" WHERE kind IN ('AGENT', 'MANAGER')
+      UNION SELECT b."customerId" FROM "TravelBooking" b WHERE ${bookingScope}
+      UNION SELECT t."customerId" FROM "TravelTicket" t WHERE ${ticketScope}
+      UNION SELECT m."senderId" FROM "TravelMessage" m
+        JOIN "TravelConversation" c ON c.id = m."conversationId" WHERE ${threadScope}
+    )`;
     const search = query.search?.trim() || '';
-    const predicate = Prisma.sql`${visible} AND ${query.kind ? Prisma.sql`p.kind = ${query.kind}` : Prisma.sql`TRUE`} AND (strpos(lower(u."firstName"), lower(${search})) > 0 OR strpos(lower(u."lastName"), lower(${search})) > 0)`;
-    const from = Prisma.sql`FROM "TravelProfile" p JOIN "User" u ON u.id = p."userId" WHERE ${predicate}`;
+    const predicate = Prisma.sql`${query.kind ? Prisma.sql`p.kind = ${query.kind}` : Prisma.sql`TRUE`} AND (strpos(lower(u."firstName"), lower(${search})) > 0 OR strpos(lower(u."lastName"), lower(${search})) > 0)`;
+    const from = Prisma.sql`FROM visible v JOIN "TravelProfile" p ON p."userId" = v.id JOIN "User" u ON u.id = p."userId" WHERE ${predicate}`;
     const result = await readPage(
       query,
       async () =>
         Number(
           (
             await this.db.$queryRaw<{ count: bigint }[]>(
-              Prisma.sql`SELECT count(*) ${from}`,
+              Prisma.sql`${visible} SELECT count(*) ${from}`,
             )
           )[0].count,
         ),
       (skip, take) =>
         this.db.$queryRaw<{ id: string }[]>(
-          Prisma.sql`SELECT p."userId" AS id ${from} ORDER BY u."firstName", p."userId" LIMIT ${take} OFFSET ${skip}`,
+          Prisma.sql`${visible} SELECT p."userId" AS id ${from} ORDER BY u."firstName", p."userId" LIMIT ${take} OFFSET ${skip}`,
         ),
     );
     const where = { userId: { in: result.items.map((v) => v.id) } };

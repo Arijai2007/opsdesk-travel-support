@@ -213,6 +213,7 @@ model TravelMessage {
   content String
   createdAt DateTime @default(now())
   @@index([ticketId, createdAt])
+  @@index([ticketId, visibility, createdAt, id, senderId])
   @@index([conversationId, createdAt, id])
 }
 
