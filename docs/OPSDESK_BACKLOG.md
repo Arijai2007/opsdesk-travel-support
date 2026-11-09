@@ -6,14 +6,12 @@ These are open implementation tasks, not completed features. Review P0 items bef
 
 [GitHub issue #2](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/2)
 
-The prototype implements the supplied project summary. The original six business-problem acceptance statements were not provided individually.
+The six demo scenarios are mapped in the [validation guide](OPSDESK_VALIDATION.md). Travel accounts are isolated from inherited ticket and AI routes, generic deletion/reset is guarded, and the demo suite checks agency, customer, regional agent and supplier access.
 
 Acceptance:
-- Map all six statements to working scenarios and explicit gaps.
-- Define organization, agency, customer, regional agent and supplier access rules.
-- Audit inherited generic ticket/admin/demo-reset/account deletion endpoints alongside travel profiles.
-- Preserve historical references on user deletion; review string identity fields and tenant boundaries.
-- Add negative-access regression tests for every new path; customer/supplier responses cannot reveal private notes or unrelated records.
+- Obtain product owner sign-off on the demo scenarios and confirm production organization and agency boundaries.
+- Design account provisioning, closure and retention so historical references are preserved or anonymized as required.
+- Extend the authorization audit and negative-access tests as production routes and roles are added.
 
 Start: backend/src/travel/travel.service.ts, travel.dto.ts, Prisma schema, scripts/smoke-test.mjs. Required before live data.
 
@@ -116,7 +114,7 @@ API key needed only once this work begins. Do not claim model accuracy before me
 
 [GitHub issue #9](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/9)
 
-Local validation covers 7 unit tests, 47 real HTTP checks and manual desktop/mobile workflows. This does not establish complete browser, load or production-security coverage.
+At implementation baseline `13873d4`, validation passed 9 unit tests, 99 HTTP checks and the five-role browser flow. Load testing and a production security review remain open.
 
 Acceptance:
 - Extend the automated five-role booking-to-supplier-to-resolution flow to cover failure recovery and additional browsers.

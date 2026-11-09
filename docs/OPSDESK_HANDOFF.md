@@ -8,7 +8,7 @@ Prepared 9 November 2026. This document is the entry point for the next develope
 - Implementation PR: https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/1.
 - Handoff PR: https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/10.
 - Remaining-work issues: https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues (issues #2–#9).
-- Both PRs have merged. Start from `main` for the current implementation and handoff.
+- [Access and intake hardening (#11)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/11) and [travel policies, Insights and inbox pagination (#12)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/12) are merged. Start from `main`. The implementation baseline for this handoff is merge commit `13873d4`.
 - Original code foundation: https://github.com/Molnar-Zoltan/it-helpdesk, baseline `51833aa3b6544522204caa7adac362936b381100` (`v0.13.0`). Its history and authorship are retained for provenance. All project branches, PRs and issues are in our repository; the local origin points only to our repository. No PR or push was made to the reference repository.
 - No release deployment or production data migration has been performed. PR creation is not a production-readiness claim.
 
@@ -26,9 +26,9 @@ The scope was a 3–5 day demonstration of connected support, not a full replace
 | --- | --- | --- |
 | Ticket persistence | PostgreSQL-backed cases, messages, status, priority, ownership and history | No attachment upload, archive/delete UI or retention policy |
 | Connected history | Exact booking-reference matching inside agency/customer access boundaries, related cases, manual verification, record brief | Unmatched references are saved for staff review. No fuzzy identity resolution, external booking synchronization or cross-agency merge |
-| Assignment | Region and category coverage, availability, least-open workload, generalist fallback, manager overrides and an unassigned queue | Shifts, capacity, round-robin policies and agent provisioning remain pending |
+| Assignment | Region and category coverage, availability, configurable capacity, least-open workload, generalist fallback, manager overrides and an unassigned queue | Shifts, round-robin policies and agent provisioning remain pending |
 | Supplier collaboration | Separate persistent supplier threads, scoped supplier login, replies, close/reopen, due dates | Messages stay inside the app; no real email, WhatsApp or supplier API delivery |
-| Travel urgency | Separate response and travel deadlines, manager schedule edits, check-in urgency, supplier due dates and manager notifications | Default policies are code-based. Contract SLAs and business-hour calendars remain pending |
+| Travel urgency | Versioned agency response targets in elapsed hours, separate travel deadlines, manager schedule edits, check-in urgency, supplier due dates and manager notifications | Contract SLAs, business-hour calendars and external alerts remain pending |
 | Escalation | 15-second sweep, durable events, unique escalation keys, transaction lock, manager-only persistent demo clock | No external alert delivery, acknowledgment workflow or dedicated job service |
 | Insights | Server-side totals, response and resolution medians, repeat bookings, seven UTC days of intake, supplier delays and CSV export | Reports use the current authorized records. Incremental aggregation and load targets remain pending |
 | Access roles | Manager, regional/global agent, agency, customer and supplier | Single shared support organization; no organization-admin or SSO onboarding |
@@ -200,15 +200,17 @@ With the local preview running in terminal one, use terminal two:
 
 ```powershell
 npm run ops:test
+# With Chromium installed via npx playwright install chromium:
+npm run ops:test:browser
 npm audit --omit=dev
 git diff --check
 ```
 
 For a standalone compile check: `npm run build` after Prisma generation/local setup. The preview launcher already builds the shared package, NestJS and Next.js.
 
-Validated locally: 7 backend unit tests, including 6 travel-policy tests; 47 real HTTP checks against PostgreSQL; optimized Next.js build and TypeScript checks; NestJS compilation; production dependency audit with 0 known advisories at the time checked. Browser checks covered login, new case, related-history linking, assignment, supplier thread creation, insights totals, desktop/mobile layout and persistence across restart. See `OPSDESK_VALIDATION.md` and `assets/opsdesk-preview.jpg`.
+At the implementation baseline, local validation passed 9 unit tests, 99 PostgreSQL-backed HTTP checks, both builds and the five-role browser flow. [GitHub CI passed on the head of PR #12](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42668187410) before it merged. See [validation details](OPSDESK_VALIDATION.md).
 
-The smoke suite uses an isolated seeded demo: creates and deletes only its own temporary cases, restores its clock/availability changes, checks role/agency/supplier isolation, and verifies repeat-safe escalation. It does not represent load testing, complete penetration testing, automated browser coverage or production readiness. Do not point it at a real operational database. Development-tool advisories remain; upgrades across major versions require separate validation.
+Run the smoke suites against an isolated seeded demo. They create and clean up temporary records and restore the settings they change. Coverage includes role isolation, repeat-safe escalation, concurrent routing at capacity, scoped reports and inbox pagination. Load testing and production security review remain open. Development-tool advisories remain; upgrades across major versions require separate validation.
 
 GitHub CI uses a fresh Linux runner, an official PostgreSQL 18 service and synthetic data, builds/starts the preview, executes the same test command and audits production packages. The initial hosted Windows run could not start embedded PostgreSQL; local Windows startup passed, but hosted Windows packaging remains unverified. CI uses `--external-db` to test the application against a service database. Database startup failures retain diagnostics. Check the actual PR runs before merging; a committed workflow file alone is not evidence of a successful cloud run. The inherited release and reset jobs are restricted to the original upstream repository and do not deploy/reset this project.
 
@@ -218,14 +220,14 @@ On the build machine, the bundled Git runtime has no Bash executable for Husky's
 
 These are not implemented promises. Start with product acceptance and production foundations before external AI. See `OPSDESK_BACKLOG.md` for concrete acceptance criteria and GitHub issue links.
 
-1. **P0 — Product acceptance and authorization hardening.** Obtain the original six business-problem acceptance statements (the supplied summary does not enumerate them), map each to a demo, define support organization/agency boundaries, audit inherited generic endpoints/admin/account deletion and ensure travel data cannot be orphaned or exposed. Add focused negative-access tests for new paths.
-2. **P0 — Production runtime and operations.** Managed PostgreSQL and Redis, real secrets, HTTPS, correct proxy/CORS/cookie settings, no demo accounts or demo clock, reviewed migrations/restore plan, monitoring, job health and retention. Decide actual deployment target; inherited GCP/Neon files are not a ready OpsDesk deployment.
+1. **P0 — Product acceptance and authorization hardening.** Review the six demo scenarios with the product owner. Travel accounts are isolated from inherited helpdesk routes and protected from generic deletion/reset. Confirm production organization boundaries and design account closure, retention and provisioning before using live data.
+2. **P0 — Production runtime and operations.** Select a deployment target, configure managed PostgreSQL and Redis, secrets, HTTPS, proxy and cookie settings, and remove demo access from the live environment. Rehearse migration and recovery on staging. Connect the existing readiness and worker probes to monitoring and assign on-call ownership.
 3. **P1 — Real conversations and attachments.** Select provider, implement verified inbound webhooks and outbound messages, idempotent message IDs, correct thread routing, retry/outbox, attachment scanning/storage and redaction. Supplier email must never include internal notes or unrelated bookings.
 4. **P1 — Booking/supplier integration.** Read real bookings through a provider adapter, map stable agency/customer IDs, synchronize check-in/timezones, validate ownership and reconciliation; add supplier identity verification. Current records are seed data only.
-5. **P1 — Configurable operations.** SLA contracts, business hours, regional shifts, skills/capacity, escalation ownership/acknowledgment, holiday calendars, agent/agency/customer membership management and controlled reopening policies.
-6. **P1 — Scale and reporting.** Paginated APIs, server-side search/aggregations, indexes from query plans, narrower locks, robust background queue/outbox, larger-dataset and concurrency tests. Current `/ops/workspace` loads the full authorized dataset and client reports aggregate it.
+5. **P1 — Configurable operations.** Extend the existing agency response targets and specialty/capacity routing with contract calendars, regional shifts, escalation acknowledgment and membership administration.
+6. **P1 — Scale and reporting.** The inbox already pages and filters case IDs on the server, and Insights aggregates in PostgreSQL. Load case details on demand and paginate messages and supplier threads to replace the full workspace response. Then profile queries, narrow lock scope, and measure worker and API performance.
 7. **P2 — Optional AI with evaluation.** Choose Claude, Gemini or another provider only after specifying the task. Ground summaries in authorized records, require source references, reject injected instructions, validate output schemas, redact PII, set spend limits and evaluate on held-out labeled travel cases. Keep access/routing/deadlines deterministic. Add a real API key only when implementing that adapter.
-8. **P2 — Quality and release process.** Automated browser tests for all roles, accessibility audit, Windows fresh-clone setup coverage, broader integration/load tests, development dependency cleanup and source/data license review. Decide maintenance ownership and incident response before live use.
+8. **P2 — Quality and release process.** Extend the existing five-role browser flow to failure recovery and more browsers. Complete accessibility, load, security and license reviews, and define release ownership and incident response.
 
 ## 14. Troubleshooting
 
@@ -248,10 +250,16 @@ These are not implemented promises. Start with product acceptance and production
 - [ ] Owner grants the named recipient write access if they will publish or merge changes.
 - [ ] Recipient clones `main` and runs the complete demo from a clean checkout.
 - [ ] Recipient reads this document, setup README, validation report, sources and prioritized backlog.
-- [ ] Both PRs and actual CI results are reviewed, including documented lint/tooling exceptions.
+- [ ] Review the merged implementation PRs and the validation evidence linked above.
 - [ ] Recipient repeats the customer/agency/supplier privacy demonstration and main booking workflow.
 - [ ] Owner decides whether to transfer synthetic local records via verified logical backup; a clean seed is enough for development.
 - [ ] Product owner provides full acceptance brief and chooses the next milestone.
 - [ ] Before live use, complete P0 items and review all external integrations and data-handling requirements.
 
-No API purchase, external supplier communication, production deployment, repository transfer or reviewer invitation is implied by this code handoff.
+## 16. Messages to forward
+
+**Fully finished for the synthetic demo.** Start from `main`. OpsDesk supports booking-linked intake and history, private supplier threads, routing, deadline escalation, resolution, scoped Insights and a searchable, paginated inbox. Validation passed 9 unit tests, 99 HTTP checks and the five-role browser flow. [Merged implementation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/12)
+
+**Partially finished.** The inbox pages case IDs, but case details still load with the full workspace. Start by loading individual cases on demand and paginating messages and supplier threads. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
+
+**Still to do.** Before live data, confirm production access rules and choose a staging target. Rehearse backup and restore, configure secrets and monitoring, then select providers for email, attachments and booking/supplier synchronization. External AI evaluation and broader accessibility, load and security reviews remain open. [Open issues](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues)

@@ -1,8 +1,8 @@
 # Prototype validation
 
-Validated on Windows x64 with Node.js 22.19.0, npm 10.9.3, PostgreSQL 18 (embedded), Next.js 16.4.5 and NestJS 11. The upstream repository recommends Node 22.23.x; use that newer Node 22 release when setting up a new machine.
+The current implementation baseline is `13873d4`. [CI passed for the merged PR #12 head](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42668187410). The original Windows baseline below used Node.js 22.19.0, npm 10.9.3, PostgreSQL 18 (embedded), Next.js 16.4.5 and NestJS 11. Use Node.js 22.23.x for a fresh setup.
 
-## Automated checks
+## Original prototype checks
 
 - Backend unit suite: 7 tests passed, including 6 travel policy tests.
 - Real HTTP workflow suite: 47 checks passed against the actual NestJS API and PostgreSQL database. Covers authentication, agency/customer/region isolation, payload validation, linking, missing references, private notes, supplier-specific access, supplier-thread closure/reopening, status transitions, least-load/availability routing and idempotent escalation.
@@ -39,7 +39,7 @@ The reporting and inbox follow-up passed 9 unit tests, 99 HTTP checks and the fi
 | Workflow area | Scenario to verify | Remaining scope |
 | --- | --- | --- |
 | Connected history | Submit another complaint for BK-1042 and confirm earlier cases appear as separate records. Submit an unmatched reference and confirm the complaint and review event are saved without a booking link. | Live booking synchronization and fuzzy matching remain separate work. |
-| Assignment | Configure agent specialties from Needs attention. Verify that matching specialties take precedence, that general coverage remains available, and that no eligible agent leaves a case unassigned. Check the inbox filters for status, owner and deadline. | Shifts, capacity and separate category teams remain pending. |
+| Assignment | Configure agent specialties and capacity from Needs attention. Verify that matching specialists take precedence, general coverage remains available, and simultaneous intake cannot claim the same last slot. Check the inbox filters for status, owner and deadline. | Shifts and separate category teams remain pending. |
 | Supplier conversations | Open an Aster thread, verify a Skyline account cannot reply, then reply as Aster and confirm the main ticket returns to support. Verify the customer cannot read the thread or private resolution reason. | The prototype uses in-app replies. |
 | Travel deadlines | Set a departure and cancellation cutoff on a booking. Verify a cancellation uses the earlier cutoff, clearing it recalculates the active case deadline, and refunds retain their separate response target. | Live schedule synchronization and contract SLA calendars remain pending. |
 | Escalation | Advance the demo clock, inspect the manager queue, and repeat the sweep to verify a single event per rule and deadline. | External alerts and a separately deployed worker are pending. |
