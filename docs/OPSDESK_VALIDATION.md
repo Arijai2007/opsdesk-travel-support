@@ -41,7 +41,7 @@ The deadline candidate filter brought the HTTP suite to 85 checks. It still dete
 | Supplier conversations | Open an Aster thread, verify a Skyline account cannot reply, then reply as Aster and confirm the main ticket returns to support. Verify the customer cannot read the thread or private resolution reason. | The prototype uses in-app replies. |
 | Travel deadlines | Set a departure and cancellation cutoff on a booking. Verify a cancellation uses the earlier cutoff, clearing it recalculates the active case deadline, and refunds retain their separate response target. | Live schedule synchronization and contract SLA calendars remain pending. |
 | Escalation | Advance the demo clock, inspect the manager queue, and repeat the sweep to verify a single event per rule and deadline. | External alerts and a separately deployed worker are pending. |
-| Insights | Reconcile backlog, median response and resolution times, repeat contacts and breaches with the authorized saved cases and messages. | Reports aggregate the demo workspace. Scalable server-side analytics and performance targets are pending. |
+| Insights | Reconcile server totals, medians, repeat contacts and breaches with authorized cases. Confirm managers and regional agents see only their respective totals and non-staff cannot access the report. | Incremental reports and performance targets are pending. |
 
 ## Boundaries
 

@@ -10,6 +10,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
+import { readTravelInsights } from './travel-insights';
 import {
   AgentSpecialtiesDto,
   BookingScheduleDto,
@@ -97,14 +98,25 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     if (p.kind !== 'MANAGER')
       throw new ForbiddenException('Manager access required.');
   }
+  private staffRegion(p: Profile): string | null {
+    return p.kind === 'MANAGER' || p.region === 'GLOBAL'
+      ? null
+      : p.region || 'NONE';
+  }
   private scope(p: Profile): Prisma.TravelTicketWhereInput {
-    if (p.kind === 'MANAGER') return {};
-    if (p.kind === 'AGENT')
-      return p.region === 'GLOBAL' ? {} : { region: p.region || 'NONE' };
+    if (STAFF.includes(p.kind)) {
+      const region = this.staffRegion(p);
+      return region === null ? {} : { region };
+    }
     if (p.kind === 'AGENCY') return { agencyId: p.agencyId || 'NONE' };
     if (p.kind === 'CUSTOMER')
       return { customerId: p.userId, agencyId: p.agencyId || 'NONE' };
     return { id: '__not_visible__' };
+  }
+  async insights(userId: string) {
+    const p = await this.profile(userId);
+    this.staff(p);
+    return readTravelInsights(this.db, this.staffRegion(p), await this.now());
   }
   private async ticket(p: Profile, id: string, tx: Tx): Promise<Case> {
     const ticket = await tx.travelTicket.findFirst({

@@ -31,6 +31,9 @@ export class TravelController {
   @Get('workspace') workspace(@Req() req: AuthenticatedRequest) {
     return this.travel.workspace(req.user.userId);
   }
+  @Get('insights') insights(@Req() req: AuthenticatedRequest) {
+    return this.travel.insights(req.user.userId);
+  }
   @Post('tickets') create(
     @Req() req: AuthenticatedRequest,
     @Body() dto: NewTravelTicketDto,

@@ -1,7 +1,9 @@
 "use client";
 import { ArrowUpRight, BookOpen, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { TravelInsights } from "@helpdesk/shared";
 import type { Workspace } from "@/lib/opsdesk-types";
-import { active, date, human, type Mutation } from "./ui";
+import { date, human, request, type Mutation } from "./ui";
 
 const categories = [
   "REFUND",
@@ -219,119 +221,92 @@ export function Bookings({
     </section>
   );
 }
-export function Insights({ data }: { data: Workspace }) {
-  const open = data.tickets.filter(active),
-    closed = data.tickets.filter((t) => !active(t));
-  const median = (a: number[]) => {
-    const s = a.sort((a, b) => a - b);
-    return s.length
-      ? (s[Math.floor((s.length - 1) / 2)] + s[Math.ceil((s.length - 1) / 2)]) /
-          2
-      : 0;
-  };
-  const responseHours = data.tickets
-    .map((t) => {
-      // The intake message is not a response, even when staff filed it for a traveler.
-      const first = t.messages
-        .slice(1)
-        .find(
-          (m) =>
-            m.visibility === "CUSTOMER" &&
-            data.people.some(
-              (p) =>
-                p.id === m.senderId && ["AGENT", "MANAGER"].includes(p.kind),
-            ),
-        );
-      return first
-        ? (+new Date(first.createdAt) - +new Date(t.createdAt)) / 3600000
-        : null;
-    })
-    .filter((n): n is number => n !== null && n >= 0);
-  const resolutionHours = closed.flatMap((t) => {
-    if (!t.resolvedAt) return [];
-    const hours = (+new Date(t.resolvedAt) - +new Date(t.createdAt)) / 3600000;
-    return hours >= 0 ? [hours] : [];
-  });
-  const repeatBookings = data.bookings.filter(
-    (b) => data.tickets.filter((t) => t.bookingId === b.id).length > 1,
-  ).length;
-  const categoryCounts = categories.map((c) => ({
-    label: human(c),
-    value: data.tickets.filter((t) => t.category === c).length,
-  }));
-  const supplierRows = [
-    ...new Set(data.bookings.map((b) => b.supplier.name)),
-  ].map((name) => {
-    const ids = data.bookings
-      .filter((b) => b.supplier.name === name)
-      .map((b) => b.id);
-    const cases = data.tickets.filter(
-      (t) => t.bookingId && ids.includes(t.bookingId),
+export function Insights() {
+  const [report, setReport] = useState<TravelInsights | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let disposed = false;
+    async function load() {
+      try {
+        const next: TravelInsights = await request("insights");
+        if (!disposed) {
+          setReport(next);
+          setError("");
+        }
+      } catch (cause) {
+        if (!disposed)
+          setError(
+            cause instanceof Error ? cause.message : "Could not load Insights.",
+          );
+      }
+    }
+    void load();
+    const timer = setInterval(() => void load(), 20000);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, []);
+  if (error)
+    return (
+      <p role="alert" className="od-error">
+        {error}
+      </p>
     );
-    const threads = data.conversations.filter((c) => c.supplier.name === name);
-    return {
-      name,
-      cases: cases.length,
-      open: cases.filter(active).length,
-      overdue: threads.filter(
-        (c) =>
-          c.status === "AWAITING_REPLY" &&
-          +new Date(c.dueAt) <= +new Date(data.now),
-      ).length,
-    };
-  });
-  const trends = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(+new Date(data.now) - (6 - i) * 86400000);
-    const key = day.toISOString().slice(0, 10);
-    return {
-      label: day.toLocaleDateString("en-GB", {
-        weekday: "short",
-        timeZone: "UTC",
-      }),
-      value: data.tickets.filter((t) => t.createdAt.slice(0, 10) === key)
-        .length,
-    };
-  });
+  if (!report) return <p role="status">Loading insights…</p>;
+  const categoryCounts = categories.map((category) => ({
+    label: human(category),
+    value:
+      report.categories.find((item) => item.category === category)?.count ?? 0,
+  }));
+  const supplierRows = report.suppliers;
+  const trends = report.days.map(({ date, count }) => ({
+    label: new Date(date).toLocaleDateString("en-GB", {
+      weekday: "short",
+      timeZone: "UTC",
+    }),
+    value: count,
+  }));
   return (
     <>
       <div className="od-stats">
         {[
           {
             label: "Median first response",
-            value: responseHours.length
-              ? `${median(responseHours).toFixed(1)}h`
-              : "—",
+            value:
+              report.medianFirstResponseHours !== null
+                ? `${report.medianFirstResponseHours.toFixed(1)}h`
+                : "—",
             note: "Customer-visible agent replies only",
           },
           {
             label: "Resolution rate",
-            value: data.tickets.length
-              ? `${Math.round((closed.length / data.tickets.length) * 100)}%`
+            value: report.total
+              ? `${Math.round((report.closed / report.total) * 100)}%`
               : "—",
-            note: `${closed.length} of ${data.tickets.length} cases completed`,
+            note: `${report.closed} of ${report.total} cases completed`,
           },
           {
             label: "Median time to resolution",
-            value: resolutionHours.length
-              ? `${median(resolutionHours).toFixed(1)}h`
-              : "—",
+            value:
+              report.medianResolutionHours !== null
+                ? `${report.medianResolutionHours.toFixed(1)}h`
+                : "—",
             note: "From intake to latest completion",
           },
           {
             label: "Backlog",
-            value: open.length,
+            value: report.backlog,
             note: "Cases awaiting completion",
           },
           {
             label: "Repeat-contact bookings",
-            value: repeatBookings,
+            value: report.repeatBookings,
             note: "Bookings linked to multiple cases",
           },
           {
             label: "Case deadlines breached",
-            value: open.filter(
-              (t) => +new Date(t.deadline) <= +new Date(data.now),
-            ).length,
+            value: report.breached,
             note: "Unresolved cases past their earliest deadline",
           },
         ].map((s) => (
@@ -400,7 +375,7 @@ export function Insights({ data }: { data: Workspace }) {
             </thead>
             <tbody>
               {supplierRows.map((s) => (
-                <tr key={s.name}>
+                <tr key={s.id}>
                   <td>
                     <b>{s.name}</b>
                   </td>

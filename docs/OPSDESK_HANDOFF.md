@@ -30,7 +30,7 @@ The scope was a 3–5 day demonstration of connected support, not a full replace
 | Supplier collaboration | Separate persistent supplier threads, scoped supplier login, replies, close/reopen, due dates | Messages stay inside the app; no real email, WhatsApp or supplier API delivery |
 | Travel urgency | Separate response and travel deadlines, manager schedule edits, check-in urgency, supplier due dates and manager notifications | Default policies are code-based. Contract SLAs and business-hour calendars remain pending |
 | Escalation | 15-second sweep, durable events, unique escalation keys, transaction lock, manager-only persistent demo clock | No external alert delivery, acknowledgment workflow or dedicated job service |
-| Insights | Category and 7-day volume charts, resolution rate, median first response, repeat bookings, supplier counts, CSV export | Calculated from loaded authorized demo records; not a scalable analytics pipeline |
+| Insights | Server-side totals, response and resolution medians, repeat bookings, seven UTC days of intake, supplier delays and CSV export | Reports use the current authorized records. Incremental aggregation and load targets remain pending |
 | Access roles | Manager, regional/global agent, agency, customer and supplier | Single shared support organization; no organization-admin or SSO onboarding |
 | Assistance | Rules-based category suggestions, source-labelled briefs and editable reply drafts based on saved facts | External LLM evaluation and provider integration remain pending |
 | Demo data | 3 agencies, 20 travelers, 30 bookings, 60 initial cases, 4 agents, 1 manager, 5 suppliers | Synthetic operations; one browser-created case exists only in the original local database |
@@ -138,6 +138,7 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/ops/workspace` | Authorized tickets, people, bookings, supplier threads and configuration |
+| GET | `/ops/insights` | Staff-only aggregate report using the caller’s authorized case scope |
 | POST | `/ops/tickets` | Create and link/classify/route a case |
 | PATCH | `/ops/tickets/:id` | Status, priority, assignment and booking verification |
 | POST | `/ops/tickets/:id/messages` | Customer-visible response or private staff note |

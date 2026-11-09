@@ -57,6 +57,43 @@ try {
   assert(initial.tickets.length >= 60);
   assert.equal(initial.bookings.length, 30);
   assert.equal(initial.me.kind, "MANAGER");
+  await call("/ops/insights", null, undefined, "GET", 401);
+  await call("/ops/insights", customer, undefined, "GET", 403);
+  await call("/ops/insights", agency, undefined, "GET", 403);
+  await call("/ops/insights", supplier, undefined, "GET", 403);
+  const managerReport = await call("/ops/insights", manager);
+  assert.equal(managerReport.total, initial.tickets.length);
+  assert.equal(
+    managerReport.closed + managerReport.backlog,
+    managerReport.total,
+  );
+  assert.equal(
+    managerReport.categories.reduce((total, row) => total + row.count, 0),
+    managerReport.total,
+  );
+  assert.equal(managerReport.days.length, 7);
+  assert(
+    managerReport.days.every((day) => /^\d{4}-\d{2}-\d{2}$/.test(day.date)),
+  );
+  assert.equal(typeof managerReport.medianFirstResponseHours, "number");
+  assert(managerReport.medianFirstResponseHours >= 0);
+  const resolutions = initial.tickets
+    .filter(
+      (value) =>
+        value.resolvedAt && ["RESOLVED", "CLOSED"].includes(value.status),
+    )
+    .map(
+      (value) =>
+        (Date.parse(value.resolvedAt) - Date.parse(value.createdAt)) / 3600000,
+    )
+    .filter((hours) => hours >= 0)
+    .sort((a, b) => a - b);
+  const middle = (resolutions.length - 1) / 2;
+  const medianResolution =
+    (resolutions[Math.floor(middle)] + resolutions[Math.ceil(middle)]) / 2;
+  assert(
+    Math.abs(managerReport.medianResolutionHours - medianResolution) < 1e-9,
+  );
   const asiaSpecialties = initial.people.find(
     (p) => p.id === "agent-asia",
   ).specialties;
@@ -94,6 +131,13 @@ try {
   assert(otherData.tickets.every((t) => t.agencyId === "horizon"));
   const agentData = await call("/ops/workspace", agent);
   assert(agentData.tickets.every((t) => t.region === "ASIA"));
+  const regionReport = await call("/ops/insights", agent);
+  assert.equal(regionReport.total, agentData.tickets.length);
+  assert(regionReport.total < managerReport.total);
+  assert.equal(
+    regionReport.suppliers.reduce((sum, row) => sum + row.cases, 0),
+    agentData.tickets.filter((ticket) => ticket.bookingId).length,
+  );
   await call("/tickets/queue", agent, undefined, "GET", 403);
   await call("/tickets/queue", manager, undefined, "GET", 403);
   await call(

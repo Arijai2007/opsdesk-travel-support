@@ -478,7 +478,7 @@ export function OpsDeskWorkspace() {
                   onSelect={setSelected}
                 />
               ) : view === "insights" ? (
-                <Insights data={data} />
+                <Insights />
               ) : (
                 <>
                   {view === "manager" && data.me.kind === "MANAGER" && (

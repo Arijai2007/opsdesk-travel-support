@@ -126,6 +126,11 @@ try {
     .fill("Private browser test resolution reason.");
   await manager.getByRole("button", { name: "Save outcome" }).click();
   await manager.getByRole("button", { name: "Reopen case" }).waitFor();
+  await manager.getByRole("button", { name: "Insights" }).click();
+  await manager.getByText("Median first response", { exact: true }).waitFor();
+  await manager
+    .getByRole("heading", { name: "Supplier performance" })
+    .waitFor();
   await manager.close();
 
   const customer = await signIn("maya", {
