@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 const root = new URL("../", import.meta.url);
 const env = dotenv.parse(readFileSync(new URL("backend/.env", root)));
 const dir = fileURLToPath(new URL(".opsdesk/postgres", root));
+const diagnostics = [];
 mkdirSync(fileURLToPath(new URL(".opsdesk", root)), { recursive: true });
 const pg = new EmbeddedPostgres({
   databaseDir: dir,
@@ -14,11 +15,19 @@ const pg = new EmbeddedPostgres({
   persistent: true,
   initdbFlags: ["--encoding=UTF8", "--locale=C"],
   postgresFlags: ["-h", "127.0.0.1"],
-  onLog: () => {},
+  onLog: (message) => {
+    diagnostics.push(String(message));
+    if (diagnostics.length > 20) diagnostics.shift();
+  },
   onError: (message) => console.error(String(message)),
 });
-if (!existsSync(`${dir}/PG_VERSION`)) await pg.initialise();
-await pg.start();
+try {
+  if (!existsSync(`${dir}/PG_VERSION`)) await pg.initialise();
+  await pg.start();
+} catch (error) {
+  console.error(diagnostics.join("\n"));
+  throw new Error("Embedded PostgreSQL could not start. Review database diagnostics above.", { cause: error });
+}
 const client = pg.getPgClient();
 await client.connect();
 const { rows } = await client.query(
