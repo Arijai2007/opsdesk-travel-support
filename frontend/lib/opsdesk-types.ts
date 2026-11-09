@@ -4,6 +4,7 @@ export type Person = {
   kind: string;
   region: string | null;
   available: boolean;
+  specialties?: string[];
 };
 export type Agency = { id: string; name: string; code: string };
 export type Supplier = { id: string; name: string; email: string };
@@ -17,6 +18,8 @@ export type Booking = {
   region: string;
   service: string;
   checkInAt: string;
+  departureAt: string | null;
+  cancellationCutoffAt: string | null;
   timezone: string;
   agency: Agency;
   supplier: Supplier;
@@ -52,6 +55,7 @@ export type Ticket = {
   priority: string;
   agentId: string | null;
   deadline: string;
+  responseDeadline: string | null;
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;

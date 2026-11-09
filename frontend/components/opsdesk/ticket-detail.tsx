@@ -31,6 +31,91 @@ import {
   remaining,
   type Mutation,
 } from "./ui";
+
+const scheduleFields = [
+  ["checkInAt", "Check-in"],
+  ["departureAt", "Departure"],
+  ["cancellationCutoffAt", "Cancellation cutoff"],
+] as const;
+
+function BookingSchedule({
+  booking,
+  manager,
+  busy,
+  mutate,
+}: {
+  booking: NonNullable<Ticket["booking"]>;
+  manager: boolean;
+  busy: boolean;
+  mutate: Mutation;
+}) {
+  const localTime = (value: string) =>
+    new Date(value).toLocaleString("en-GB", {
+      timeZone: booking.timezone,
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  return (
+    <>
+      {scheduleFields.map(([field, label]) => {
+        const value = booking[field];
+        return (
+          <div className="od-context-line" key={field}>
+            <CalendarDays size={15} />
+            <span>
+              {label}
+              <b>{value ? localTime(value) : "Not recorded"}</b>
+              {value && <small>{booking.timezone}</small>}
+            </span>
+          </div>
+        );
+      })}
+      {manager && (
+        <details>
+          <summary>Edit booking schedule</summary>
+          <form
+            key={scheduleFields.map(([field]) => booking[field]).join("|")}
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = new FormData(event.currentTarget);
+              const changes = Object.fromEntries(
+                scheduleFields.flatMap(([field]) => {
+                  const value = String(form.get(field) ?? "");
+                  if (value === (booking[field]?.slice(0, 16) ?? "")) return [];
+                  return [[field, value ? `${value}:00Z` : null]];
+                }),
+              );
+              if (Object.keys(changes).length)
+                void mutate(
+                  `bookings/${booking.id}/schedule`,
+                  changes,
+                  "Booking schedule updated.",
+                  "PATCH",
+                ).catch(() => {});
+            }}
+          >
+            {scheduleFields.map(([field, label]) => (
+              <label key={field}>
+                {label} (UTC)
+                <input
+                  name={field}
+                  type="datetime-local"
+                  defaultValue={booking[field]?.slice(0, 16)}
+                  required={field === "checkInAt"}
+                />
+              </label>
+            ))}
+            <button className="od-secondary" disabled={busy}>
+              Save schedule
+            </button>
+          </form>
+        </details>
+      )}
+    </>
+  );
+}
 export function NewTicket({
   data,
   busy,
@@ -568,7 +653,10 @@ export function TicketDetail({
                     ? remaining(t.deadline, data.now)
                     : "Case completed"}
                 </b>
-                <small>Response target · {date(t.deadline)}</small>
+                <small>Case deadline · {date(t.deadline)}</small>
+                {t.responseDeadline && t.responseDeadline !== t.deadline && (
+                  <small>Response target · {date(t.responseDeadline)}</small>
+                )}
               </div>
             </div>
           </section>
@@ -587,22 +675,12 @@ export function TicketDetail({
                 <p>
                   {t.booking.service} · {human(t.booking.region)}
                 </p>
-                <div className="od-context-line">
-                  <CalendarDays size={15} />
-                  <span>
-                    Check-in / departure
-                    <b>
-                      {new Date(t.booking.checkInAt).toLocaleString("en-GB", {
-                        timeZone: t.booking.timezone,
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </b>
-                    <small>{t.booking.timezone}</small>
-                  </span>
-                </div>
+                <BookingSchedule
+                  booking={t.booking}
+                  manager={data.me.kind === "MANAGER"}
+                  busy={busy}
+                  mutate={mutate}
+                />
                 {booking && (
                   <div className="od-context-line">
                     <Globe2 size={15} />

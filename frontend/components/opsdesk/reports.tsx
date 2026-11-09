@@ -1,7 +1,72 @@
 "use client";
 import { ArrowUpRight, BookOpen, Search } from "lucide-react";
 import type { Workspace } from "@/lib/opsdesk-types";
-import { active, date, human } from "./ui";
+import { active, date, human, type Mutation } from "./ui";
+
+const categories = [
+  "REFUND",
+  "CANCELLATION",
+  "BOOKING_CHANGE",
+  "CHECK_IN",
+  "BAGGAGE",
+  "OTHER",
+];
+
+export function RoutingSettings({
+  data,
+  busy,
+  mutate,
+}: {
+  data: Workspace;
+  busy: boolean;
+  mutate: Mutation;
+}) {
+  return (
+    <details className="od-panel">
+      <summary>Agent specialties</summary>
+      <p>Leave an agent’s categories empty for general coverage.</p>
+      {data.people
+        .filter((person) => person.kind === "AGENT")
+        .map((agent) => (
+          <form
+            key={`${agent.id}:${agent.specialties?.join(",")}`}
+            onSubmit={(event) => {
+              event.preventDefault();
+              const specialties = new FormData(event.currentTarget).getAll(
+                "specialties",
+              );
+              void mutate(
+                `agents/${agent.id}/specialties`,
+                { specialties },
+                `Routing preferences saved for ${agent.name}.`,
+                "PATCH",
+              ).catch(() => {});
+            }}
+          >
+            <fieldset>
+              <legend>
+                {agent.name} · {human(agent.region ?? "Unassigned")}
+              </legend>
+              {categories.map((category) => (
+                <label key={category}>
+                  <input
+                    type="checkbox"
+                    name="specialties"
+                    value={category}
+                    defaultChecked={agent.specialties?.includes(category)}
+                  />
+                  {human(category)}
+                </label>
+              ))}
+              <button className="od-secondary" disabled={busy}>
+                Save specialties
+              </button>
+            </fieldset>
+          </form>
+        ))}
+    </details>
+  );
+}
 export function Bookings({
   data,
   search,
@@ -130,14 +195,7 @@ export function Insights({ data }: { data: Workspace }) {
   const repeatBookings = data.bookings.filter(
     (b) => data.tickets.filter((t) => t.bookingId === b.id).length > 1,
   ).length;
-  const categories = [
-    "REFUND",
-    "CANCELLATION",
-    "BOOKING_CHANGE",
-    "CHECK_IN",
-    "BAGGAGE",
-    "OTHER",
-  ].map((c) => ({
+  const categoryCounts = categories.map((c) => ({
     label: human(c),
     value: data.tickets.filter((t) => t.category === c).length,
   }));
@@ -210,11 +268,11 @@ export function Insights({ data }: { data: Workspace }) {
             note: "Bookings linked to multiple cases",
           },
           {
-            label: "Response targets breached",
+            label: "Case deadlines breached",
             value: open.filter(
               (t) => +new Date(t.deadline) <= +new Date(data.now),
             ).length,
-            note: "Unresolved cases past response deadline",
+            note: "Unresolved cases past their earliest deadline",
           },
         ].map((s) => (
           <div className="od-stat" key={s.label}>
@@ -228,13 +286,13 @@ export function Insights({ data }: { data: Workspace }) {
         <section className="od-panel od-chart">
           <h3>What travelers need help with</h3>
           <p>All authorized cases, grouped by issue category.</p>
-          {categories.map((c) => (
+          {categoryCounts.map((c) => (
             <div className="od-bar-row" key={c.label}>
               <span>{c.label}</span>
               <div>
                 <i
                   style={{
-                    width: `${(c.value / Math.max(1, ...categories.map((x) => x.value))) * 100}%`,
+                    width: `${(c.value / Math.max(1, ...categoryCounts.map((x) => x.value))) * 100}%`,
                   }}
                 />
               </div>

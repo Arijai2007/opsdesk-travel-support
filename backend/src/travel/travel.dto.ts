@@ -1,13 +1,18 @@
 import {
   IsBoolean,
+  IsArray,
   IsIn,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   Max,
   MaxLength,
+  Matches,
   Min,
   MinLength,
+  ValidateIf,
+  ArrayUnique,
 } from 'class-validator';
 import { CATEGORIES, PRIORITIES, STATUSES } from './travel.rules';
 export class NewTravelTicketDto {
@@ -44,4 +49,30 @@ export class ConversationStatusDto {
 }
 export class AvailabilityDto {
   @IsBoolean() available: boolean;
+}
+
+const UTC_TIMESTAMP = /T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?Z$/;
+
+export class BookingScheduleDto {
+  @ValidateIf((_, value: unknown) => value !== undefined)
+  @IsISO8601({ strict: true })
+  @Matches(UTC_TIMESTAMP)
+  checkInAt?: string;
+
+  @IsOptional()
+  @IsISO8601({ strict: true })
+  @Matches(UTC_TIMESTAMP)
+  departureAt?: string | null;
+
+  @IsOptional()
+  @IsISO8601({ strict: true })
+  @Matches(UTC_TIMESTAMP)
+  cancellationCutoffAt?: string | null;
+}
+
+export class AgentSpecialtiesDto {
+  @IsArray()
+  @ArrayUnique()
+  @IsIn(CATEGORIES, { each: true })
+  specialties: string[];
 }

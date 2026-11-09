@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import {
+  BookingScheduleDto,
   NewConversationDto,
   NewTravelTicketDto,
   SupplierReplyDto,
@@ -21,8 +22,10 @@ import {
   active,
   chooseAgent,
   classify,
-  deadlineFor,
+  effectiveDeadline,
   PRIORITIES,
+  responseDeadlineFor,
+  RESPONSE_WINDOW_MS,
   STAFF,
   urgency,
 } from './travel.rules';
@@ -209,6 +212,9 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         kind: v.kind,
         region: v.region,
         available: v.available,
+        ...(p.kind === 'MANAGER' && v.kind === 'AGENT'
+          ? { specialties: v.specialties }
+          : {}),
       })),
       tickets: tickets.map((t) => {
         const related = t.bookingId
@@ -294,8 +300,14 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       current.forEach((t) => {
         if (t.agentId) loads[t.agentId] = (loads[t.agentId] || 0) + 1;
       });
-      const agent = chooseAgent(agents, region, loads);
-      const deadline = deadlineFor(category, now, booking?.checkInAt);
+      const agent = chooseAgent(agents, region, loads, category);
+      const responseDeadline = responseDeadlineFor(now);
+      const deadline = effectiveDeadline(
+        category,
+        responseDeadline,
+        booking,
+        now,
+      );
       const ticket = await tx.travelTicket.create({
         data: {
           reference: `OPS-${randomUUID().slice(0, 8).toUpperCase()}`,
@@ -307,6 +319,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
           category,
           region,
           deadline,
+          responseDeadline,
           agentId: agent?.userId,
           priority:
             urgency(category, deadline, booking?.checkInAt, now)?.priority ||
@@ -348,8 +361,8 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         ticket.id,
         'ASSIGNED',
         agent
-          ? `Routed to ${region}; assigned the available agent with the lowest active workload.`
-          : `No eligible available agent in ${region}; retained in unassigned queue.`,
+          ? `Routed ${category} to ${region}; assigned the least-loaded eligible ${agent.specialties.length ? 'specialist' : 'generalist'}.`
+          : `No eligible available agent for ${category} in ${region}; retained in unassigned queue.`,
         userId,
         now,
       );
@@ -368,8 +381,11 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       )
         throw new ForbiddenException('Support team action required.');
       const data: Prisma.TravelTicketUncheckedUpdateInput = { updatedAt: now };
+      let booking = t.bookingId
+        ? await tx.travelBooking.findUnique({ where: { id: t.bookingId } })
+        : null;
       if (dto.bookingReference) {
-        const booking = await tx.travelBooking.findFirst({
+        booking = await tx.travelBooking.findFirst({
           where: {
             reference: dto.bookingReference.trim().toUpperCase(),
             agencyId: t.agencyId,
@@ -382,7 +398,13 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
             'No accessible booking matches this customer and region.',
           );
         data.bookingId = booking.id;
-        data.deadline = deadlineFor(t.category, now, booking.checkInAt);
+        data.responseDeadline = t.responseDeadline ?? t.deadline;
+        data.deadline = effectiveDeadline(
+          t.category,
+          data.responseDeadline,
+          booking,
+          this.responseCycleStart(t),
+        );
         await this.event(
           tx,
           id,
@@ -403,8 +425,15 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
           throw new BadRequestException('Add a resolution or closure reason.');
         data.status = dto.status;
         data.resolvedAt = active(dto.status) ? null : now;
-        if (!active(t.status) && active(dto.status))
-          data.deadline = new Date(now.getTime() + 24 * 3600000);
+        if (!active(t.status) && active(dto.status)) {
+          data.responseDeadline = responseDeadlineFor(now);
+          data.deadline = effectiveDeadline(
+            t.category,
+            data.responseDeadline,
+            booking,
+            now,
+          );
+        }
         await this.event(
           tx,
           id,
@@ -651,6 +680,94 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       data: { available },
     });
   }
+  private responseCycleStart(ticket: Case) {
+    return new Date(
+      Math.max(
+        ticket.createdAt.getTime(),
+        (ticket.responseDeadline?.getTime() ?? 0) - RESPONSE_WINDOW_MS,
+      ),
+    );
+  }
+  async updateSchedule(userId: string, id: string, dto: BookingScheduleDto) {
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      const previous = await tx.travelBooking.findUnique({ where: { id } });
+      if (!previous) throw new NotFoundException('Booking not found.');
+      const schedule = {
+        checkInAt: dto.checkInAt ? new Date(dto.checkInAt) : previous.checkInAt,
+        departureAt:
+          dto.departureAt === undefined
+            ? previous.departureAt
+            : dto.departureAt && new Date(dto.departureAt),
+        cancellationCutoffAt:
+          dto.cancellationCutoffAt === undefined
+            ? previous.cancellationCutoffAt
+            : dto.cancellationCutoffAt && new Date(dto.cancellationCutoffAt),
+      };
+      if (
+        schedule.cancellationCutoffAt &&
+        (schedule.cancellationCutoffAt > schedule.checkInAt ||
+          (schedule.departureAt &&
+            schedule.cancellationCutoffAt > schedule.departureAt))
+      )
+        throw new BadRequestException(
+          'The cancellation cutoff must precede travel.',
+        );
+      if (
+        +schedule.checkInAt === +previous.checkInAt &&
+        Number(schedule.departureAt) === Number(previous.departureAt) &&
+        Number(schedule.cancellationCutoffAt) ===
+          Number(previous.cancellationCutoffAt)
+      )
+        return previous;
+      const booking = await tx.travelBooking.update({
+        where: { id },
+        data: schedule,
+      });
+      const tickets = await tx.travelTicket.findMany({
+        where: { bookingId: id, status: { notIn: ['RESOLVED', 'CLOSED'] } },
+      });
+      const now = await this.now(tx);
+      for (const ticket of tickets) {
+        const responseDeadline = ticket.responseDeadline ?? ticket.deadline;
+        const deadline = effectiveDeadline(
+          ticket.category,
+          responseDeadline,
+          booking,
+          this.responseCycleStart(ticket),
+        );
+        if (+deadline === +ticket.deadline) continue;
+        await tx.travelTicket.update({
+          where: { id: ticket.id },
+          data: { deadline, responseDeadline, updatedAt: now },
+        });
+        await this.event(
+          tx,
+          ticket.id,
+          'DEADLINE_CHANGED',
+          `Booking schedule changed the case deadline from ${ticket.deadline.toISOString()} to ${deadline.toISOString()}.`,
+          userId,
+          now,
+        );
+      }
+      return booking;
+    });
+  }
+  async updateSpecialties(userId: string, id: string, specialties: string[]) {
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      const agent = await tx.travelProfile.findUnique({
+        where: { userId: id },
+      });
+      if (agent?.kind !== 'AGENT')
+        throw new NotFoundException('Agent not found.');
+      return tx.travelProfile.update({
+        where: { userId: id },
+        data: { specialties },
+        select: { userId: true, specialties: true },
+      });
+    });
+  }
   async sweep() {
     return this.locked(async (tx) => {
       const now = await this.now(tx);
@@ -659,7 +776,13 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         include: { booking: true, conversations: true },
       });
       for (const t of tickets) {
-        const rule = urgency(t.category, t.deadline, t.booking?.checkInAt, now);
+        const rule = urgency(
+          t.category,
+          t.deadline,
+          t.booking?.checkInAt,
+          now,
+          t.responseDeadline,
+        );
         if (rule) {
           const key = `${t.id}:${rule.reason}:${t.deadline.toISOString()}`;
           const exists = await tx.travelEvent.findUnique({

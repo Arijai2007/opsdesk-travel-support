@@ -26,9 +26,9 @@ The scope was a 3–5 day demonstration of connected support, not a full replace
 | --- | --- | --- |
 | Ticket persistence | PostgreSQL-backed cases, messages, status, priority, ownership and history | No attachment upload, archive/delete UI or retention policy |
 | Connected history | Exact booking-reference matching inside agency/customer access boundaries, related cases, manual verification, record brief | Unmatched references are saved for staff review. No fuzzy identity resolution, external booking synchronization or cross-agency merge |
-| Assignment | Region coverage, agent availability, least-open-workload selection, global fallback, manager reassignment and unassigned queue | No shifts, skills matrix, configurable capacity, round-robin contracts or agent provisioning UI |
+| Assignment | Region and category coverage, availability, least-open workload, generalist fallback, manager overrides and an unassigned queue | Shifts, capacity, round-robin policies and agent provisioning remain pending |
 | Supplier collaboration | Separate persistent supplier threads, scoped supplier login, replies, close/reopen, due dates | Messages stay inside the app; no real email, WhatsApp or supplier API delivery |
-| Travel urgency | Response deadline, check-in urgency, overdue supplier attention queue, manager notifications | Default policies are code-based, not per-contract SLAs or business-hour calendars |
+| Travel urgency | Separate response and travel deadlines, manager schedule edits, check-in urgency, supplier due dates and manager notifications | Default policies are code-based. Contract SLAs and business-hour calendars remain pending |
 | Escalation | 15-second sweep, durable events, unique escalation keys, transaction lock, manager-only persistent demo clock | No external alert delivery, acknowledgment workflow or dedicated job service |
 | Insights | Category and 7-day volume charts, resolution rate, median first response, repeat bookings, supplier counts, CSV export | Calculated from loaded authorized demo records; not a scalable analytics pipeline |
 | Access roles | Manager, regional/global agent, agency, customer and supplier | Single shared support organization; no organization-admin or SSO onboarding |
@@ -145,6 +145,8 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 | POST | `/ops/conversations/:id/reply` | Reply as authorized staff or matching supplier |
 | PATCH | `/ops/conversations/:id` | Staff close/reopen supplier thread |
 | PATCH | `/ops/availability` | Set own support availability |
+| PATCH | `/ops/bookings/:id/schedule` | Manager edits check-in, departure and cancellation cutoff as UTC timestamps and recalculates active case deadlines |
+| PATCH | `/ops/agents/:id/specialties` | Manager sets an agent’s supported categories. An empty list provides general coverage |
 | POST | `/ops/clock/advance` | Manager-only demo time advance |
 
 See DTOs for exact fields. Do not bypass the service authorization with direct UI role checks. New integrations must authenticate their own webhook source and map identities to existing authorized records.
@@ -152,8 +154,9 @@ See DTOs for exact fields. Do not bypass the service authorization with direct U
 ## 10. Current business rules
 
 - Keyword rules suggest one of the supported travel issue categories; they are not an LLM classifier.
-- Routing picks an available eligible regional/global support agent with the lowest active-case workload. No eligible agent leaves the case unassigned.
-- Non-refund service issues use the earlier relevant travel/response deadline. Imminent check-in raises priority: within 24 hours High, within 6 hours Urgent. Missed response targets are Urgent. Refund follow-ups use response deadlines independently of check-in.
+- Routing selects available regional or global agents, prefers the matching specialty and breaks ties by active workload. Generalists cover categories without an available specialist. If no eligible agent is available, the ticket stays unassigned. Managers edit specialties from Needs attention.
+- Non-refund cases use the earliest applicable response, check-in or departure deadline. Cancellation cases also consider the cancellation cutoff. Imminent check-in raises priority to High within 24 hours and Urgent within 6 hours. A missed case deadline is Urgent. Refunds keep their independent response target.
+- Managers can edit the booking schedule from a linked case. The form accepts UTC timestamps and the context panel displays dates in the booking timezone. Schedule edits recalculate active case deadlines and record changes without extending the response target. Previously stored case deadlines serve as the response target until a separate one is stored. Existing bookings can have unset departure and cancellation dates.
 - Urgency automation does not lower an existing higher priority. Default timing is encoded in `travel.rules.ts` and supplier-thread creation, not a customer-configurable SLA module.
 - A supplier reply returns work to support. Closed threads reject replies until staff reopen them.
 - Case briefs are assembled from authorized saved facts and source references. Supplier text and complaint examples are not policy truth.

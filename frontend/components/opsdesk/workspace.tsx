@@ -36,7 +36,7 @@ import {
 } from "./ui";
 import { OpsLogin } from "./login";
 import { NewTicket, TicketDetail, SupplierDesk } from "./ticket-detail";
-import { Bookings, Insights } from "./reports";
+import { Bookings, Insights, RoutingSettings } from "./reports";
 export function OpsDeskWorkspace() {
   const [data, setData] = useState<Workspace | null>(null),
     [ready, setReady] = useState(false),
@@ -49,6 +49,9 @@ export function OpsDeskWorkspace() {
     [search, setSearch] = useState(""),
     [priority, setPriority] = useState("ALL"),
     [region, setRegion] = useState("ALL"),
+    [status, setStatus] = useState("ALL"),
+    [owner, setOwner] = useState("ALL"),
+    [deadline, setDeadline] = useState("ALL"),
     [showNew, setShowNew] = useState(false),
     [showNotices, setShowNotices] = useState(false),
     [showClock, setShowClock] = useState(false),
@@ -142,6 +145,17 @@ export function OpsDeskWorkspace() {
         return false;
       if (priority !== "ALL" && t.priority !== priority) return false;
       if (region !== "ALL" && t.region !== region) return false;
+      if (status !== "ALL" && t.status !== status) return false;
+      if (owner !== "ALL" && (t.agentId ?? "UNASSIGNED") !== owner)
+        return false;
+      if (deadline !== "ALL") {
+        const hours = (Date.parse(t.deadline) - Date.parse(data.now)) / 3600000;
+        if (
+          !active(t) ||
+          (deadline === "OVERDUE" ? hours > 0 : hours <= 0 || hours > 24)
+        )
+          return false;
+      }
       return `${t.title} ${t.reference} ${t.booking?.reference || ""} ${person(t.customerId)} ${agency(t.agencyId)}`
         .toLowerCase()
         .includes(search.toLowerCase());
@@ -159,6 +173,9 @@ export function OpsDeskWorkspace() {
     setTab("active");
     setPriority("ALL");
     setRegion("ALL");
+    setStatus("ALL");
+    setOwner("ALL");
+    setDeadline("ALL");
   }
   const nav = [
     {
@@ -459,6 +476,9 @@ export function OpsDeskWorkspace() {
                 <Insights data={data} />
               ) : (
                 <>
+                  {view === "manager" && data.me.kind === "MANAGER" && (
+                    <RoutingSettings data={data} busy={busy} mutate={mutate} />
+                  )}
                   <div className="od-stats">
                     {[
                       {
@@ -547,7 +567,10 @@ export function OpsDeskWorkspace() {
                         <button
                           key={id}
                           className={tab === id ? "active" : ""}
-                          onClick={() => setTab(String(id))}
+                          onClick={() => {
+                            setTab(String(id));
+                            setStatus("ALL");
+                          }}
                         >
                           {label}
                           <span>{count}</span>
@@ -606,6 +629,56 @@ export function OpsDeskWorkspace() {
                         </button>
                       )}
                     </div>
+                    {staff && (
+                      <div className="od-filters">
+                        <select
+                          aria-label="Filter status"
+                          value={status}
+                          onChange={(e) => {
+                            setStatus(e.target.value);
+                            setTab("all");
+                          }}
+                        >
+                          <option value="ALL">All statuses</option>
+                          {[
+                            "OPEN",
+                            "IN_PROGRESS",
+                            "WAITING_SUPPLIER",
+                            "WAITING_CUSTOMER",
+                            "RESOLVED",
+                            "CLOSED",
+                          ].map((value) => (
+                            <option value={value} key={value}>
+                              {human(value)}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label="Filter owner"
+                          value={owner}
+                          onChange={(e) => setOwner(e.target.value)}
+                        >
+                          <option value="ALL">All owners</option>
+                          <option value="UNASSIGNED">Unassigned</option>
+                          {data.people
+                            .filter((person) => person.kind === "AGENT")
+                            .map((person) => (
+                              <option value={person.id} key={person.id}>
+                                {person.name}
+                              </option>
+                            ))}
+                        </select>
+                        <select
+                          aria-label="Filter deadline"
+                          value={deadline}
+                          onChange={(e) => setDeadline(e.target.value)}
+                        >
+                          <option value="ALL">All deadlines</option>
+                          <option value="OVERDUE">Overdue</option>
+                          <option value="NEXT_DAY">Due within 24 hours</option>
+                        </select>
+                      </div>
+                    )}
                     <div className="od-table-wrap">
                       <table className="od-table">
                         <thead>
@@ -696,6 +769,9 @@ export function OpsDeskWorkspace() {
                             onClick={() => {
                               setPriority("ALL");
                               setRegion("ALL");
+                              setStatus("ALL");
+                              setOwner("ALL");
+                              setDeadline("ALL");
                               setSearch("");
                               setTab("all");
                             }}

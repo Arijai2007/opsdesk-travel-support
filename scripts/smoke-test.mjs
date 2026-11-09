@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import pg from "pg";
@@ -11,6 +12,7 @@ const created = [];
 const notes = [];
 let checks = 0;
 let previousClock;
+let temporaryBookingId;
 async function call(path, token, body, method = "POST", expected = 200) {
   const r = await fetch(base + path, {
     method: body === undefined ? "GET" : method,
@@ -53,6 +55,29 @@ try {
   assert(initial.tickets.length >= 60);
   assert.equal(initial.bookings.length, 30);
   assert.equal(initial.me.kind, "MANAGER");
+  const asiaSpecialties = initial.people.find(
+    (p) => p.id === "agent-asia",
+  ).specialties;
+  await call(
+    "/ops/agents/agent-asia/specialties",
+    agent,
+    { specialties: ["REFUND"] },
+    "PATCH",
+    403,
+  );
+  await call(
+    "/ops/agents/agent-asia/specialties",
+    manager,
+    { specialties: "REFUND" },
+    "PATCH",
+    400,
+  );
+  await call(
+    "/ops/agents/agent-asia/specialties",
+    manager,
+    { specialties: asiaSpecialties },
+    "PATCH",
+  );
   const customerData = await call("/ops/workspace", customer);
   assert(customerData.tickets.every((t) => t.customerId === "customer-0"));
   assert(
@@ -351,7 +376,10 @@ try {
   await call("/ops/clock/advance", manager, { minutes: -1 }, "POST", 400);
   // Make only the test case overdue, then trigger two passes and assert exactly one event.
   await pool.query(
-    "UPDATE \"TravelTicket\" SET deadline=(now() AT TIME ZONE 'UTC')-interval '1 minute' WHERE id=$1",
+    `UPDATE "TravelTicket"
+     SET deadline=(now() AT TIME ZONE 'UTC')-interval '1 minute',
+         "responseDeadline"=(now() AT TIME ZONE 'UTC')-interval '1 minute'
+     WHERE id=$1`,
     [ticket.id],
   );
   await call("/ops/clock/advance", manager, { minutes: 1 }, "POST", 201);
@@ -380,6 +408,63 @@ try {
   created.push(routed.id);
   assert.equal(routed.agentId, "agent-global");
   await call("/ops/availability", agent, { available: true }, "PATCH");
+
+  temporaryBookingId = randomUUID();
+  const schedulePath = `/ops/bookings/${temporaryBookingId}/schedule`;
+  const workspaceTime = Date.parse((await call("/ops/workspace", manager)).now);
+  const at = (hours) => new Date(workspaceTime + hours * 3600000).toISOString();
+  await pool.query(
+    `INSERT INTO "TravelBooking"
+       (id, reference, "agencyId", "customerId", "supplierId", destination, region, service, timezone, "checkInAt")
+     SELECT $1, $2, "agencyId", "customerId", "supplierId", destination, region, service, timezone, $3
+     FROM "TravelBooking" WHERE id = 'booking-0'`,
+    [temporaryBookingId, temporaryBookingId.toUpperCase(), at(22)],
+  );
+  await call(schedulePath, agent, { departureAt: at(10) }, "PATCH", 403);
+  await call(
+    schedulePath,
+    manager,
+    { departureAt: "2026-11-09T12:00:00" },
+    "PATCH",
+    400,
+  );
+  await call(
+    schedulePath,
+    manager,
+    { departureAt: at(10), cancellationCutoffAt: at(11) },
+    "PATCH",
+    400,
+  );
+  await call(
+    schedulePath,
+    manager,
+    { departureAt: at(10), cancellationCutoffAt: at(4) },
+    "PATCH",
+  );
+  const cancellation = await call(
+    "/ops/tickets",
+    customer,
+    {
+      title: "Cancellation before cutoff",
+      description: "Please cancel my booking before the cutoff.",
+      bookingReference: temporaryBookingId,
+    },
+    "POST",
+    201,
+  );
+  created.push(cancellation.id);
+  assert.equal(cancellation.deadline, at(4));
+  await call(schedulePath, manager, { cancellationCutoffAt: null }, "PATCH");
+  const rescheduled = (await call("/ops/workspace", manager)).tickets.find(
+    (t) => t.id === cancellation.id,
+  );
+  assert.equal(rescheduled.deadline, at(10));
+  assert.equal(rescheduled.responseDeadline, cancellation.responseDeadline);
+  assert.equal(
+    rescheduled.events.filter((event) => event.kind === "DEADLINE_CHANGED")
+      .length,
+    1,
+  );
   notes.push(
     "Role and agency isolation, message privacy, booking validation/linking, least-load routing, supplier-only replies, resolution/reopening, durable records and idempotent escalation passed.",
   );
@@ -393,6 +478,10 @@ try {
   await pool.query('DELETE FROM "TravelTicket" WHERE id=ANY($1::text[])', [
     created,
   ]);
+  if (temporaryBookingId)
+    await pool.query('DELETE FROM "TravelBooking" WHERE id=$1', [
+      temporaryBookingId,
+    ]);
   await pool.query(
     'UPDATE "TravelProfile" SET available=true WHERE "userId"=\'agent-asia\'',
   );
