@@ -331,6 +331,29 @@ export function TicketDetail({
     related = data.tickets.filter((v) => t.relatedIds.includes(v.id));
   const owner = data.people.find((p) => p.id === t.agentId),
     booking = data.bookings.find((b) => b.id === t.bookingId);
+  const needsDraftDetails =
+    visibility === "CUSTOMER" && content.includes("[add the confirmed details");
+  function draftReply() {
+    const supplierUpdate = threads.some((thread) =>
+      thread.messages.some((message) =>
+        data.people.some(
+          (person) =>
+            person.id === message.senderId && person.kind === "SUPPLIER",
+        ),
+      ),
+    );
+    const reference = t.booking ? ` for booking ${t.booking.reference}` : "";
+    setContent(
+      [
+        `Hello, thank you for contacting us about case ${t.reference}${reference}.`,
+        !active(t)
+          ? "Our records show this case is complete. Please let us know if anything still needs attention."
+          : supplierUpdate
+            ? "We received an update from the supplier. Here is what we can confirm: [add the confirmed details]."
+            : "Here is the current status: [add the confirmed details and next steps].",
+      ].join("\n\n"),
+    );
+  }
   return (
     <>
       <button className="od-back" onClick={onBack}>
@@ -410,6 +433,7 @@ export function TicketDetail({
                   className="od-composer"
                   onSubmit={(e) => {
                     e.preventDefault();
+                    if (needsDraftDetails) return;
                     void mutate(
                       `tickets/${t.id}/messages`,
                       { content, visibility },
@@ -455,12 +479,24 @@ export function TicketDetail({
                     rows={4}
                   />
                   <div className="od-composer-footer">
+                    {staff && visibility === "CUSTOMER" && (
+                      <button
+                        type="button"
+                        className="od-secondary"
+                        disabled={busy || Boolean(content.trim())}
+                        onClick={draftReply}
+                      >
+                        Draft reply
+                      </button>
+                    )}
                     <small>
-                      Messages stay in this case. No external email is sent.
+                      {needsDraftDetails
+                        ? "Replace the draft placeholder with confirmed details before sending."
+                        : "Messages stay in this case. No external email is sent."}
                     </small>
                     <button
                       className="od-primary"
-                      disabled={busy || !content.trim()}
+                      disabled={busy || !content.trim() || needsDraftDetails}
                     >
                       <Send size={14} />
                       Send reply

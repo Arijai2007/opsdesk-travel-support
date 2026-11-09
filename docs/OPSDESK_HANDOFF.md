@@ -32,7 +32,7 @@ The scope was a 3–5 day demonstration of connected support, not a full replace
 | Escalation | 15-second sweep, durable events, unique escalation keys, transaction lock, manager-only persistent demo clock | No external alert delivery, acknowledgment workflow or dedicated job service |
 | Insights | Category and 7-day volume charts, resolution rate, median first response, repeat bookings, supplier counts, CSV export | Calculated from loaded authorized demo records; not a scalable analytics pipeline |
 | Access roles | Manager, regional/global agent, agency, customer and supplier | Single shared support organization; no organization-admin or SSO onboarding |
-| Assistance | Rules-based category suggestions and source-labelled briefs from saved records | No connected LLM, model training or measured classification accuracy |
+| Assistance | Rules-based category suggestions, source-labelled briefs and editable reply drafts based on saved facts | External LLM evaluation and provider integration remain pending |
 | Demo data | 3 agencies, 20 travelers, 30 bookings, 60 initial cases, 4 agents, 1 manager, 5 suppliers | Synthetic operations; one browser-created case exists only in the original local database |
 | Complaint examples | 66 Bitext Travel instructions across 33 intents, with source/license metadata | Text examples only; not real booking histories, supplier policies or a production training corpus |
 | Local setup | One launcher, embedded PostgreSQL, generated local secrets, migrations and non-destructive seed | Production Redis/database/deployment still require configuration and review |
@@ -158,8 +158,9 @@ See DTOs for exact fields. Do not bypass the service authorization with direct U
 - Non-refund cases use the earliest applicable response, check-in or departure deadline. Cancellation cases also consider the cancellation cutoff. Imminent check-in raises priority to High within 24 hours and Urgent within 6 hours. A missed case deadline is Urgent. Refunds keep their independent response target.
 - Managers can edit the booking schedule from a linked case. The form accepts UTC timestamps and the context panel displays dates in the booking timezone. Schedule edits recalculate active case deadlines and record changes without extending the response target. Previously stored case deadlines serve as the response target until a separate one is stored. Existing bookings can have unset departure and cancellation dates.
 - Urgency automation does not lower an existing higher priority. Default timing is encoded in `travel.rules.ts` and supplier-thread creation, not a customer-configurable SLA module.
-- A supplier reply returns work to support. Closed threads reject replies until staff reopen them.
+- A reply or closure returns the case to support when its last pending supplier thread is handled. Reopening a thread requests another reply and starts a new due date. Repeating the same status request preserves that due date.
 - Case briefs are assembled from authorized saved facts and source references. Supplier text and complaint examples are not policy truth.
+- Staff can start a customer reply from a draft that uses the case reference, verified booking reference and whether a supplier replied. The draft never quotes the supplier message. Add confirmed details before sending.
 - The sweep runs every 15 seconds and after relevant clock changes; it persists events rather than delivering email or push messages.
 
 ## 11. Environment, secrets and local data

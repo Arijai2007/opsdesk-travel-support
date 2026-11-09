@@ -604,14 +604,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       const ticket = await tx.travelTicket.findUniqueOrThrow({
         where: { id: c.ticketId },
       });
-      if (active(ticket.status))
-        await tx.travelTicket.update({
-          where: { id: c.ticketId },
-          data: {
-            status: p.kind === 'SUPPLIER' ? 'IN_PROGRESS' : 'WAITING_SUPPLIER',
-            updatedAt: now,
-          },
-        });
+      await this.syncSupplierWait(tx, ticket, p.kind !== 'SUPPLIER', now);
       await this.event(
         tx,
         c.ticketId,
@@ -625,6 +618,30 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       return { success: true };
     });
   }
+
+  private async syncSupplierWait(
+    tx: Tx,
+    ticket: Case,
+    requestedReply: boolean,
+    now: Date,
+  ) {
+    if (!active(ticket.status)) return;
+    let status = ticket.status;
+    if (requestedReply) {
+      status = 'WAITING_SUPPLIER';
+    } else if (status === 'WAITING_SUPPLIER') {
+      const pending = await tx.travelConversation.findFirst({
+        where: { ticketId: ticket.id, status: 'AWAITING_REPLY' },
+        select: { id: true },
+      });
+      if (!pending) status = 'IN_PROGRESS';
+    }
+    await tx.travelTicket.update({
+      where: { id: ticket.id },
+      data: { status, updatedAt: now },
+    });
+  }
+
   async conversationStatus(userId: string, id: string, status: string) {
     return this.locked(async (tx) => {
       const p = await this.profile(userId, tx);
@@ -634,6 +651,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       });
       if (!conversation) throw new NotFoundException('Conversation not found.');
       const ticket = await this.ticket(p, conversation.ticketId, tx);
+      if (conversation.status === status) return { success: true };
       if (!active(ticket.status) && status !== 'CLOSED')
         throw new BadRequestException(
           'Reopen the ticket before reopening a supplier conversation.',
@@ -648,6 +666,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
             : {}),
         },
       });
+      await this.syncSupplierWait(tx, ticket, status === 'AWAITING_REPLY', now);
       await this.event(
         tx,
         ticket.id,

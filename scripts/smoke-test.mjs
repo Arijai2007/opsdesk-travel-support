@@ -230,6 +230,16 @@ try {
     "POST",
     201,
   );
+  const parallelConversation = await call(
+    `/ops/tickets/${ticket.id}/conversations`,
+    agent,
+    {
+      subject: "Separate supplier follow-up",
+      content: "Please confirm the refund reference separately.",
+    },
+    "POST",
+    201,
+  );
   const supplierData = await call("/ops/workspace", supplier);
   assert.equal(supplierData.tickets.length, 0);
   assert.equal(supplierData.bookings.length, 0);
@@ -253,6 +263,21 @@ try {
     201,
   );
   const afterReply = await call("/ops/workspace", manager);
+  assert.equal(
+    afterReply.tickets.find((t) => t.id === ticket.id).status,
+    "WAITING_SUPPLIER",
+  );
+  await call(
+    `/ops/conversations/${parallelConversation.id}`,
+    agent,
+    { status: "CLOSED" },
+    "PATCH",
+  );
+  const afterLastPending = await call("/ops/workspace", manager);
+  assert.equal(
+    afterLastPending.tickets.find((t) => t.id === ticket.id).status,
+    "IN_PROGRESS",
+  );
   await call(
     `/ops/conversations/${conversation.id}`,
     customer,
@@ -286,9 +311,24 @@ try {
     { status: "AWAITING_REPLY" },
     "PATCH",
   );
+  const afterReopen = await call("/ops/workspace", manager);
   assert.equal(
-    afterReply.tickets.find((t) => t.id === ticket.id).status,
-    "IN_PROGRESS",
+    afterReopen.tickets.find((t) => t.id === ticket.id).status,
+    "WAITING_SUPPLIER",
+  );
+  const reopenedDueAt = afterReopen.conversations.find(
+    (c) => c.id === conversation.id,
+  ).dueAt;
+  await call(
+    `/ops/conversations/${conversation.id}`,
+    agent,
+    { status: "AWAITING_REPLY" },
+    "PATCH",
+  );
+  const afterRetry = await call("/ops/workspace", manager);
+  assert.equal(
+    afterRetry.conversations.find((c) => c.id === conversation.id).dueAt,
+    reopenedDueAt,
   );
   assert.equal(
     afterReply.conversations.find((c) => c.id === conversation.id).status,
@@ -328,7 +368,9 @@ try {
   const resolved = resolvedCustomer.tickets.find((t) => t.id === ticket.id);
   assert.equal(resolved.status, "RESOLVED");
   assert(
-    resolved.events.some((event) => event.text === "IN_PROGRESS → RESOLVED"),
+    resolved.events.some(
+      (event) => event.text === "WAITING_SUPPLIER → RESOLVED",
+    ),
   );
   assert(!JSON.stringify(resolved).includes("Private resolution detail"));
   await call(
@@ -374,13 +416,19 @@ try {
   previousClock = clock;
   await call("/ops/clock/advance", customer, { minutes: 1 }, "POST", 403);
   await call("/ops/clock/advance", manager, { minutes: -1 }, "POST", 400);
-  // Make only the test case overdue, then trigger two passes and assert exactly one event.
+  // Expire this test case and its supplier target, then verify repeat-safe alerts.
   await pool.query(
     `UPDATE "TravelTicket"
      SET deadline=(now() AT TIME ZONE 'UTC')-interval '1 minute',
          "responseDeadline"=(now() AT TIME ZONE 'UTC')-interval '1 minute'
      WHERE id=$1`,
     [ticket.id],
+  );
+  await pool.query(
+    `UPDATE "TravelConversation"
+     SET "dueAt"=(now() AT TIME ZONE 'UTC')-interval '1 minute'
+     WHERE id=$1`,
+    [conversation.id],
   );
   await call("/ops/clock/advance", manager, { minutes: 1 }, "POST", 201);
   await call("/ops/clock/advance", manager, { minutes: 1 }, "POST", 201);
@@ -389,6 +437,14 @@ try {
     [ticket.id],
   );
   assert.equal(events.rows[0].n, 1);
+  const alerts = (await call("/ops/workspace", manager)).notifications.filter(
+    (event) => event.ticketId === ticket.id,
+  );
+  assert.equal(alerts.filter((event) => event.kind === "ESCALATED").length, 1);
+  assert.equal(
+    alerts.filter((event) => event.kind === "SUPPLIER_OVERDUE").length,
+    1,
+  );
   await pool.query(
     'UPDATE "TravelClock" SET "offsetMinutes"=$1 WHERE id=\'demo\'',
     [clock],
@@ -466,7 +522,7 @@ try {
     1,
   );
   notes.push(
-    "Role and agency isolation, message privacy, booking validation/linking, least-load routing, supplier-only replies, resolution/reopening, durable records and idempotent escalation passed.",
+    "Role and agency isolation, message privacy, booking linking and schedule edits, specialty settings and routing, parallel supplier threads, resolution/reopening, durable records and repeat-safe deadline alerts passed.",
   );
   console.log(`PASS: ${checks} real HTTP checks. ${notes.join(" ")}`);
 } finally {

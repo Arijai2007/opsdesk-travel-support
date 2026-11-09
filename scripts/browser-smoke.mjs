@@ -98,6 +98,22 @@ try {
   await manager
     .getByText("The demo refund has been confirmed.", { exact: true })
     .waitFor();
+  await manager.getByRole("button", { name: /^Conversation/ }).click();
+  await manager.getByRole("button", { name: "Draft reply" }).click();
+  const draft = await manager.getByLabel("Message content").inputValue();
+  assert.match(draft, /booking BK-1042/);
+  assert.match(draft, /received an update from the supplier/);
+  assert(!draft.includes("The demo refund has been confirmed."));
+  const customerThread = manager.locator(".od-thread");
+  assert.equal(await customerThread.getByText(draft, { exact: true }).count(), 0);
+  assert(
+    await manager.getByRole("button", { name: "Send reply" }).isDisabled(),
+  );
+  const customerReply =
+    "We reviewed your refund request and recorded the confirmed outcome.";
+  await manager.getByLabel("Message content").fill(customerReply);
+  await manager.getByRole("button", { name: "Send reply" }).click();
+  await customerThread.getByText(customerReply, { exact: true }).waitFor();
   await manager.getByRole("button", { name: "Resolve case" }).click();
   await manager
     .getByLabel("What was resolved?")
@@ -111,6 +127,7 @@ try {
   });
   await customer.getByRole("button", { name: /All cases/ }).click();
   await openCase(customer, title, title);
+  await customer.getByText(customerReply, { exact: true }).waitFor();
   assert.equal(await customer.getByText("Edit booking schedule").count(), 0);
   assert.equal(
     await customer.getByRole("button", { name: /Supplier threads/ }).count(),
