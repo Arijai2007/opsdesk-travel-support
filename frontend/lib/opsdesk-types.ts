@@ -32,6 +32,7 @@ export type Booking = {
   supplier: Supplier;
 };
 export type Message = {
+  senderName?: string;
   id: string;
   content: string;
   senderId: string;
@@ -48,6 +49,8 @@ export type CaseEvent = {
   actorId: string;
 };
 export type Ticket = {
+  supplierReplied?: boolean;
+  relatedCount?: number;
   id: string;
   reference: string;
   title: string;
@@ -82,6 +85,15 @@ export type Conversation = {
   messages: Message[];
 };
 export type Workspace = {
+  counts: {
+    total: number;
+    open: number;
+    urgent: number;
+    waiting: number;
+    mine: number;
+    attention: number;
+    supplierThreads: number;
+  };
   me: Person & { agencyId: string | null };
   now: string;
   clockOffsetMinutes: number;

@@ -1,4 +1,5 @@
 "use client";
+import { useOpsPage, PageControls } from "./paged-data";
 import { ArrowUpRight, BookOpen, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { TravelInsights } from "@helpdesk/shared";
@@ -129,6 +130,43 @@ export function AgencyResponseSettings({
     </details>
   );
 }
+function BookingHistory({
+  id,
+  data,
+  onSelect,
+}: {
+  id: string;
+  data: Workspace;
+  onSelect: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const history = useOpsPage<{ id: string; reference: string }>(
+    open ? `bookings/${id}/tickets` : null,
+    data.now,
+  );
+  return (
+    <>
+      <button className="od-text-button" onClick={() => setOpen(!open)}>
+        {open ? "Hide case history" : "View case history"}
+      </button>
+      {open && (
+        <>
+          <PageControls resource={history} label="booking cases" />
+          {history.data?.items.map((t) => (
+            <button
+              className="od-text-button"
+              key={t.id}
+              onClick={() => onSelect(t.id)}
+            >
+              {t.reference}
+              <ArrowUpRight size={12} />
+            </button>
+          ))}
+        </>
+      )}
+    </>
+  );
+}
 export function Bookings({
   data,
   search,
@@ -172,7 +210,6 @@ export function Bookings({
           </thead>
           <tbody>
             {filtered.map((b) => {
-              const related = data.tickets.filter((t) => t.bookingId === b.id);
               return (
                 <tr key={b.id}>
                   <td>
@@ -194,16 +231,7 @@ export function Bookings({
                     <small>{b.timezone}</small>
                   </td>
                   <td>
-                    {related.map((t) => (
-                      <button
-                        className="od-text-button"
-                        key={t.id}
-                        onClick={() => onSelect(t.id)}
-                      >
-                        {t.reference}
-                        <ArrowUpRight size={12} />
-                      </button>
-                    ))}
+                    <BookingHistory id={b.id} data={data} onSelect={onSelect} />
                   </td>
                 </tr>
               );

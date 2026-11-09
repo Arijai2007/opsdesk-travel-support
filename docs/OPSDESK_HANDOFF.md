@@ -137,8 +137,15 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/ops/workspace` | Authorized tickets, people, bookings, supplier threads and configuration |
-| GET | `/ops/queue` | Authorized inbox ordering, search, filters and 20 ticket IDs per page |
+| GET | `/ops/workspace?compact=1` | Browser metadata, authorized directories, server counts and notifications; no case/thread snapshot |
+| GET | `/ops/workspace` | Legacy full authorized workspace; retained for API compatibility |
+| GET | `/ops/queue` | Authorized inbox ordering, search, filters and 20 case rows/IDs per page |
+| GET | `/ops/tickets/:id` | One authorized case and booking context, without message or activity history |
+| GET | `/ops/tickets/:id/messages`, `/events`, `/related` | Authorized messages, activity and connected history, 20 rows per page |
+| GET | `/ops/bookings/:id/tickets` | Authorized booking case history, 20 rows per page |
+| GET | `/ops/tickets/:id/conversations` | Staff-only supplier threads for an authorized case, 20 rows per page |
+| GET | `/ops/conversations` | Current supplier's shared threads, 20 rows per page |
+| GET | `/ops/conversations/:id/messages` | Authorized supplier-thread messages, 20 rows per page |
 | GET | `/ops/insights` | Staff-only aggregate report using the caller’s authorized case scope |
 | POST | `/ops/tickets` | Create and link/classify/route a case |
 | PATCH | `/ops/tickets/:id` | Status, priority, assignment and booking verification |
@@ -156,7 +163,7 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 
 See DTOs for exact fields. Do not bypass the service authorization with direct UI role checks. New integrations must authenticate their own webhook source and map identities to existing authorized records.
 
-The inbox requests a filtered page from PostgreSQL and uses the workspace snapshot to display those cases. Ticket detail, booking history, messages and supplier threads still come from the workspace response.
+The browser requests compact workspace metadata and filtered inbox rows from PostgreSQL. Opening a case loads its details on demand. Messages, activity, related cases, booking history, supplier threads and supplier messages use separate authorized endpoints with validated `page` values and 20-row limits. Pages sort newest first with an ID tie breaker; message pages display chronologically. CSV export explicitly exports the current inbox page. Booking and people directories remain metadata lists; the legacy full-workspace endpoint remains for compatibility and is no longer requested by the browser.
 
 ## 10. Current business rules
 
@@ -225,7 +232,7 @@ These are not implemented promises. Start with product acceptance and production
 3. **P1 — Real conversations and attachments.** Select provider, implement verified inbound webhooks and outbound messages, idempotent message IDs, correct thread routing, retry/outbox, attachment scanning/storage and redaction. Supplier email must never include internal notes or unrelated bookings.
 4. **P1 — Booking/supplier integration.** Read real bookings through a provider adapter, map stable agency/customer IDs, synchronize check-in/timezones, validate ownership and reconciliation; add supplier identity verification. Current records are seed data only.
 5. **P1 — Configurable operations.** Extend the existing agency response targets and specialty/capacity routing with contract calendars, regional shifts, escalation acknowledgment and membership administration.
-6. **P1 — Scale and reporting.** The inbox already pages and filters case IDs on the server, and Insights aggregates in PostgreSQL. Load case details on demand and paginate messages and supplier threads to replace the full workspace response. Then profile queries, narrow lock scope, and measure worker and API performance.
+6. **P1 — Scale and reporting.** Inbox rows and case histories are paginated, individual cases load on demand, and Insights aggregates in PostgreSQL. Next profile realistic-volume queries, paginate the remaining metadata directories, retire the legacy full-workspace route, narrow lock scope, and measure worker and API performance.
 7. **P2 — Optional AI with evaluation.** Choose Claude, Gemini or another provider only after specifying the task. Ground summaries in authorized records, require source references, reject injected instructions, validate output schemas, redact PII, set spend limits and evaluate on held-out labeled travel cases. Keep access/routing/deadlines deterministic. Add a real API key only when implementing that adapter.
 8. **P2 — Quality and release process.** Extend the existing five-role browser flow to failure recovery and more browsers. Complete accessibility, load, security and license reviews, and define release ownership and incident response.
 
@@ -258,8 +265,8 @@ These are not implemented promises. Start with product acceptance and production
 
 ## 16. Messages to forward
 
-**Fully finished for the synthetic demo.** Start from `main`. OpsDesk supports booking-linked intake and history, private supplier threads, routing, deadline escalation, resolution, scoped Insights and a searchable, paginated inbox. Validation passed 9 unit tests, 99 HTTP checks and the five-role browser flow. [Merged implementation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/12)
+**Fully finished for the synthetic demo.** OpsDesk supports booking-linked intake and history, private supplier threads, routing, deadline escalation, resolution, scoped Insights and a searchable, paginated inbox. The case-read follow-up adds on-demand details and paginated messages, activity, related cases and supplier threads. Local validation passed 9 unit tests, 223 HTTP checks and the five-role Chromium browser flow. See [validation details](OPSDESK_VALIDATION.md) for the prior merged baseline and follow-up checks.
 
-**Partially finished.** The inbox pages case IDs, but case details still load with the full workspace. Start by loading individual cases on demand and paginating messages and supplier threads. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
+**Partially finished.** The browser uses compact metadata and loads case histories separately. Next profile realistic-volume queries, paginate booking/people directories, retire the compatibility workspace endpoint and reduce global lock contention. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
 
 **Still to do.** Before live data, confirm production access rules and choose a staging target. Rehearse backup and restore, configure secrets and monitoring, then select providers for email, attachments and booking/supplier synchronization. External AI evaluation and broader accessibility, load and security reviews remain open. [Open issues](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues)

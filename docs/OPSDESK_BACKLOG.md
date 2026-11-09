@@ -82,17 +82,17 @@ Start: backend/src/travel/travel.rules.ts, service locks, profiles and ticket-de
 
 [GitHub issue #7](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/7)
 
-The inbox requests authorized case pages, and Insights, assignment load counts and deadline candidate filtering run in PostgreSQL. The browser still loads the complete authorized workspace to display ticket details. A global advisory lock still serializes routing and escalation.
+The inbox returns authorized case rows, and Insights, assignment load counts and deadline candidate filtering run in PostgreSQL. The case-read follow-up loads individual cases on demand and pages messages, activity, related cases and supplier threads. The browser uses compact workspace metadata instead of the complete case snapshot. A global advisory lock still serializes routing and escalation.
 
 Acceptance:
-- Load individual cases and paginate messages and supplier threads so the browser can replace the complete workspace snapshot.
+- Paginate booking and people directories, and retire the legacy full-workspace endpoint after migrating its remaining callers.
 - Review indexes with query plans on realistic synthetic volume.
 - Replace global contention with appropriately scoped locks and robust worker/outbox scheduling.
 - Define reporting metrics/timezones and incremental data updates.
 - Measure concurrent assignment, repeated escalation and worker-restart behavior.
 - Establish latency/throughput targets and load-test evidence.
 
-Keep privacy filtering server-side while splitting the current workspace response.
+Keep privacy filtering server-side. Case and conversation pages are capped at 20 rows; composite indexes support booking and supplier history reads, but realistic-volume query-plan evidence is still needed.
 
 ## [P2] Add grounded optional AI with a measured evaluation
 
@@ -114,7 +114,7 @@ API key needed only once this work begins. Do not claim model accuracy before me
 
 [GitHub issue #9](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/9)
 
-At implementation baseline `13873d4`, validation passed 9 unit tests, 99 HTTP checks and the five-role browser flow. Load testing and a production security review remain open.
+The case-read follow-up passed 9 unit tests, the original 99 HTTP checks, 124 additional pagination/access HTTP checks, and the five-role Chromium browser flow. Load testing and a production security review remain open.
 
 Acceptance:
 - Extend the automated five-role booking-to-supplier-to-resolution flow to cover failure recovery and additional browsers.

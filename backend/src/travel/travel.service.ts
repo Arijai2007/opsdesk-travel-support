@@ -12,6 +12,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import { readTravelInsights } from './travel-insights';
 import { TravelQueueDto } from './travel-queue.dto';
+import { readPage, TravelPageDto } from './travel-page.dto';
 import { readTravelQueue, type TravelTicketScope } from './travel-queue';
 import {
   AgentSpecialtiesDto,
@@ -123,13 +124,264 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   async queue(userId: string, query: TravelQueueDto) {
     const p = await this.profile(userId);
     if (query.attention) this.staff(p);
-    return readTravelQueue(
+    const page = await readTravelQueue(
       this.db,
       this.scope(p),
       query,
       userId,
       await this.now(),
     );
+    const tickets = await this.db.travelTicket.findMany({
+      where: { AND: [this.scope(p), { id: { in: page.ids } }] },
+      omit: { description: true },
+      include: { booking: true },
+    });
+    const groups = await this.db.travelTicket.groupBy({
+      by: ['bookingId'],
+      where: {
+        AND: [
+          this.scope(p),
+          {
+            bookingId: {
+              in: tickets.flatMap((t) => (t.bookingId ? [t.bookingId] : [])),
+            },
+          },
+        ],
+      },
+      _count: true,
+    });
+    return {
+      ...page,
+      items: page.ids.flatMap((id) => {
+        const ticket = tickets.find((t) => t.id === id);
+        return ticket
+          ? [
+              {
+                ...ticket,
+                relatedCount: ticket.bookingId
+                  ? (groups.find((g) => g.bookingId === ticket.bookingId)
+                      ?._count ?? 1) - 1
+                  : 0,
+              },
+            ]
+          : [];
+      }),
+    };
+  }
+  async detail(userId: string, id: string) {
+    const p = await this.profile(userId);
+    const t = await this.ticket(p, id, this.db);
+    const booking = t.bookingId
+      ? await this.db.travelBooking.findUnique({ where: { id: t.bookingId } })
+      : null;
+    const relatedCount = t.bookingId
+      ? await this.db.travelTicket.count({
+          where: {
+            AND: [this.scope(p), { bookingId: t.bookingId, id: { not: id } }],
+          },
+        })
+      : 0;
+    const pending = STAFF.includes(p.kind)
+      ? await this.db.travelConversation.count({
+          where: { ticketId: id, status: 'AWAITING_REPLY' },
+        })
+      : 0;
+    const supplierReplied =
+      STAFF.includes(p.kind) &&
+      (await this.db.travelEvent.count({
+        where: {
+          ticketId: id,
+          kind: 'SUPPLIER_REPLY',
+          text: 'Supplier replied; agent review required.',
+        },
+      })) > 0;
+    return {
+      ...t,
+      booking,
+      supplierReplied,
+      messages: [],
+      events: [],
+      relatedIds: [],
+      summary: [
+        relatedCount
+          ? `${relatedCount} earlier or related cases for this booking.`
+          : 'No other linked cases in your authorized history.',
+        booking
+          ? `Booking ${booking.reference}: ${booking.destination}.`
+          : 'Booking reference needs verification.',
+        ...(STAFF.includes(p.kind)
+          ? [`${pending} supplier conversation(s) awaiting a reply.`]
+          : []),
+      ].join(' '),
+    };
+  }
+  async messages(userId: string, id: string, query: TravelPageDto) {
+    const p = await this.profile(userId);
+    await this.ticket(p, id, this.db);
+    const where: Prisma.TravelMessageWhereInput = {
+      ticketId: id,
+      conversationId: null,
+      visibility: STAFF.includes(p.kind)
+        ? { in: ['CUSTOMER', 'INTERNAL'] }
+        : 'CUSTOMER',
+    };
+    return this.messagePage(where, query);
+  }
+  private async messagePage(
+    where: Prisma.TravelMessageWhereInput,
+    query: TravelPageDto,
+  ) {
+    const page = await readPage(
+      query,
+      () => this.db.travelMessage.count({ where }),
+      (skip, take) =>
+        this.db.travelMessage.findMany({
+          where,
+          skip,
+          take,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+    );
+    const users = await this.db.user.findMany({
+      where: { id: { in: page.items.map((m) => m.senderId) } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    return {
+      ...page,
+      items: page.items.map((message) => {
+        const user = users.find((u) => u.id === message.senderId);
+        return {
+          ...message,
+          senderName: user
+            ? `${user.firstName} ${user.lastName}`
+            : 'Support team',
+        };
+      }),
+    };
+  }
+  async events(userId: string, id: string, query: TravelPageDto) {
+    const p = await this.profile(userId);
+    await this.ticket(p, id, this.db);
+    const staff = STAFF.includes(p.kind);
+    const where: Prisma.TravelEventWhereInput = {
+      ticketId: id,
+      ...(!staff
+        ? { kind: { in: ['CREATED', 'STATUS_CHANGED', 'BOOKING_LINKED'] } }
+        : {}),
+    };
+    const page = await readPage(
+      query,
+      () => this.db.travelEvent.count({ where }),
+      (skip, take) =>
+        this.db.travelEvent.findMany({
+          where,
+          skip,
+          take,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+    );
+    return {
+      ...page,
+      items: page.items.map((event) =>
+        !staff && event.kind === 'STATUS_CHANGED'
+          ? { ...event, text: event.text.split(':', 1)[0] }
+          : event,
+      ),
+    };
+  }
+  private caseLinks(
+    p: Profile,
+    where: Prisma.TravelTicketWhereInput,
+    query: TravelPageDto,
+  ) {
+    const scoped = { AND: [this.scope(p), where] };
+    return readPage(
+      query,
+      () => this.db.travelTicket.count({ where: scoped }),
+      (skip, take) =>
+        this.db.travelTicket.findMany({
+          where: scoped,
+          skip,
+          take,
+          select: {
+            id: true,
+            reference: true,
+            title: true,
+            status: true,
+            createdAt: true,
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+    );
+  }
+  async related(userId: string, id: string, query: TravelPageDto) {
+    const p = await this.profile(userId);
+    const t = await this.ticket(p, id, this.db);
+    return this.caseLinks(
+      p,
+      t.bookingId
+        ? { bookingId: t.bookingId, id: { not: id } }
+        : { id: '__none__' },
+      query,
+    );
+  }
+  async bookingTickets(userId: string, id: string, query: TravelPageDto) {
+    const p = await this.profile(userId);
+    const scope = this.scope(p);
+    const booking = await this.db.travelBooking.findFirst({
+      where: {
+        id,
+        ...(scope.region ? { region: scope.region } : {}),
+        ...(scope.agencyId ? { agencyId: scope.agencyId } : {}),
+        ...(scope.customerId ? { customerId: scope.customerId } : {}),
+      },
+    });
+    if (!booking || p.kind === 'SUPPLIER')
+      throw new NotFoundException('Booking not found.');
+    return this.caseLinks(p, { bookingId: id }, query);
+  }
+  async conversations(userId: string, query: TravelPageDto, ticketId?: string) {
+    const p = await this.profile(userId);
+    if (ticketId) {
+      this.staff(p);
+      await this.ticket(p, ticketId, this.db);
+    } else if (p.kind !== 'SUPPLIER')
+      throw new ForbiddenException('Supplier access required.');
+    const where = ticketId
+      ? { ticketId }
+      : { supplierId: p.supplierId || 'NONE' };
+    return readPage(
+      query,
+      () => this.db.travelConversation.count({ where }),
+      async (skip, take) => {
+        const rows = await this.db.travelConversation.findMany({
+          where,
+          skip,
+          take,
+          include: { supplier: true },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        });
+        return rows.map((c) => ({ ...c, messages: [] }));
+      },
+    );
+  }
+  async conversationMessages(userId: string, id: string, query: TravelPageDto) {
+    const p = await this.profile(userId);
+    const c = await this.db.travelConversation.findFirst({
+      where: {
+        id,
+        ...(p.kind === 'SUPPLIER'
+          ? { supplierId: p.supplierId || 'NONE' }
+          : {}),
+      },
+    });
+    if (!c) throw new NotFoundException('Conversation not found.');
+    if (p.kind !== 'SUPPLIER') {
+      this.staff(p);
+      await this.ticket(p, c.ticketId, this.db);
+    }
+    const where = { conversationId: id };
+    return this.messagePage(where, query);
   }
   private async ticket(p: Profile, id: string, tx: Tx): Promise<Case> {
     const ticket = await tx.travelTicket.findFirst({
@@ -155,42 +407,87 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       data: { ticketId, kind, text, actorId, createdAt: now },
     });
   }
-  async workspace(userId: string) {
+  async workspace(userId: string, compact = false) {
     const p = await this.profile(userId);
     const staff = STAFF.includes(p.kind);
     const now = await this.now();
-    const tickets = await this.db.travelTicket.findMany({
-      where: this.scope(p),
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        booking: true,
-        messages: {
-          where: {
-            visibility: staff ? { in: ['CUSTOMER', 'INTERNAL'] } : 'CUSTOMER',
-          },
-          orderBy: { createdAt: 'asc' },
-        },
-        events: staff
-          ? { orderBy: { createdAt: 'desc' } }
-          : {
+    const scoped = this.scope(p);
+    const count = (where: Prisma.TravelTicketWhereInput = {}) =>
+      this.db.travelTicket.count({ where: { AND: [scoped, where] } });
+    const activeWhere = { status: { notIn: ['RESOLVED', 'CLOSED'] } };
+    const [total, open, urgent, waiting, mine, attention, supplierThreads] =
+      compact
+        ? await Promise.all([
+            count(),
+            count(activeWhere),
+            count({ ...activeWhere, priority: 'URGENT' }),
+            count({ status: 'WAITING_SUPPLIER' }),
+            count({ ...activeWhere, agentId: userId }),
+            staff
+              ? count({
+                  ...activeWhere,
+                  OR: [
+                    { priority: 'URGENT' },
+                    { agentId: null },
+                    { deadline: { lte: now } },
+                    {
+                      conversations: {
+                        some: { status: 'AWAITING_REPLY', dueAt: { lte: now } },
+                      },
+                    },
+                  ],
+                })
+              : 0,
+            p.kind === 'SUPPLIER'
+              ? this.db.travelConversation.count({
+                  where: { supplierId: p.supplierId || 'NONE' },
+                })
+              : 0,
+          ])
+        : [0, 0, 0, 0, 0, 0, 0];
+    const tickets = compact
+      ? []
+      : await this.db.travelTicket.findMany({
+          where: this.scope(p),
+          orderBy: { updatedAt: 'desc' },
+          include: {
+            booking: true,
+            messages: {
               where: {
-                kind: { in: ['CREATED', 'STATUS_CHANGED', 'BOOKING_LINKED'] },
+                visibility: staff
+                  ? { in: ['CUSTOMER', 'INTERNAL'] }
+                  : 'CUSTOMER',
               },
-              orderBy: { createdAt: 'desc' },
+              orderBy: { createdAt: 'asc' },
             },
-      },
-    });
+            events: staff
+              ? { orderBy: { createdAt: 'desc' } }
+              : {
+                  where: {
+                    kind: {
+                      in: ['CREATED', 'STATUS_CHANGED', 'BOOKING_LINKED'],
+                    },
+                  },
+                  orderBy: { createdAt: 'desc' },
+                },
+          },
+        });
     const ids = tickets.map((t) => t.id);
-    const conversations = await this.db.travelConversation.findMany({
-      where:
-        p.kind === 'SUPPLIER'
-          ? { supplierId: p.supplierId || 'NONE' }
-          : staff
-            ? { ticketId: { in: ids } }
-            : { id: '__none__' },
-      include: { messages: { orderBy: { createdAt: 'asc' } }, supplier: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const conversations = compact
+      ? []
+      : await this.db.travelConversation.findMany({
+          where:
+            p.kind === 'SUPPLIER'
+              ? { supplierId: p.supplierId || 'NONE' }
+              : staff
+                ? { ticketId: { in: ids } }
+                : { id: '__none__' },
+          include: {
+            messages: { orderBy: { createdAt: 'asc' } },
+            supplier: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
     const bookings =
       p.kind === 'SUPPLIER'
         ? []
@@ -210,6 +507,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       ...new Set([
         p.userId,
         ...tickets.map((t) => t.customerId),
+        ...bookings.map((b) => b.customerId),
         ...conversations.flatMap((c) => c.messages.map((m) => m.senderId)),
       ]),
     ];
@@ -248,6 +546,15 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           'Case briefs use saved records. External AI is not configured.',
       },
       agencies,
+      counts: {
+        total,
+        open,
+        urgent,
+        waiting,
+        mine,
+        attention,
+        supplierThreads,
+      },
       bookings,
       conversations,
       people: people.map((v) => ({
@@ -284,7 +591,9 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       notifications: staff
         ? await this.db.travelEvent.findMany({
             where: {
-              ticketId: { in: ids },
+              ...(compact
+                ? { ticket: this.scope(p) }
+                : { ticketId: { in: ids } }),
               kind: { in: ['ESCALATED', 'SUPPLIER_OVERDUE'] },
             },
             orderBy: { createdAt: 'desc' },
