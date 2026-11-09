@@ -2,6 +2,10 @@
 
 A working local prototype built on [Molnar-Zoltan/it-helpdesk](https://github.com/Molnar-Zoltan/it-helpdesk). The original application and its documentation remain in the repository. OpsDesk's entry point is `/`; its API is `/ops/*`.
 
+## Developer handoff
+
+Read [the complete handoff](docs/OPSDESK_HANDOFF.md) for architecture, setup, completed work, boundaries and transfer steps. [Prioritized remaining work](docs/OPSDESK_BACKLOG.md) is tracked in our GitHub issues. The implementation and handoff PRs are in `DhruvKhanna7777/opsdesk-travel-support` only.
+
 ## Run locally
 
 Requirements: Node.js 22 and npm. No Docker, paid API, email provider or external database account is required for the local demo.

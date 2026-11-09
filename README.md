@@ -1,3 +1,5 @@
+> **Project transfer:** start with [OpsDesk handoff](docs/OPSDESK_HANDOFF.md), [setup](OPSDESK_README.md) and [remaining work](docs/OPSDESK_BACKLOG.md). All development and PRs belong to [our repository](https://github.com/DhruvKhanna7777/opsdesk-travel-support).
+
 > **OpsDesk travel-support implementation:** Start with [OPSDESK_README.md](OPSDESK_README.md) for the local launcher, demo accounts, workflow and validation. The original IT Helpdesk documentation follows below.
 
 # IT Helpdesk Platform

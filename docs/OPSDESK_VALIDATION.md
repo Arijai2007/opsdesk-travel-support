@@ -7,6 +7,7 @@ Validated on Windows x64 with Node.js 22.19.0, npm 10.9.3, PostgreSQL 18 (embedd
 - Backend unit suite: 7 tests passed, including 6 travel policy tests.
 - Real HTTP workflow suite: 47 checks passed against the actual NestJS API and PostgreSQL database. Covers authentication, agency/customer/region isolation, payload validation, linking, missing references, private notes, supplier-specific access, supplier-thread closure/reopening, status transitions, least-load/availability routing and idempotent escalation.
 - Next.js optimized build and TypeScript checks passed; NestJS compilation passed.
+- Staged frontend/backend ESLint checks passed via `npx lint-staged`; fixes were applied before publishing. The bundled Git shell lacked Bash for the Husky wrapper, so equivalent checks were run directly and the wrapper was skipped for the local commit only.
 - `git diff --check` passed.
 - `npm audit --omit=dev` reported 0 known production dependency vulnerabilities at validation time. Development-tool advisories remain; no force-upgrade across major tooling versions was applied.
 
