@@ -7,6 +7,7 @@ import "./local-setup.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const children = [];
 const preview = process.argv.includes("--preview");
+const externalDatabase = process.argv.includes("--external-db");
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 function start(command, args, cwd = root) {
   const child = spawn(command, args, {
@@ -43,7 +44,7 @@ process.on("SIGINT", stop);
 process.on("SIGTERM", stop);
 try {
   await run(["run", "build", "--workspace=packages/shared"]);
-  start(process.execPath, ["scripts/local-db.mjs"]);
+  if (!externalDatabase) start(process.execPath, ["scripts/local-db.mjs"]);
   const pool = new pg.Pool({
     connectionString: env.DATABASE_URL,
     connectionTimeoutMillis: 1000,

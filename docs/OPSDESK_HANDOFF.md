@@ -115,7 +115,7 @@ Browser -> Next.js UI / cookie proxy -> NestJS /ops API -> Prisma -> PostgreSQL
 | `scripts/local-setup.mjs`, `local-db.mjs`, `run-local.mjs` | Generated local config, embedded PostgreSQL and app lifecycle |
 | `scripts/smoke-test.mjs` | Real HTTP role/workflow checks with temporary test cases |
 | `scripts/import-bitext.py` | Reproducible small complaint-text sample selection |
-| `.github/workflows/opsdesk-ci.yml` | Windows CI builds, starts isolated demo, tests and audits |
+| `.github/workflows/opsdesk-ci.yml` | Linux CI with PostgreSQL service; builds, starts isolated demo, tests and audits |
 
 The original IT Helpdesk app, generic endpoints, administration/reset logic, Gemini code, Docker files, infrastructure and old documentation remain in the repository. They are not all part of the OpsDesk product flow. Treat `OPSDESK_README.md` and this handoff as the current local startup instructions. In particular, the inherited `backend start:prod` command points at an upstream output path; the OpsDesk launcher correctly uses `backend/dist/src/main.js`.
 
@@ -200,7 +200,7 @@ Validated locally: 7 backend unit tests, including 6 travel-policy tests; 47 rea
 
 The smoke suite uses an isolated seeded demo: creates and deletes only its own temporary cases, restores its clock/availability changes, checks role/agency/supplier isolation, and verifies repeat-safe escalation. It does not represent load testing, complete penetration testing, automated browser coverage or production readiness. Do not point it at a real operational database. Development-tool advisories remain; upgrades across major versions require separate validation.
 
-GitHub CI uses a fresh Windows runner and synthetic data, builds/starts the preview, executes the same test command and audits production packages. Check the actual PR runs before merging; a committed workflow file alone is not evidence of a successful cloud run. The inherited release and reset jobs are restricted to the original upstream repository and do not deploy/reset this project.
+GitHub CI uses a fresh Linux runner, an official PostgreSQL 18 service and synthetic data, builds/starts the preview, executes the same test command and audits production packages. The initial hosted Windows run could not start embedded PostgreSQL; local Windows startup passed, but hosted Windows packaging remains unverified. CI uses `--external-db` to test the application against a service database. Database startup failures retain diagnostics. Check the actual PR runs before merging; a committed workflow file alone is not evidence of a successful cloud run. The inherited release and reset jobs are restricted to the original upstream repository and do not deploy/reset this project.
 
 On the build machine, the bundled Git runtime has no Bash executable for Husky's shell wrapper. The equivalent staged frontend/backend ESLint checks were run directly through `npx lint-staged` and passed after fixing typed PostgreSQL results, unknown error handling and asynchronous workspace loading. The commit wrapper was skipped for that local commit only; repository hooks were retained. Install Git for Windows with Bash on a receiving Windows development machine.
 

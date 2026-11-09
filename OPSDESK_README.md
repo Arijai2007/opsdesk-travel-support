@@ -21,6 +21,8 @@ The launcher generates local-only secrets, starts embedded PostgreSQL on `127.0.
 
 Run one launcher at a time. Existing records and `.env` files are preserved. Database files live in `.opsdesk/postgres`, are ignored by Git, and must be backed up if you want to retain your local cases. Closing the app does not delete records. The embedded database package supports Windows x64, Linux and macOS; this build was exercised on Windows x64.
 
+For an existing dedicated development PostgreSQL instance, set `DATABASE_URL` in `backend/.env` and run `npm run ops:preview -- --external-db`. This skips embedded PostgreSQL but still applies migrations and seeds an empty demo. CI uses this mode with a PostgreSQL service. Use a separate development database.
+
 ## Demo accounts
 
 All accounts use **OpsDeskDemo!2026**. These are explicit synthetic demo accounts, not an authentication bypass.
