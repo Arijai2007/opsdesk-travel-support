@@ -147,6 +147,9 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 | PATCH | `/ops/availability` | Set own support availability |
 | PATCH | `/ops/bookings/:id/schedule` | Manager edits check-in, departure and cancellation cutoff as UTC timestamps and recalculates active case deadlines |
 | PATCH | `/ops/agents/:id/specialties` | Manager sets an agent’s supported categories. An empty list provides general coverage |
+| PATCH | `/ops/agencies/:id/response-policy` | Manager sets a 1–168 hour response target for future case cycles |
+| GET | `/health/ready` | Returns 200 when PostgreSQL and the counters backend are ready, otherwise 503 |
+| GET | `/health/worker` | Returns 200 when a deadline sweep completed in the last minute, otherwise 503 |
 | POST | `/ops/clock/advance` | Manager-only demo time advance |
 
 See DTOs for exact fields. Do not bypass the service authorization with direct UI role checks. New integrations must authenticate their own webhook source and map identities to existing authorized records.
@@ -155,6 +158,8 @@ See DTOs for exact fields. Do not bypass the service authorization with direct U
 
 - Keyword rules suggest one of the supported travel issue categories; they are not an LLM classifier.
 - Routing selects available regional or global agents, prefers the matching specialty and breaks ties by active workload. Generalists cover categories without an available specialist. If no eligible agent is available, the ticket stays unassigned. Managers edit specialties from Needs attention.
+- Managers can set each agent’s maximum active cases from Needs attention. Automatic routing skips agents at capacity, including during simultaneous intake. Existing assignments are preserved and managers can still reassign deliberately.
+- Agency response targets use elapsed hours and default to 24. Policy changes apply to new and reopened cases. Case activity records the policy version and duration used. Existing active cases retain their response target. Reopening starts a new response cycle and preserves ownership.
 - Non-refund cases use the earliest applicable response, check-in or departure deadline. Cancellation cases also consider the cancellation cutoff. Imminent check-in raises priority to High within 24 hours and Urgent within 6 hours. A missed case deadline is Urgent. Refunds keep their independent response target.
 - Managers can edit the booking schedule from a linked case. The form accepts UTC timestamps and the context panel displays dates in the booking timezone. Schedule edits recalculate active case deadlines and record changes without extending the response target. Previously stored case deadlines serve as the response target until a separate one is stored. Existing bookings can have unset departure and cancellation dates.
 - Urgency automation does not lower an existing higher priority. Default timing is encoded in `travel.rules.ts` and supplier-thread creation, not a customer-configurable SLA module.
@@ -227,6 +232,8 @@ These are not implemented promises. Start with product acceptance and production
 | No travel access after registration | Add a valid travel profile through a reviewed provisioning path; generic registration does not create one. Use seeded accounts for the demo. |
 | Many overdue cases after a break | Persisted seed dates and demo offset are still in effect; inspect actual check-in/response deadlines. This is not a reseed on every start. |
 | Login throttled during repeated tests | Wait for the local rate-limit window; do not weaken production rate limiting. The smoke suite authenticates multiple distinct accounts. |
+| Readiness returns 503 | Check the PostgreSQL connection and migrations, then Redis connectivity or local counters startup. The public response omits connection details. |
+| Worker probe returns 503 | Inspect deadline check errors in the backend log and verify PostgreSQL connectivity and transaction latency. After recovery, confirm a successful sweep and check the manager queue. Stored alerts remain protected by their unique keys. |
 | Build after moving the repository fails | Workspace dependency links can contain old absolute paths. Use a fresh clone plus `npm ci`, regenerate Prisma and build the shared package. |
 | Development React eval/CSP warning | Use `ops:preview` for the optimized demo. Do not broadly weaken the inherited CSP to quiet development tooling. |
 | Shutdown leaves a Windows process | Check the listener's owning process and stop only the identified OpsDesk child process; preserve local data. |

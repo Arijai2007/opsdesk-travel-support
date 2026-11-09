@@ -29,8 +29,8 @@ export function classify(text: string): string {
 }
 export const RESPONSE_WINDOW_MS = 24 * 3600000;
 
-export function responseDeadlineFor(now: Date) {
-  return new Date(now.getTime() + RESPONSE_WINDOW_MS);
+export function responseDeadlineFor(now: Date, hours = 24) {
+  return new Date(now.getTime() + hours * 3600000);
 }
 
 export function effectiveDeadline(
@@ -83,6 +83,7 @@ export function chooseAgent<
     region: string | null;
     available: boolean;
     specialties?: string[];
+    maxActiveCases?: number | null;
   },
 >(
   agents: T[],
@@ -101,6 +102,8 @@ export function chooseAgent<
       (a) =>
         a.available &&
         (a.region === region || a.region === 'GLOBAL') &&
+        (a.maxActiveCases == null ||
+          (loads[a.userId] ?? 0) < a.maxActiveCases) &&
         rank(a) < 2,
     )
     .sort(

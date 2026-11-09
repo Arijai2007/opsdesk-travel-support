@@ -28,7 +28,7 @@ Acceptance:
 - Remove demo accounts and disable demo clock; keep OPSDESK_LOCAL_COUNTERS disabled in production.
 - Provision users/travel profiles through a reviewed operational path.
 - Review migrations on a staging restore; prove backup/restore and define retention.
-- Add health/worker monitoring, logging and ownership/on-call runbook.
+- Connect the readiness and worker probes to deployment monitoring and assign on-call ownership.
 - Select deployment target; inherited infrastructure is reference material, not a ready OpsDesk deployment.
 
 Start: scripts/local-setup.mjs, backend/src/main.ts, RedisService, infra/, docs/OPSDESK_HANDOFF.md.
@@ -68,11 +68,11 @@ Start: TravelBooking, TravelProfile, ticket create/update logic and seed-travel.
 
 [GitHub issue #6](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/6)
 
-Managers can edit booking schedules and agent specialties. Automatic routing considers category, region, availability and workload. Response targets still use a fixed policy.
+Managers can edit booking schedules, agent specialties and capacity, and elapsed-hour agency response targets. Automatic routing considers category, region, availability, capacity and workload. New and reopened cases record the response policy applied.
 
 Acceptance:
 - Define per-contract SLA/business-hour/holiday calendars and escalation ownership/acknowledgment.
-- Add shifts, capacities and controlled manual override policies.
+- Add shifts and more detailed manual override policies.
 - Add manager administration for agencies, suppliers, agents, customers and travel memberships.
 - Specify reopen behavior and routing when coverage is unavailable.
 - Version policy changes and retain an auditable reason for priority/assignment.

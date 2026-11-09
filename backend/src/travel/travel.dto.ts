@@ -75,4 +75,17 @@ export class AgentSpecialtiesDto {
   @ArrayUnique()
   @IsIn(CATEGORIES, { each: true })
   specialties: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  maxActiveCases?: number | null;
+}
+
+export class AgencyResponsePolicyDto {
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  responseTargetHours: number;
 }

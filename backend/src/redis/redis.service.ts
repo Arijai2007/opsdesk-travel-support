@@ -56,4 +56,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   getClient(): Redis | PostgresCounterClient {
     return this.client;
   }
+
+  isReady(): boolean {
+    return this.client instanceof Redis
+      ? this.client.status === 'ready'
+      : this.client instanceof PostgresCounterClient;
+  }
 }

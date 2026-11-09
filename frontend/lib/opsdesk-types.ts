@@ -5,8 +5,15 @@ export type Person = {
   region: string | null;
   available: boolean;
   specialties?: string[];
+  maxActiveCases?: number | null;
 };
-export type Agency = { id: string; name: string; code: string };
+export type Agency = {
+  id: string;
+  name: string;
+  code: string;
+  responseTargetHours: number;
+  responsePolicyVersion: number;
+};
 export type Supplier = { id: string; name: string; email: string };
 export type Booking = {
   id: string;

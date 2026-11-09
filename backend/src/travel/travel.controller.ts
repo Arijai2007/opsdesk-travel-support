@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/types/authenticated-request.type';
 import { TravelService } from './travel.service';
 import {
+  AgencyResponsePolicyDto,
   AgentSpecialtiesDto,
   AvailabilityDto,
   BookingScheduleDto,
@@ -95,6 +96,17 @@ export class TravelController {
     @Param('id') id: string,
     @Body() dto: AgentSpecialtiesDto,
   ) {
-    return this.travel.updateSpecialties(req.user.userId, id, dto.specialties);
+    return this.travel.updateSpecialties(req.user.userId, id, dto);
+  }
+  @Patch('agencies/:id/response-policy') agencyResponsePolicy(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: AgencyResponsePolicyDto,
+  ) {
+    return this.travel.updateAgencyResponsePolicy(
+      req.user.userId,
+      id,
+      dto.responseTargetHours,
+    );
   }
 }

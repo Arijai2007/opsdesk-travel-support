@@ -4,13 +4,14 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnApplicationBootstrap,
   OnModuleDestroy,
-  OnModuleInit,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import {
+  AgentSpecialtiesDto,
   BookingScheduleDto,
   NewConversationDto,
   NewTravelTicketDto,
@@ -33,22 +34,39 @@ type Tx = Prisma.TransactionClient;
 type Profile = Prisma.TravelProfileGetPayload<{ include: { user: true } }>;
 type Case = Prisma.TravelTicketGetPayload<object>;
 @Injectable()
-export class TravelService implements OnModuleInit, OnModuleDestroy {
+export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   private timer: ReturnType<typeof setInterval>;
+  private sweepRunning = false;
+  private lastSweepCompletedAt: number | undefined;
+  private static readonly sweepIntervalMs = 15_000;
   private readonly logger = new Logger(TravelService.name);
   constructor(private readonly db: PrismaService) {}
-  onModuleInit() {
-    this.timer = setInterval(() => {
-      void this.sweep().catch((e: unknown) =>
-        this.logger.error(
-          `Deadline check failed: ${e instanceof Error ? e.message : String(e)}`,
-        ),
-      );
-    }, 15000);
+  onApplicationBootstrap() {
+    const check = () => {
+      if (this.sweepRunning) return;
+      this.sweepRunning = true;
+      void this.sweep()
+        .catch((e: unknown) =>
+          this.logger.error(
+            `Deadline check failed: ${e instanceof Error ? e.message : String(e)}`,
+          ),
+        )
+        .finally(() => {
+          this.sweepRunning = false;
+        });
+    };
+    this.timer = setInterval(check, TravelService.sweepIntervalMs);
     this.timer.unref();
+    check();
   }
   onModuleDestroy() {
     clearInterval(this.timer);
+  }
+  workerHealthy() {
+    return (
+      this.lastSweepCompletedAt !== undefined &&
+      Date.now() - this.lastSweepCompletedAt < 4 * TravelService.sweepIntervalMs
+    );
   }
   private locked<T>(fn: (tx: Tx) => Promise<T>) {
     return this.db.$transaction(
@@ -213,7 +231,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         region: v.region,
         available: v.available,
         ...(p.kind === 'MANAGER' && v.kind === 'AGENT'
-          ? { specialties: v.specialties }
+          ? { specialties: v.specialties, maxActiveCases: v.maxActiveCases }
           : {}),
       })),
       tickets: tickets.map((t) => {
@@ -292,16 +310,25 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       const agents = await tx.travelProfile.findMany({
         where: { kind: 'AGENT' },
       });
-      const current = await tx.travelTicket.findMany({
-        where: { status: { notIn: ['RESOLVED', 'CLOSED'] } },
-        select: { agentId: true },
+      const current = await tx.travelTicket.groupBy({
+        by: ['agentId'],
+        where: {
+          agentId: { not: null },
+          status: { notIn: ['RESOLVED', 'CLOSED'] },
+        },
+        _count: { _all: true },
       });
       const loads: Record<string, number> = {};
-      current.forEach((t) => {
-        if (t.agentId) loads[t.agentId] = (loads[t.agentId] || 0) + 1;
-      });
+      for (const group of current)
+        if (group.agentId) loads[group.agentId] = group._count._all;
       const agent = chooseAgent(agents, region, loads, category);
-      const responseDeadline = responseDeadlineFor(now);
+      const policy = await tx.travelAgency.findUniqueOrThrow({
+        where: { id: agencyId },
+      });
+      const responseDeadline = responseDeadlineFor(
+        now,
+        policy.responseTargetHours,
+      );
       const deadline = effectiveDeadline(
         category,
         responseDeadline,
@@ -320,6 +347,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
           region,
           deadline,
           responseDeadline,
+          responseStartedAt: now,
           agentId: agent?.userId,
           priority:
             urgency(category, deadline, booking?.checkInAt, now)?.priority ||
@@ -347,6 +375,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         userId,
         now,
       );
+      await this.recordResponseTarget(tx, ticket.id, policy, userId, now);
       if (reference && !booking)
         await this.event(
           tx,
@@ -426,13 +455,21 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         data.status = dto.status;
         data.resolvedAt = active(dto.status) ? null : now;
         if (!active(t.status) && active(dto.status)) {
-          data.responseDeadline = responseDeadlineFor(now);
+          const policy = await tx.travelAgency.findUniqueOrThrow({
+            where: { id: t.agencyId },
+          });
+          data.responseDeadline = responseDeadlineFor(
+            now,
+            policy.responseTargetHours,
+          );
+          data.responseStartedAt = now;
           data.deadline = effectiveDeadline(
             t.category,
             data.responseDeadline,
             booking,
             now,
           );
+          await this.recordResponseTarget(tx, t.id, policy, userId, now);
         }
         await this.event(
           tx,
@@ -700,11 +737,30 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
     });
   }
   private responseCycleStart(ticket: Case) {
-    return new Date(
-      Math.max(
-        ticket.createdAt.getTime(),
-        (ticket.responseDeadline?.getTime() ?? 0) - RESPONSE_WINDOW_MS,
-      ),
+    return (
+      ticket.responseStartedAt ??
+      new Date(
+        Math.max(
+          ticket.createdAt.getTime(),
+          (ticket.responseDeadline?.getTime() ?? 0) - RESPONSE_WINDOW_MS,
+        ),
+      )
+    );
+  }
+  private recordResponseTarget(
+    tx: Tx,
+    ticketId: string,
+    policy: { responseTargetHours: number; responsePolicyVersion: number },
+    userId: string,
+    now: Date,
+  ) {
+    return this.event(
+      tx,
+      ticketId,
+      'RESPONSE_TARGET_SET',
+      `Agency policy v${policy.responsePolicyVersion}: ${policy.responseTargetHours} elapsed hours to respond.`,
+      userId,
+      now,
     );
   }
   async updateSchedule(userId: string, id: string, dto: BookingScheduleDto) {
@@ -772,7 +828,11 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       return booking;
     });
   }
-  async updateSpecialties(userId: string, id: string, specialties: string[]) {
+  async updateSpecialties(
+    userId: string,
+    id: string,
+    dto: AgentSpecialtiesDto,
+  ) {
     return this.locked(async (tx) => {
       this.manager(await this.profile(userId, tx));
       const agent = await tx.travelProfile.findUnique({
@@ -782,13 +842,31 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
         throw new NotFoundException('Agent not found.');
       return tx.travelProfile.update({
         where: { userId: id },
-        data: { specialties },
-        select: { userId: true, specialties: true },
+        data: {
+          specialties: dto.specialties,
+          maxActiveCases: dto.maxActiveCases,
+        },
+        select: { userId: true, specialties: true, maxActiveCases: true },
+      });
+    });
+  }
+  async updateAgencyResponsePolicy(userId: string, id: string, hours: number) {
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      const agency = await tx.travelAgency.findUnique({ where: { id } });
+      if (!agency) throw new NotFoundException('Agency not found.');
+      if (agency.responseTargetHours === hours) return agency;
+      return tx.travelAgency.update({
+        where: { id },
+        data: {
+          responseTargetHours: hours,
+          responsePolicyVersion: { increment: 1 },
+        },
       });
     });
   }
   async sweep() {
-    return this.locked(async (tx) => {
+    const result = await this.locked(async (tx) => {
       const now = await this.now(tx);
       const tickets = await tx.travelTicket.findMany({
         where: { status: { notIn: ['RESOLVED', 'CLOSED'] } },
@@ -848,5 +926,7 @@ export class TravelService implements OnModuleInit, OnModuleDestroy {
       }
       return { now: now.toISOString(), checked: tickets.length };
     });
+    this.lastSweepCompletedAt = Date.now();
+    return result;
   }
 }

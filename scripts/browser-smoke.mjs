@@ -41,10 +41,13 @@ try {
   await manager.getByLabel("Filter deadline").selectOption("ALL");
   await manager.getByRole("button", { name: /Needs attention/ }).click();
   await manager.getByText("Agent specialties", { exact: true }).click();
+  await manager.getByLabel("Maximum active cases (optional)").first().waitFor();
   await manager
     .getByRole("button", { name: "Save specialties" })
     .first()
     .waitFor();
+  await manager.getByText("Agency response targets", { exact: true }).click();
+  await manager.getByLabel("Atlas Travel (hours)").waitFor();
   await manager.getByRole("button", { name: /All conversations/ }).click();
   await openCase(
     manager,
@@ -105,7 +108,10 @@ try {
   assert.match(draft, /received an update from the supplier/);
   assert(!draft.includes("The demo refund has been confirmed."));
   const customerThread = manager.locator(".od-thread");
-  assert.equal(await customerThread.getByText(draft, { exact: true }).count(), 0);
+  assert.equal(
+    await customerThread.getByText(draft, { exact: true }).count(),
+    0,
+  );
   assert(
     await manager.getByRole("button", { name: "Send reply" }).isDisabled(),
   );

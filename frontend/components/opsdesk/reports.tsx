@@ -29,15 +29,18 @@ export function RoutingSettings({
         .filter((person) => person.kind === "AGENT")
         .map((agent) => (
           <form
-            key={`${agent.id}:${agent.specialties?.join(",")}`}
+            key={`${agent.id}:${agent.specialties?.join(",")}:${agent.maxActiveCases}`}
             onSubmit={(event) => {
               event.preventDefault();
-              const specialties = new FormData(event.currentTarget).getAll(
-                "specialties",
-              );
+              const form = new FormData(event.currentTarget);
+              const specialties = form.getAll("specialties");
+              const capacity = form.get("maxActiveCases");
               void mutate(
                 `agents/${agent.id}/specialties`,
-                { specialties },
+                {
+                  specialties,
+                  maxActiveCases: capacity ? Number(capacity) : null,
+                },
                 `Routing preferences saved for ${agent.name}.`,
                 "PATCH",
               ).catch(() => {});
@@ -58,12 +61,69 @@ export function RoutingSettings({
                   {human(category)}
                 </label>
               ))}
+              <label>
+                Maximum active cases (optional)
+                <input
+                  type="number"
+                  name="maxActiveCases"
+                  min={1}
+                  max={500}
+                  defaultValue={agent.maxActiveCases ?? ""}
+                />
+              </label>
               <button className="od-secondary" disabled={busy}>
                 Save specialties
               </button>
             </fieldset>
           </form>
         ))}
+    </details>
+  );
+}
+
+export function AgencyResponseSettings({
+  data,
+  busy,
+  mutate,
+}: {
+  data: Workspace;
+  busy: boolean;
+  mutate: Mutation;
+}) {
+  return (
+    <details className="od-panel">
+      <summary>Agency response targets</summary>
+      <p>Targets use elapsed hours and apply to new or reopened cases.</p>
+      {data.agencies.map((agency) => (
+        <form
+          key={`${agency.id}:${agency.responsePolicyVersion}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            const hours = new FormData(event.currentTarget).get("hours");
+            void mutate(
+              `agencies/${agency.id}/response-policy`,
+              { responseTargetHours: Number(hours) },
+              `Response target saved for ${agency.name}.`,
+              "PATCH",
+            ).catch(() => {});
+          }}
+        >
+          <label>
+            {agency.name} (hours)
+            <input
+              type="number"
+              name="hours"
+              min={1}
+              max={168}
+              defaultValue={agency.responseTargetHours}
+              required
+            />
+          </label>
+          <button className="od-secondary" disabled={busy}>
+            Save response target
+          </button>
+        </form>
+      ))}
     </details>
   );
 }

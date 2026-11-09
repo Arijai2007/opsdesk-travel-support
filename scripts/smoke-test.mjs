@@ -13,6 +13,8 @@ const notes = [];
 let checks = 0;
 let previousClock;
 let temporaryBookingId;
+let previousAgencyPolicy;
+let previousCapacities;
 async function call(path, token, body, method = "POST", expected = 200) {
   const r = await fetch(base + path, {
     method: body === undefined ? "GET" : method,
@@ -521,11 +523,117 @@ try {
       .length,
     1,
   );
+  const policyPath = "/ops/agencies/atlas/response-policy";
+  previousAgencyPolicy = initial.agencies.find((value) => value.id === "atlas");
+  await call(policyPath, agency, { responseTargetHours: 6 }, "PATCH", 403);
+  await call(policyPath, manager, { responseTargetHours: 0 }, "PATCH", 400);
+  const policy = await call(
+    policyPath,
+    manager,
+    { responseTargetHours: 6 },
+    "PATCH",
+  );
+  const unchangedPolicy = await call(
+    policyPath,
+    manager,
+    { responseTargetHours: 6 },
+    "PATCH",
+  );
+  assert.equal(
+    unchangedPolicy.responsePolicyVersion,
+    policy.responsePolicyVersion,
+  );
+  const routingAgents = initial.people.filter((person) =>
+    ["agent-asia", "agent-global"].includes(person.id),
+  );
+  previousCapacities = routingAgents;
+  const globalCount = (
+    await pool.query(
+      `SELECT count(*)::int AS n FROM "TravelTicket"
+     WHERE "agentId"='agent-global' AND status NOT IN ('RESOLVED','CLOSED')`,
+    )
+  ).rows[0].n;
+  for (const person of routingAgents)
+    await call(
+      `/ops/agents/${person.id}/specialties`,
+      manager,
+      {
+        specialties: person.specialties,
+        maxActiveCases: person.id === "agent-global" ? globalCount + 1 : 1,
+      },
+      "PATCH",
+    );
+  const routedAtCapacity = await Promise.all(
+    [1, 2].map(async (attempt) => {
+      const result = await call(
+        "/ops/tickets",
+        customer,
+        {
+          title: `Capacity routing probe ${attempt}`,
+          description: "Please review the refund for this booking.",
+          bookingReference: "BK-1042",
+        },
+        "POST",
+        201,
+      );
+      created.push(result.id);
+      return result;
+    }),
+  );
+  assert.deepEqual(routedAtCapacity.map((value) => value.agentId).sort(), [
+    "agent-global",
+    null,
+  ]);
+  for (const result of routedAtCapacity)
+    assert.equal(
+      Date.parse(result.responseDeadline) -
+        Date.parse(result.responseStartedAt),
+      6 * 3600000,
+    );
+  const afterPolicy = (await call("/ops/workspace", manager)).tickets.find(
+    (value) => value.id === cancellation.id,
+  );
+  assert.equal(afterPolicy.responseDeadline, cancellation.responseDeadline);
+  const completed = routedAtCapacity[0];
+  await call(
+    `/ops/tickets/${completed.id}`,
+    manager,
+    { status: "RESOLVED", reason: "Capacity test complete." },
+    "PATCH",
+  );
+  const renewed = await call(
+    `/ops/tickets/${completed.id}`,
+    customer,
+    { status: "OPEN", reason: "Reopen test." },
+    "PATCH",
+  );
+  assert.equal(
+    Date.parse(renewed.responseDeadline) -
+      Date.parse(renewed.responseStartedAt),
+    6 * 3600000,
+  );
+  assert.equal((await call("/health/ready", null)).status, "ready");
+  assert.equal((await call("/health/worker", null)).status, "ready");
   notes.push(
     "Role and agency isolation, message privacy, booking linking and schedule edits, specialty settings and routing, parallel supplier threads, resolution/reopening, durable records and repeat-safe deadline alerts passed.",
   );
   console.log(`PASS: ${checks} real HTTP checks. ${notes.join(" ")}`);
 } finally {
+  if (previousAgencyPolicy)
+    await pool.query(
+      'UPDATE "TravelAgency" SET "responseTargetHours"=$1, "responsePolicyVersion"=$2 WHERE id=$3',
+      [
+        previousAgencyPolicy.responseTargetHours,
+        previousAgencyPolicy.responsePolicyVersion,
+        previousAgencyPolicy.id,
+      ],
+    );
+  if (previousCapacities)
+    for (const person of previousCapacities)
+      await pool.query(
+        'UPDATE "TravelProfile" SET "maxActiveCases"=$1 WHERE "userId"=$2',
+        [person.maxActiveCases, person.id],
+      );
   if (previousClock !== undefined)
     await pool.query(
       'UPDATE "TravelClock" SET "offsetMinutes"=$1 WHERE id=\'demo\'',

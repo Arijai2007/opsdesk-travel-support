@@ -36,7 +36,12 @@ import {
 } from "./ui";
 import { OpsLogin } from "./login";
 import { NewTicket, TicketDetail, SupplierDesk } from "./ticket-detail";
-import { Bookings, Insights, RoutingSettings } from "./reports";
+import {
+  AgencyResponseSettings,
+  Bookings,
+  Insights,
+  RoutingSettings,
+} from "./reports";
 export function OpsDeskWorkspace() {
   const [data, setData] = useState<Workspace | null>(null),
     [ready, setReady] = useState(false),
@@ -477,7 +482,18 @@ export function OpsDeskWorkspace() {
               ) : (
                 <>
                   {view === "manager" && data.me.kind === "MANAGER" && (
-                    <RoutingSettings data={data} busy={busy} mutate={mutate} />
+                    <>
+                      <RoutingSettings
+                        data={data}
+                        busy={busy}
+                        mutate={mutate}
+                      />
+                      <AgencyResponseSettings
+                        data={data}
+                        busy={busy}
+                        mutate={mutate}
+                      />
+                    </>
                   )}
                   <div className="od-stats">
                     {[
