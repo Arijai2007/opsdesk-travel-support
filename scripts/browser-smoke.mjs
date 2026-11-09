@@ -50,7 +50,9 @@ try {
   await manager.getByRole("button", { name: "Previous page" }).click();
   await manager.getByText(/^Page 1 of /).waitFor();
   await manager.getByLabel("Filter status").selectOption("OPEN");
-  await manager.getByLabel("Filter owner").selectOption("agent-asia");
+  await manager
+    .getByLabel("Filter owner", { exact: true })
+    .selectOption("agent-asia");
   await manager.getByLabel("Filter deadline").selectOption("ALL");
   await manager.getByRole("button", { name: /Needs attention/ }).click();
   await manager.getByText("Agent specialties", { exact: true }).click();
@@ -105,7 +107,10 @@ try {
   await thread
     .getByText("The demo refund has been confirmed.", { exact: true })
     .waitFor();
-  assert.equal(await supplier.getByLabel("Filter owner").count(), 0);
+  assert.equal(
+    await supplier.getByLabel("Filter owner", { exact: true }).count(),
+    0,
+  );
   await supplier.close();
 
   await manager.reload();

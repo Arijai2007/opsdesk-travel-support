@@ -70,7 +70,7 @@ export function PageControls<T>({
     return (
       <p role="alert">
         {resource.error}{" "}
-        <button className="od-secondary" onClick={resource.retry}>
+        <button type="button" className="od-secondary" onClick={resource.retry}>
           Retry {label}
         </button>
       </p>
@@ -85,6 +85,7 @@ export function PageControls<T>({
       {totalPages > 1 && (
         <>
           <button
+            type="button"
             className="od-secondary"
             disabled={page <= 1}
             onClick={() => resource.go(page - 1)}
@@ -92,6 +93,7 @@ export function PageControls<T>({
             Newer {label}
           </button>
           <button
+            type="button"
             className="od-secondary"
             disabled={page >= totalPages}
             onClick={() => resource.go(page + 1)}

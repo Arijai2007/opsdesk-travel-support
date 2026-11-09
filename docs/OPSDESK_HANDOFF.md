@@ -1,6 +1,6 @@
 # OpsDesk — project handoff
 
-Prepared 9 November 2026. This document is the entry point for the next developer. It describes the delivered localhost prototype, the implementation boundaries, and the work required to turn it into an operational travel-support product.
+Prepared 10 November 2026. This document is the entry point for the next developer. It describes the delivered localhost prototype, the implementation boundaries, and the work required to turn it into an operational travel-support product.
 
 ## 1. Repository and review order
 
@@ -8,7 +8,7 @@ Prepared 9 November 2026. This document is the entry point for the next develope
 - Implementation PR: https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/1.
 - Handoff PR: https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/10.
 - Remaining-work issues: https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues (issues #2–#9).
-- [Access and intake hardening (#11)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/11) and [travel policies, Insights and inbox pagination (#12)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/12) are merged. Start from `main`. The implementation baseline for this handoff is merge commit `13873d4`.
+- [Access and intake hardening (#11)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/11) and [travel policies, Insights and inbox pagination (#12)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/12) are merged. Start from `main`. PR #14 is also merged. This directory follow-up starts from latest main, `a5455a4`, reviewed before implementation.
 - Original code foundation: https://github.com/Molnar-Zoltan/it-helpdesk, baseline `51833aa3b6544522204caa7adac362936b381100` (`v0.13.0`). Its history and authorship are retained for provenance. All project branches, PRs and issues are in our repository; the local origin points only to our repository. No PR or push was made to the reference repository.
 - No release deployment or production data migration has been performed. PR creation is not a production-readiness claim.
 
@@ -163,7 +163,7 @@ All `/ops` routes use the inherited JWT guard; the service performs travel-profi
 
 See DTOs for exact fields. Do not bypass the service authorization with direct UI role checks. New integrations must authenticate their own webhook source and map identities to existing authorized records.
 
-The browser requests compact workspace metadata and filtered inbox rows from PostgreSQL. Opening a case loads its details on demand. Messages, activity, related cases, booking history, supplier threads and supplier messages use separate authorized endpoints with validated `page` values and 20-row limits. Pages sort newest first with an ID tie breaker; message pages display chronologically. CSV export explicitly exports the current inbox page. Booking and people directories remain metadata lists; the legacy full-workspace endpoint remains for compatibility and is no longer requested by the browser.
+The browser requests compact workspace metadata and filtered inbox rows from PostgreSQL. Opening a case loads its details on demand. Messages, activity, related cases, booking history, supplier threads and supplier messages use separate authorized endpoints with validated `page` values and 20-row limits. Pages sort newest first with an ID tie breaker; message pages display chronologically. CSV export explicitly exports the current inbox page. Booking and people directories now use searched, authorized 20-row pages, including intake, owner filtering, reassignment and routing settings. Compact metadata contains no booking or people arrays; queue rows and case details supply bounded display context. the legacy full-workspace endpoint remains for compatibility and is no longer requested by the browser.
 
 ## 10. Current business rules
 
@@ -265,8 +265,8 @@ These are not implemented promises. Start with product acceptance and production
 
 ## 16. Messages to forward
 
-**Fully finished for the synthetic demo.** OpsDesk supports booking-linked intake and history, private supplier threads, routing, deadline escalation, resolution, scoped Insights and a searchable, paginated inbox. The case-read follow-up adds on-demand details and paginated messages, activity, related cases and supplier threads. Local validation passed 9 unit tests, 223 HTTP checks and the five-role Chromium browser flow. See [validation details](OPSDESK_VALIDATION.md) for the prior merged baseline and follow-up checks.
+**Fully finished for the synthetic demo.** OpsDesk supports booking-linked intake and history, private supplier threads, routing, deadline escalation, resolution, scoped Insights and a searchable, paginated inbox. The case-read follow-up adds on-demand details and paginated messages, activity, related cases and supplier threads. Directory follow-up validation passed 9 unit tests, 400 HTTP checks, the five-role Chromium flow and directory selection across pages. Builds and changed-file lint passed; full backend lint has existing errors in inherited AI/role-guard files. See [validation details](OPSDESK_VALIDATION.md) for the prior merged baseline and follow-up checks.
 
-**Partially finished.** The browser uses compact metadata and loads case histories separately. Next profile realistic-volume queries, paginate booking/people directories, retire the compatibility workspace endpoint and reduce global lock contention. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
+**Partially finished.** The browser uses compact metadata and loads case histories separately. Next profile realistic-volume queries, retire the compatibility workspace endpoint and reduce global lock contention. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
 
 **Still to do.** Before live data, confirm production access rules and choose a staging target. Rehearse backup and restore, configure secrets and monitoring, then select providers for email, attachments and booking/supplier synchronization. External AI evaluation and broader accessibility, load and security reviews remain open. [Open issues](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues)

@@ -23,7 +23,8 @@ import {
   TicketCheck,
   X,
 } from "lucide-react";
-import type { Workspace } from "@/lib/opsdesk-types";
+import { DirectorySelect } from "./directory-select";
+import type { Workspace, Person } from "@/lib/opsdesk-types";
 import {
   active,
   Badge,
@@ -177,7 +178,7 @@ export function OpsDeskWorkspace() {
       id: "bookings",
       label: "Bookings",
       icon: BookOpen,
-      count: data.bookings.length,
+      count: 0,
     },
     ...(staff
       ? [{ id: "insights", label: "Insights", icon: LayoutDashboard, count: 0 }]
@@ -641,21 +642,17 @@ export function OpsDeskWorkspace() {
                             </option>
                           ))}
                         </select>
-                        <select
-                          aria-label="Filter owner"
+                        <DirectorySelect<Person>
+                          path="people?kind=AGENT"
+                          label="Filter owner"
                           value={owner}
-                          onChange={(e) => setOwner(e.target.value)}
+                          refresh={data.now}
+                          text={(p) => p.name}
+                          onSelect={setOwner}
                         >
                           <option value="ALL">All owners</option>
                           <option value="UNASSIGNED">Unassigned</option>
-                          {data.people
-                            .filter((person) => person.kind === "AGENT")
-                            .map((person) => (
-                              <option value={person.id} key={person.id}>
-                                {person.name}
-                              </option>
-                            ))}
-                        </select>
+                        </DirectorySelect>
                         <select
                           aria-label="Filter deadline"
                           value={deadline}
@@ -706,7 +703,7 @@ export function OpsDeskWorkspace() {
                                 </div>
                               </td>
                               <td>
-                                <b>{person(t.customerId)}</b>
+                                <b>{t.customerName || person(t.customerId)}</b>
                                 <small>{agency(t.agencyId)}</small>
                               </td>
                               <td>
@@ -732,11 +729,11 @@ export function OpsDeskWorkspace() {
                               </td>
                               <td>
                                 <span
-                                  title={person(t.agentId)}
+                                  title={t.ownerName || person(t.agentId)}
                                   className={`od-avatar small ${t.agentId ? "" : "empty"}`}
                                 >
                                   {t.agentId
-                                    ? initials(person(t.agentId))
+                                    ? initials(t.ownerName || person(t.agentId))
                                     : "—"}
                                 </span>
                               </td>

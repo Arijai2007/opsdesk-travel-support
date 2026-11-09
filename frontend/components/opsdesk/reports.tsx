@@ -3,7 +3,7 @@ import { useOpsPage, PageControls } from "./paged-data";
 import { ArrowUpRight, BookOpen, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { TravelInsights } from "@helpdesk/shared";
-import type { Workspace } from "@/lib/opsdesk-types";
+import type { Workspace, Booking, Person } from "@/lib/opsdesk-types";
 import { date, human, request, type Mutation } from "./ui";
 
 const categories = [
@@ -24,62 +24,62 @@ export function RoutingSettings({
   busy: boolean;
   mutate: Mutation;
 }) {
+  const agents = useOpsPage<Person>("people?kind=AGENT", data.now);
   return (
     <details className="od-panel">
       <summary>Agent specialties</summary>
       <p>Leave an agent’s categories empty for general coverage.</p>
-      {data.people
-        .filter((person) => person.kind === "AGENT")
-        .map((agent) => (
-          <form
-            key={`${agent.id}:${agent.specialties?.join(",")}:${agent.maxActiveCases}`}
-            onSubmit={(event) => {
-              event.preventDefault();
-              const form = new FormData(event.currentTarget);
-              const specialties = form.getAll("specialties");
-              const capacity = form.get("maxActiveCases");
-              void mutate(
-                `agents/${agent.id}/specialties`,
-                {
-                  specialties,
-                  maxActiveCases: capacity ? Number(capacity) : null,
-                },
-                `Routing preferences saved for ${agent.name}.`,
-                "PATCH",
-              ).catch(() => {});
-            }}
-          >
-            <fieldset>
-              <legend>
-                {agent.name} · {human(agent.region ?? "Unassigned")}
-              </legend>
-              {categories.map((category) => (
-                <label key={category}>
-                  <input
-                    type="checkbox"
-                    name="specialties"
-                    value={category}
-                    defaultChecked={agent.specialties?.includes(category)}
-                  />
-                  {human(category)}
-                </label>
-              ))}
-              <label>
-                Maximum active cases (optional)
+      <PageControls resource={agents} label="agents" />
+      {(agents.data?.items ?? []).map((agent) => (
+        <form
+          key={`${agent.id}:${agent.specialties?.join(",")}:${agent.maxActiveCases}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const specialties = form.getAll("specialties");
+            const capacity = form.get("maxActiveCases");
+            void mutate(
+              `agents/${agent.id}/specialties`,
+              {
+                specialties,
+                maxActiveCases: capacity ? Number(capacity) : null,
+              },
+              `Routing preferences saved for ${agent.name}.`,
+              "PATCH",
+            ).catch(() => {});
+          }}
+        >
+          <fieldset>
+            <legend>
+              {agent.name} · {human(agent.region ?? "Unassigned")}
+            </legend>
+            {categories.map((category) => (
+              <label key={category}>
                 <input
-                  type="number"
-                  name="maxActiveCases"
-                  min={1}
-                  max={500}
-                  defaultValue={agent.maxActiveCases ?? ""}
+                  type="checkbox"
+                  name="specialties"
+                  value={category}
+                  defaultChecked={agent.specialties?.includes(category)}
                 />
+                {human(category)}
               </label>
-              <button className="od-secondary" disabled={busy}>
-                Save specialties
-              </button>
-            </fieldset>
-          </form>
-        ))}
+            ))}
+            <label>
+              Maximum active cases (optional)
+              <input
+                type="number"
+                name="maxActiveCases"
+                min={1}
+                max={500}
+                defaultValue={agent.maxActiveCases ?? ""}
+              />
+            </label>
+            <button className="od-secondary" disabled={busy}>
+              Save specialties
+            </button>
+          </fieldset>
+        </form>
+      ))}
     </details>
   );
 }
@@ -178,11 +178,11 @@ export function Bookings({
   setSearch: (s: string) => void;
   onSelect: (s: string) => void;
 }) {
-  const filtered = data.bookings.filter((b) =>
-    `${b.reference} ${b.destination} ${b.agency.name}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
+  const bookings = useOpsPage<Booking>(
+    `bookings?search=${encodeURIComponent(search)}`,
+    data.now,
   );
+  const filtered = bookings.data?.items ?? [];
   return (
     <section className="od-panel">
       <div className="od-filters">
@@ -195,7 +195,7 @@ export function Bookings({
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
-        <span>{filtered.length} connected bookings</span>
+        <PageControls resource={bookings} label="bookings" />
       </div>
       <div className="od-table-wrap">
         <table className="od-table">
@@ -218,10 +218,7 @@ export function Bookings({
                       {b.destination} · {human(b.region)}
                     </small>
                   </td>
-                  <td>
-                    {data.people.find((p) => p.id === b.customerId)?.name ||
-                      "Traveler"}
-                  </td>
+                  <td>{b.customerName || "Traveler"}</td>
                   <td>
                     <b>{b.agency.name}</b>
                     <small>{b.supplier.name}</small>

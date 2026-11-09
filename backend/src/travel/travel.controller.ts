@@ -1,3 +1,4 @@
+import { TravelDirectoryDto } from './travel-directory.dto';
 import {
   Body,
   Controller,
@@ -36,6 +37,18 @@ export class TravelController {
     @Query('compact') compact?: string,
   ) {
     return this.travel.workspace(req.user.userId, compact === '1');
+  }
+  @Get('bookings') bookings(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: TravelDirectoryDto,
+  ) {
+    return this.travel.bookings(req.user.userId, query);
+  }
+  @Get('people') people(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: TravelDirectoryDto,
+  ) {
+    return this.travel.people(req.user.userId, query);
   }
   @Get('tickets/:id') detail(
     @Req() req: AuthenticatedRequest,
