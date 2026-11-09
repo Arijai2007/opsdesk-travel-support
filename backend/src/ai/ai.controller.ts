@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { HelpdeskAccountGuard } from '../auth/guards/helpdesk-account.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AiService } from './ai.service';
 import { AiChatRequestDto } from './dto/ai-chat.dto';
@@ -12,7 +13,7 @@ import { Role } from '../../generated/prisma/client';
 // POST /tickets -- an agent/admin filing a ticket on someone else's
 // behalf via chat isn't supported yet (tracked as a possible future item:
 // agent-assisted ticket creation with a customer picker, not scheduled).
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, HelpdeskAccountGuard, RolesGuard)
 @Roles(Role.CUSTOMER)
 @Controller('ai')
 export class AiController {

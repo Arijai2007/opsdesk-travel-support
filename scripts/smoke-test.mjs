@@ -67,6 +67,15 @@ try {
   assert(otherData.tickets.every((t) => t.agencyId === "horizon"));
   const agentData = await call("/ops/workspace", agent);
   assert(agentData.tickets.every((t) => t.region === "ASIA"));
+  await call("/tickets/queue", agent, undefined, "GET", 403);
+  await call("/tickets/queue", manager, undefined, "GET", 403);
+  await call(
+    "/users/me",
+    customer,
+    { currentPassword: "OpsDeskDemo!2026" },
+    "DELETE",
+    403,
+  );
   await call(
     "/ops/tickets",
     other,
@@ -80,7 +89,23 @@ try {
     "POST",
     400,
   );
-  await call(
+  const foreignReference = await call(
+    "/ops/tickets",
+    other,
+    {
+      title: "Booking reference outside this agency",
+      description:
+        "Save the complaint without linking the other agency’s booking.",
+      bookingReference: "BK-1042",
+      customerId: "customer-1",
+    },
+    "POST",
+    201,
+  );
+  created.push(foreignReference.id);
+  assert.equal(foreignReference.bookingId, null);
+  assert.equal(foreignReference.agencyId, "horizon");
+  const unmatched = await call(
     "/ops/tickets",
     customer,
     {
@@ -89,8 +114,10 @@ try {
       bookingReference: "NO-SUCH-BOOKING",
     },
     "POST",
-    400,
+    201,
   );
+  created.push(unmatched.id);
+  assert.equal(unmatched.bookingId, null);
   await call(
     "/ops/tickets",
     customer,
@@ -122,6 +149,18 @@ try {
   const saved = current.tickets.find((t) => t.id === ticket.id);
   assert(saved.relatedIds.includes("ticket-0"));
   assert(saved.relatedIds.includes("ticket-30"));
+  const pending = current.tickets.find((t) => t.id === unmatched.id);
+  assert.equal(
+    pending.messages[0].content,
+    "Please verify the booking reference.",
+  );
+  assert(
+    pending.events.some(
+      (event) =>
+        event.kind === "BOOKING_REVIEW_REQUIRED" &&
+        event.text.includes("NO-SUCH-BOOKING"),
+    ),
+  );
   await call(
     `/ops/tickets/${ticket.id}`,
     other,
@@ -256,10 +295,17 @@ try {
     agent,
     {
       status: "RESOLVED",
-      reason: "Refund confirmation received and customer informed.",
+      reason: "Private resolution detail from the supplier.",
     },
     "PATCH",
   );
+  const resolvedCustomer = await call("/ops/workspace", customer);
+  const resolved = resolvedCustomer.tickets.find((t) => t.id === ticket.id);
+  assert.equal(resolved.status, "RESOLVED");
+  assert(
+    resolved.events.some((event) => event.text === "IN_PROGRESS → RESOLVED"),
+  );
+  assert(!JSON.stringify(resolved).includes("Private resolution detail"));
   await call(
     `/ops/tickets/${ticket.id}`,
     customer,

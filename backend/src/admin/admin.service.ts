@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -62,6 +63,10 @@ export class AdminService {
     try {
       const counts = await this.prisma.$transaction(
         async (tx) => {
+          if (await tx.travelProfile.count())
+            throw new ConflictException(
+              'The helpdesk demo reset is unavailable on OpsDesk workspaces.',
+            );
           await tx.message.deleteMany();
           await tx.ticket.deleteMany();
           await tx.refreshToken.deleteMany();
@@ -78,6 +83,7 @@ export class AdminService {
       this.logger.log(`Demo data reset: ${JSON.stringify(counts)}`);
       return counts;
     } catch (error) {
+      if (error instanceof ConflictException) throw error;
       const detail = (
         error instanceof Error ? error.message : String(error)
       ).slice(0, MAX_ERROR_DETAIL_LENGTH);

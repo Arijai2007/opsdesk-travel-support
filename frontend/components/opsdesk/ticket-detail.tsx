@@ -45,6 +45,7 @@ export function NewTicket({
   const [title, setTitle] = useState(""),
     [description, setDescription] = useState(""),
     [bookingId, setBookingId] = useState(""),
+    [submittedReference, setSubmittedReference] = useState(""),
     [error, setError] = useState(""),
     [exampleUsed, setExampleUsed] = useState(false);
   async function sample() {
@@ -86,7 +87,7 @@ export function NewTicket({
                   agencyId: booking.agencyId,
                   customerId: booking.customerId,
                 }
-              : {}),
+              : { bookingReference: submittedReference.trim() || undefined }),
           }).catch((e) => setError(e.message));
         }}
       >
@@ -99,7 +100,7 @@ export function NewTicket({
           >
             <option value="">
               {data.me.kind === "CUSTOMER"
-                ? "I don’t have a booking reference"
+                ? "My booking isn’t listed"
                 : "Select a verified booking"}
             </option>
             {data.bookings.map((b) => (
@@ -110,6 +111,17 @@ export function NewTicket({
             ))}
           </select>
         </label>
+        {data.me.kind === "CUSTOMER" && !booking && (
+          <label>
+            Booking reference (optional)
+            <input
+              maxLength={60}
+              value={submittedReference}
+              onChange={(e) => setSubmittedReference(e.target.value)}
+            />
+            <small>Support will review references we can’t match.</small>
+          </label>
+        )}
         <div className="od-flex od-space">
           <span className="od-eyebrow">DESCRIBE THE ISSUE</span>
           <button
