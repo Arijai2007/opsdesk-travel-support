@@ -100,3 +100,6 @@ Before live data, confirm production access rules, choose staging, rehearse back
 | [Upstream README](docs/IT_HELPDESK_README.md) | Historical IT Helpdesk documentation |
 
 The original repository history and authorship are retained. The included Bitext Travel examples are complaint wording samples, not actual bookings or supplier policies; their attribution and terms are recorded in the sources guide.
+
+
+Lock contention follow-up: ticket messages and supplier operations now serialize per ticket; routing retains its capacity lock. Escalation uses fresh-state transactions in batches of 100 candidates. `npm run ops:test` includes the multi-connection lock regression harness. See [lock protocol and limitations](docs/OPSDESK_VALIDATION.md).
