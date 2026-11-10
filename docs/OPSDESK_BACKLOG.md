@@ -1,6 +1,8 @@
 # OpsDesk — prioritized remaining work
 
-These are open implementation tasks, not completed features. Review P0 items before using live data. No external API is required for the current demo.
+These are remaining implementation and acceptance tasks. **Deployment is paused: finish local features, verification and review first, as requested by the user.** P0 items remain gates before live data; no external API is required for the synthetic local demo. The free-demo deployment preparation is saved separately and is not part of this feature branch.
+
+Immediate order: verify/review/merge the unmerged membership feature; implement SLA calendars, shifts and escalation ownership; add email/attachments; add a provider-neutral booking adapter with an explicit owner policy for creation/cancellation. Independent evaluation, accessibility, load and recovery acceptance remain open. Detailed entry files and acceptance steps are in [handoff section 13](OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order).
 
 ## [P0] Confirm acceptance criteria and harden travel access boundaries
 
@@ -10,7 +12,7 @@ The six demo scenarios are mapped in the [validation guide](OPSDESK_VALIDATION.m
 
 Acceptance:
 - Obtain product owner sign-off on the demo scenarios and confirm production organization and agency boundaries.
-- Design account provisioning, closure and retention so historical references are preserved or anonymized as required.
+- Verify/review/merge invitation provisioning and reversible suspension on `codex/opsdesk-membership-admin`; define closure, retention and any future identity-scope change so historical references remain protected.
 - Extend the authorization audit and negative-access tests as production routes and roles are added.
 
 Start: backend/src/travel/travel.service.ts, travel.dto.ts, Prisma schema, scripts/smoke-test.mjs. Required before live data.
@@ -19,7 +21,7 @@ Start: backend/src/travel/travel.service.ts, travel.dto.ts, Prisma schema, scrip
 
 [GitHub issue #3](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/3)
 
-The delivered launcher is a localhost synthetic demo. No production environment is configured.
+The delivered launcher is a localhost synthetic demo. No production environment is configured. Deployment is explicitly paused while features are completed; the selected free-demo stack and its saved preparation are not an active deployment.
 
 Acceptance:
 - Configure managed PostgreSQL and Redis, secret manager, HTTPS, correct HOST/proxy/CORS/cookie settings and production captcha/auth.
@@ -50,7 +52,7 @@ Provider credentials become necessary only when this integration is selected. St
 
 [GitHub issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5)
 
-All booking and supplier operational records are synthetic seed data. In PR #27, the [booking export tooling](OPSDESK_BOOKING_EXPORT.md) validates versioned batches, verifies local ownership and can apply approved updates to existing synthetic bookings. Creation and changes affecting active cases require review.
+All booking and supplier operational records are synthetic seed data. Merged PR #27 provides [booking export tooling](OPSDESK_BOOKING_EXPORT.md) that validates versioned batches, verifies local ownership and can apply approved updates to existing synthetic bookings. Creation and changes affecting active cases require review.
 
 Acceptance:
 - Add a provider interface and a read-only adapter for the chosen booking API or export.
@@ -71,7 +73,8 @@ Managers can edit booking schedules, agent specialties and capacity, and elapsed
 Acceptance:
 - Define per-contract SLA/business-hour/holiday calendars and escalation ownership. Managers can already acknowledge alerts.
 - Add shifts and more detailed manual override policies.
-- Add manager administration for agencies, suppliers, agents, customers and travel memberships.
+- Verify/review/merge the implemented manager membership panel: 24-hour manual invitations, single-use activation, agency/supplier creation, reasoned suspension/reactivation, paged searchable directory and audit. Prove historical preservation, immutable scopes, session invalidation, five-role boundaries and self/last-manager protection. This is current branch work, not yet merged.
+- Leave role/agency/supplier/region reassignment and deletion outside this increment; define their historical-data policy before adding them.
 - Specify reopen behavior and routing when coverage is unavailable.
 - Version policy changes and retain an auditable reason for priority/assignment.
 - Test boundary times, missing coverage and simultaneous assignments.
@@ -114,7 +117,7 @@ API key needed only once this work begins. Do not claim model accuracy before me
 
 [GitHub issue #9](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/9)
 
-The case-read follow-up passed 9 unit tests, the original 99 HTTP checks, 124 additional pagination/access HTTP checks, and the five-role Chromium browser flow. Load testing and a production security review remain open.
+Historical case-read validation passed 9 unit tests, the original 99 HTTP checks, 124 additional pagination/access HTTP checks, and the five-role Chromium browser flow. Load testing and a production security review remain open.
 
 Acceptance:
 - Extend the automated five-role booking-to-supplier-to-resolution flow to cover failure recovery and additional browsers.
@@ -130,15 +133,15 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 
 ## Current issue status after integration
 
-The merged checkpoint is `efbcb49`. Items identified as in review below are on their PR branches.
+The merged application checkpoint is `f71b284487e0adad74a91ff15ac2da6554a2f525`, including PRs #25–#27. [Main CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42805941972). Membership administration is implemented separately on `codex/opsdesk-membership-admin` and remains unmerged pending final verification and review. See [current branch evidence](OPSDESK_VALIDATION.md#current-membership-branch-validation-10-november-2026); passing historical/main checks do not establish this branch’s final result.
 
 | Issue | Completed and verified | Remaining acceptance work |
 | --- | --- | --- |
 | #2 | Six demo scenarios mapped, server-side role/privacy checks, account deletion guard and single-use token rotation | Obtain owner acceptance, define account closure, retention and production tenant boundaries |
-| #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Select hosting, provision secrets and managed services, assign incident ownership, test staging restoration and operational retention |
+| #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Deployment paused; later configure approved hosting, secrets/managed services, incident ownership, staging restoration and operational retention |
 | #4 | Supplier and customer conversations persist with scoped visibility | Live mail provider, signatures, delivery outbox, retries, threading and secure attachments |
-| #5 | Seeded booking links and editable schedules. [PR #27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) adds export preflight, PostgreSQL ownership verification and transactional apply for approved changes to existing synthetic bookings. | Provider-specific adapter, approved booking creation and production case handling for cancellations and schedule changes |
-| #6 | Agent specialties, capacities, versioned response targets and manager alert acknowledgment | Contract calendars, shifts, manager membership administration and escalation ownership |
+| #5 | Seeded booking links and editable schedules. Merged [PR #27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) adds export preflight, PostgreSQL ownership verification and transactional apply for approved changes to existing synthetic bookings. | Provider-specific adapter, approved booking creation and production case handling for cancellations and schedule changes |
+| #6 | Agent specialties, capacities, versioned response targets and manager alert acknowledgment | Verify/review/merge current membership implementation; contract calendars, shifts, escalation ownership and any future scope-change policy |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
 | #8 | Deterministic record-based briefs and a reproducible synthetic classification baseline | Provider choice, redaction, structured grounded outputs and independent held-out evaluation |
 | #9 | End-to-end five-role Chromium and Firefox flows, dialog keyboard checks and release/incident procedure | Screen readers, full contrast audit, platform setup/release qualification, inherited dependency review and named owners |

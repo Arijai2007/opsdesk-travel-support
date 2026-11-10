@@ -135,6 +135,9 @@ model TravelProfile {
   available Boolean @default(true)
   specialties String[] @default([])
   maxActiveCases Int?
+  status String @default("ACTIVE")
+  sessionVersion Int @default(0)
+  invitations TravelInvitation[]
 }
 
 model TravelBooking {
@@ -253,4 +256,26 @@ model OpsCounter {
   key String @id
   value String
   expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+}
+
+model TravelInvitation {
+  id String @id @default(cuid())
+  memberId String
+  member TravelProfile @relation(fields: [memberId], references: [userId], onDelete: Restrict)
+  tokenHash String @unique
+  expiresAt DateTime
+  usedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([memberId])
+}
+
+model MembershipAudit {
+  id String @id @default(cuid())
+  actorId String
+  entityId String
+  action String
+  reason String
+  createdAt DateTime @default(now())
+  @@index([createdAt, id])
 }

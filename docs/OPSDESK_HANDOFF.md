@@ -1,11 +1,13 @@
 # OpsDesk — project handoff
 
+> **DEPLOYMENT PAUSED: complete local features, verification and review first.** This is the user’s current instruction. Do not provision hosting, apply the saved deployment preparation or publish a demo until the user resumes deployment.
+
 Prepared 10 November 2026. This document is the entry point for the next developer. It describes the delivered localhost prototype, the implementation boundaries, and the work required to turn it into an operational travel-support product.
 
 
 ## Current checkpoint on main
 
-PRs #15 through #24 are merged. The merged checkpoint for this handoff is `efbcb49`. Clone `main` for the merged implementation. The [combined CI run for PR #23](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42774645178) covers logical recovery, 28 backend unit tests, 403 HTTP checks, 13 concurrency checks, both browser engines and the production dependency audit.
+PRs #15 through #27 are merged. The application baseline is `f71b284487e0adad74a91ff15ac2da6554a2f525`. [Main CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42805941972): both builds, synthetic recovery, `ops:test`, booking integration, Chromium, Firefox and the production dependency audit. This baseline precedes the unmerged membership feature below. Earlier validation remains historical evidence for its stated checkpoint.
 
 | Review | Change |
 | --- | --- |
@@ -17,11 +19,11 @@ PRs #15 through #24 are merged. The merged checkpoint for this handoff is `efbcb
 | [#22](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/22) | Atomic session rotation and safe handling of late browser responses |
 | [#24](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/24) | Worker process termination and restart rehearsal with durable escalation checks |
 
-### Follow-up work in review
+### Merged follow-ups
 
-These checkpoints are on GitHub in open PRs. They were outside the merged `main` baseline when this handoff was updated.
+PRs #25–#27 are merged into the application baseline above. Their remaining integration work remains open.
 
-| PR | Ready for review | Still open |
+| Merged PR | Delivered | Still open |
 | --- | --- | --- |
 | [#25](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/25) | Offline classifier evaluation, revised keyword rules and CI regression checks. [CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42796372823). | Independently labeled evaluation, redaction and any external AI provider |
 | [#26](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/26) | Manager acknowledgment clears the notification while preserving the original escalation and audit event. [CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42798095400). | Escalation ownership, external delivery, SLA calendars and membership administration |
@@ -29,7 +31,19 @@ These checkpoints are on GitHub in open PRs. They were outside the merged `main`
 
 Use Node 22.23.x. Run the seeded preview, then `npm run ops:test` and `npm run ops:test:browser`. Repeat the browser command with `OPSDESK_BROWSER_ENGINE=firefox`. For recovery, follow the [isolated recovery runbook](OPSDESK_RECOVERY.md). The hosted workflow runs recovery, both builds, the API suites, multi-connection checks, both browsers and the production dependency audit.
 
-**Next owner actions.** Reproduce the demo from a clean clone and record the acceptance decision for each of the six scenarios in the validation guide. For a live pilot, settle account provisioning and history retention (#2), deployment ownership, managed services, backup retention and monitoring (#3). The [backlog](OPSDESK_BACKLOG.md) also tracks email and attachments (#4), booking integrations (#5), SLA calendars and memberships (#6), performance and worker fault testing (#7), optional AI (#8) and accessibility/release qualification (#9). All demo data is synthetic.
+### Current feature: membership administration (unmerged)
+
+The `codex/opsdesk-membership-admin` branch implements local membership provisioning; it is not part of merged `main` yet. Managers can create agencies/suppliers, search and page memberships and audit events, issue/reissue 24-hour invitations, and suspend/reactivate members with a reason. The agency/supplier selectors also search and page through manager-only API endpoints.
+
+Invitation secrets are returned once as manual `/activate` links with a `token` URL fragment; only SHA-256 hashes are stored. The public activation page clears the fragment after capture, accepts a strong password and does not automatically sign in. Reissue revokes earlier invitations; acceptance is single-use under a transaction. There is no email delivery. Acceptance limits expensive valid-invitation work to 20 attempts per invitation and connection IP per 15 minutes; invalid tokens allocate no counter. Forwarded headers are not blindly trusted as client identity.
+
+Suspension preserves cases, messages and ownership, prevents login and new assignments, revokes refresh sessions and advances the membership session version. Reactivation does not restore old tokens. Managers cannot suspend themselves or the last active manager; invited members must accept their invitation. Role, agency, supplier and region scopes remain immutable, preventing historical records from being moved across access boundaries. Generic public registration still does not create travel membership.
+
+Membership changes use the existing capacity lock and recheck actor/target state transactionally. Refresh uses a per-profile `FOR SHARE` lock rather than the global capacity lock, preserving concurrent single-use token rotation. See [feature design](superpowers/specs/2026-11-10-membership-admin-design.md) and [current verification evidence](OPSDESK_VALIDATION.md#current-membership-branch-validation-10-november-2026).
+
+Observed branch checks: 42 backend unit tests in four suites, 492 real HTTP checks (80 membership plus 412 existing), 13 concurrency checks, both builds and changed-file lint passed. The membership browser flow passed in the Chromium-based `msedge` channel before the final quota change and new keyboard assertions. The final local Chromium/Firefox sequence was stopped at the user's request to prioritize GitHub publication, so it has no completed result. Independent review found a shared activation-quota issue; the fix passed unit and real HTTP checks. The validation guide records each observed failure, cause, fix and result. These checks do not complete the remaining backlog.
+
+**Next developer actions:** finish the verification/review/merge gate below, then continue calendars, shifts and escalation ownership. Deployment preparation is saved separately in Git stash `Paused free demo deployment preparation` on `codex/opsdesk-integrated-validation`; it is not included in this membership branch and must remain paused. The previously selected Vercel/Render/Neon/Upstash stack and future Resend adapter do not establish a connected account, deployed service or email delivery.
 
 ### Historical query-scaling baseline (10 November 2026)
 
@@ -43,7 +57,7 @@ Validation on pinned Node.js 22.23.0 passed both builds, 9 unit tests, 400 HTTP 
 - Implementation PR: https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/1.
 - Handoff PR: https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/10.
 - Remaining-work issues: https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues (issues #2–#9).
-- [Access and intake hardening (#11)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/11) and [travel policies, Insights and inbox pagination (#12)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/12) are merged. Start from `main`. PR #14 is also merged. This directory follow-up starts from latest main, `a5455a4`, reviewed before implementation.
+- [Access and intake hardening (#11)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/11) and [travel policies, Insights and inbox pagination (#12)](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/12) are merged. Start from `main`. PR #14 is also merged. Historical directory follow-up baseline: `a5455a4`, reviewed before that implementation.
 - Original code foundation: https://github.com/Molnar-Zoltan/it-helpdesk, baseline `51833aa3b6544522204caa7adac362936b381100` (`v0.13.0`). Its history and authorship are retained for provenance. All project branches, PRs and issues are in our repository; the local origin points only to our repository. No PR or push was made to the reference repository.
 - No release deployment or production data migration has been performed. PR creation is not a production-readiness claim.
 
@@ -61,7 +75,7 @@ The scope was a 3–5 day demonstration of connected support, not a full replace
 | --- | --- | --- |
 | Ticket persistence | PostgreSQL-backed cases, messages, status, priority, ownership and history | No attachment upload, archive/delete UI or retention policy |
 | Connected history | Exact booking-reference matching inside agency/customer access boundaries, related cases, manual verification, record brief | Unmatched references are saved for staff review. No fuzzy identity resolution, external booking synchronization or cross-agency merge |
-| Assignment | Region and category coverage, availability, configurable capacity, least-open workload, generalist fallback, manager overrides and an unassigned queue | Shifts, round-robin policies and agent provisioning remain pending |
+| Assignment | Region and category coverage, availability, configurable capacity, least-open workload, generalist fallback, manager overrides and an unassigned queue | Shifts and round-robin policies remain pending; invitation provisioning is current unmerged branch work |
 | Supplier collaboration | Separate persistent supplier threads, scoped supplier login, replies, close/reopen, due dates | Messages stay inside the app; no real email, WhatsApp or supplier API delivery |
 | Travel urgency | Versioned agency response targets in elapsed hours, separate travel deadlines, manager schedule edits, check-in urgency, supplier due dates and manager notifications | Contract SLAs, business-hour calendars and external alerts remain pending |
 | Escalation | 15-second sweep, durable events, unique escalation keys, manager acknowledgment and a manager-only persistent demo clock | External delivery, escalation ownership and a dedicated job service remain open |
@@ -104,7 +118,7 @@ Every seeded account uses **`OpsDeskDemo!2026`**. These are public demo credenti
 | `supplier@opsdesk.demo` | Aster Hotels' explicitly shared supplier conversations |
 | `skyline@opsdesk.demo` | Skyline supplier threads, separate from Aster |
 
-New generic registrations do not automatically gain a travel profile. Operational user creation and membership management are pending. Do not use generic upstream roles as a substitute for `TravelProfile.kind` authorization.
+New generic registrations do not automatically gain a travel profile. The current unmerged branch implements manager-controlled invitations and reversible suspension. Review/merge remains pending; scope reassignment, deletion and operational retention policy are not implemented. Do not use generic upstream roles as a substitute for `TravelProfile.kind` authorization.
 
 ## 6. Demonstration script
 
@@ -239,6 +253,8 @@ The original machine's persistent database is `.opsdesk/postgres`. It contains 6
 
 ## 12. Validation and reproducibility
 
+On this membership branch, `ops:test` includes the membership HTTP script and `ops:test:browser` includes both browser scripts. For a targeted run, use `npm run ops:test:membership` or `npm run ops:test:membership:browser` against the isolated seeded preview. Repeat browser coverage with `OPSDESK_BROWSER_ENGINE=firefox` and clear any Chromium channel override. The user requested stopping the final local browser sequence to publish the GitHub PR first. The validation guide records the actual results and the command sequence for completing browser verification before merge.
+
 With the local preview running in terminal one, use terminal two:
 
 ```powershell
@@ -261,16 +277,14 @@ On the build machine, the bundled Git runtime has no Bash executable for Husky's
 
 ## 13. Remaining work, in priority order
 
-These are not implemented promises. Start with product acceptance and production foundations before external AI. See `OPSDESK_BACKLOG.md` for concrete acceptance criteria and GitHub issue links.
+Continue in this order. P0 live-data gates remain mandatory before live use; deployment stays paused while local features are completed. See [backlog](OPSDESK_BACKLOG.md) for acceptance criteria and issues.
 
-1. **P0 — Product acceptance and authorization hardening.** Review the six demo scenarios with the product owner. Travel accounts are isolated from inherited helpdesk routes and protected from generic deletion/reset. Confirm production organization boundaries and design account closure, retention and provisioning before using live data.
-2. **P0 — Production runtime and operations.** Select a deployment target, configure managed PostgreSQL and Redis, secrets, HTTPS, proxy and cookie settings, and remove demo access from the live environment. Rehearse migration and recovery on staging. Connect the existing readiness and worker probes to monitoring and assign on-call ownership.
-3. **P1 — Real conversations and attachments.** Select provider, implement verified inbound webhooks and outbound messages, idempotent message IDs, correct thread routing, retry/outbox, attachment scanning/storage and redaction. Supplier email must never include internal notes or unrelated bookings.
-4. **P1 — Booking/supplier integration.** Read real bookings through a provider adapter, map stable agency/customer IDs, synchronize check-in/timezones, validate ownership and reconciliation; add supplier identity verification. Current records are seed data only.
-5. **P1 — Configurable operations.** Extend the existing agency response targets and specialty/capacity routing with contract calendars, regional shifts, escalation ownership and membership administration. Managers can acknowledge an alert from Notifications. Acknowledgment clears the notification for staff and records the manager in ticket history without resolving the case or resetting its deadline.
-6. **P1 — Scale and reporting.** Inbox rows and case histories are paginated, individual cases load on demand, and Insights aggregates in PostgreSQL. Next profile realistic-volume queries, paginate the remaining metadata directories, retire the legacy full-workspace route, narrow lock scope, and measure worker and API performance.
-7. **P2 — Optional AI with evaluation.** Choose Claude, Gemini or another provider only after specifying the task. Ground summaries in authorized records, require source references, reject injected instructions, validate output schemas, redact PII, set spend limits and evaluate on held-out labeled travel cases. Keep access/routing/deadlines deterministic. Add a real API key only when implementing that adapter.
-8. **P2 — Quality and release process.** Extend the existing five-role browser flow to failure recovery and more browsers. Complete accessibility, load, security and license reviews, and define release ownership and incident response.
+1. **Finish membership verification, review and merge.** Run the commands in section 12 and the current validation section. Inspect `backend/src/travel/membership.service.ts`, `membership.controller.ts`, `membership.dto.ts`, `backend/src/auth/auth.service.ts`, the JWT strategy, `backend/prisma/migrations/20261110120000_membership_admin/migration.sql`, `frontend/components/opsdesk/membership.tsx`, `frontend/app/activate/page.tsx` and `frontend/app/api/invitations/accept/route.ts`. Verify invitation expiry/reissue/single-use races, five-role denial, suspended assignment exclusion, stale-token rejection after reactivation, self/last-manager guards, paged selectors/audit and unchanged history. Repeat existing refresh-concurrency and five-role browser regressions. Record final evidence, publish/review the PR and merge only after checks pass.
+2. **Business-hour SLA calendars, shifts and escalation ownership (#6).** Start with `backend/src/travel/travel.rules.ts`, `travel.service.ts`, Prisma policy records and the manager controls in `frontend/components/opsdesk/workspace.tsx`. Define contract timezone, working intervals, holiday calendars, daylight-saving boundaries, no-coverage behavior and escalation owner with the product owner. Version the applied policy on each case; preserve current elapsed-hour behavior until an explicit policy applies. Test holiday/weekend boundaries, DST, reopen, simultaneous assignment and unavailable shifts.
+3. **Email and secure attachments (#4).** Add a provider-neutral delivery interface and transactional outbox beside travel message creation; use provider IDs, retry/idempotency and scoped thread mapping. Implement signed inbound webhook verification before ingestion. Store attachments behind authorization with size/type limits, malware scanning, expiring downloads and retention. Test duplicate/out-of-order events and delivery failures; never expose internal notes to suppliers. Resend is a future adapter option; no provider is connected.
+4. **Booking adapter and lifecycle policy (#5).** Extend the existing booking export contract/tooling and `TravelBooking` persistence with a provider-neutral read adapter. Map stable external identities inside agency boundaries, normalize timezone/version changes, and retain review for ambiguous matches. Before enabling creation or cancellation updates affecting active cases, obtain explicit owner decisions about case status, reassignment, deadlines and audit. Cover retries, stale exports, collisions and rollback; do not invent cancellation policy.
+5. **Independent evaluation, accessibility and scale (#7–#9).** Extend the classifier’s synthetic baseline with independently labeled held-out cases before adding an external model. Audit keyboard/screen-reader/contrast behavior; measure skewed concurrent workloads, lock waits and worker recovery against agreed service targets. Keep authorization and ownership deterministic.
+6. **P0 before live data (#2–#3).** Obtain product acceptance and retention/tenant decisions, review account closure, and rehearse verified backup/restore into isolated staging with named release/recovery owners and monitoring. Resume hosting only when the user requests it; configure secrets, HTTPS, exact origins and production Redis without weakening demo/seed guards.
 
 ## 14. Troubleshooting
 
@@ -301,11 +315,11 @@ These are not implemented promises. Start with product acceptance and production
 
 ## 16. Messages to forward
 
-> **Fully finished for the synthetic demo.** Start from `main` at `efbcb49`. Use Node 22.23.x, run `npm ci` and `npm run ops:preview`, then follow the BK-1042 scenario in this handoff. Booking-linked intake, private supplier threads, routing, escalation, resolution, paged case history and scoped Insights are merged. The demo also has worker restart, database restore, and five-role Chromium and Firefox checks.
+> **Merged synthetic application baseline.** Start from `main` at `f71b284`. Use Node 22.23.x, run `npm ci` and `npm run ops:preview`, then follow the BK-1042 scenario in this handoff. Booking-linked intake, private supplier threads, routing, escalation, resolution, paged case history and scoped Insights are merged. The demo also has worker restart, database restore, and five-role Chromium and Firefox checks.
 
-> **Partially finished and in review.** PR #25 improves the rules-based classifier and adds CI regression checks. PR #26 adds audited manager acknowledgment for alerts. PR #27 validates booking exports, verifies mapped ownership in PostgreSQL, and can transactionally apply approved updates to existing synthetic bookings. It skips stale versions, handles retries and rolls back a batch with a review item. Changes affecting active cases still require review.
+> **Also merged.** PR #25 improves the rules-based classifier and adds CI regression checks. PR #26 adds audited manager acknowledgment for alerts. PR #27 validates booking exports, verifies mapped ownership in PostgreSQL, and can transactionally apply approved updates to existing synthetic bookings. It skips stale versions, handles retries and rolls back a batch with a review item. Changes affecting active cases still require review.
 
-> **Still to do.** Before using live data, get product-owner acceptance, agree on access and retention policies, and provision monitored staging PostgreSQL and Redis with a tested recovery plan. For booking integration, choose a real provider, approve new-booking creation and decide what cancelled bookings should do to active cases. The backlog also tracks email and attachments, contract SLA calendars, membership administration, independent AI evaluation, load targets and accessibility.
+> **Current and next.** Membership administration is implemented on `codex/opsdesk-membership-admin` and remains unmerged. Local unit/API/concurrency checks pass; independent review's quota finding is fixed. The final local browser sequence was stopped at the user's request to publish GitHub changes first; evaluate browser/CI results before merging. Next implement calendars/shifts/escalation ownership, email/attachments and a provider-neutral booking adapter with explicit owner policy for new bookings and cancellations. Independent evaluation, accessibility, load and P0 live-data/recovery gates remain open. Deployment is paused at the user’s instruction; no hosted service or live email is claimed.
 
 ## Release and incident checks
 
@@ -314,7 +328,7 @@ These are not implemented promises. Start with product acceptance and production
 3. If readiness fails, take the affected instance out of rotation and check its database connectivity, counter service and configuration. If only the worker fails, inspect sweep errors and PostgreSQL lock waits. Capture timestamps, affected ticket IDs and release SHA while excluding secrets and traveler messages.
 4. During recovery, drain incompatible worker versions before restarting. Verify one alert per deadline, supplier thread privacy, and both health probes. Use the recovery runbook on an isolated target. An operational cutover requires the deployment owner's verified backup and rollback plan.
 
-## Ticket lock validation - 10 November 2026
+## Historical ticket lock validation - 10 November 2026
 
 Rebuilt from merged main `fcd75fa` (PR #16 is merged; there is no unmerged PR dependency). The handoff's uncommitted `codex/narrow-travel-locks` checkout was unavailable, so this implementation was reconstructed independently.
 
@@ -328,20 +342,20 @@ A controlled 150ms blocker measured about 165ms for a shared-lock control query 
 
 Validation completed on Node.js 22.23.0 / Windows / PostgreSQL 18.6: backend and optimized frontend builds passed; 9 unit tests, 400 HTTP checks (99 workflow + 124 pagination + 177 directory), 13 multi-connection concurrency checks and the five-role Chromium browser suite passed. Changed backend-file ESLint and whitespace checks passed. These results apply to the rebuilt branch, not the unavailable uncommitted work. Drain old-version workers before deploying the new protocol; mixed legacy global-lock workers and new row-lock workers were not validated. No issue is declared production-complete by these tests.
 
-## Synthetic recovery rehearsal - 10 November 2026
+## Historical synthetic recovery rehearsal - 10 November 2026
 
 Added `npm run ops:recovery` and five connection-safety tests. The rehearsal creates two disposable local databases, migrates/seeds the source, dumps/restores a custom archive, compares all public row data/indexes/constraints and tests restored integrity enforcement. See [runbook and limitations](OPSDESK_RECOVERY.md). Local safety tests passed on Node 22.23.0; full archive/restore validation runs in CI using PostgreSQL 18 client tools because this Windows machine has only the embedded server binaries. CI results must be checked before claiming recovery validation. This is partial progress on issue #3; operational backups, retention, staging restore and production recovery ownership remain open. The branch is based on merged main and has no dependency on unmerged PR #17.
 
-## Production configuration follow-up - 10 November 2026
+## Historical production configuration follow-up - 10 November 2026
 
 Added early production startup validation for disabled demo/local-counter modes, separate non-placeholder JWT secrets, exact HTTPS frontend origins, PostgreSQL/Redis URL schemes, and non-test Turnstile settings. Environment typos fail explicitly and configuration errors do not echo secret values. See [settings and limits](OPSDESK_PRODUCTION_CONFIG.md). Local validation includes 28 unit tests, changed-file lint, backend compilation and a real bootstrap rejection of the generated local-demo environment under NODE_ENV=production. These are sanity checks, not provider credential verification, automatic account cleanup or production deployment. This issue #3 follow-up is independent of unmerged PRs #17 and #18 and based on main fcd75fa.
 
-## Dialog keyboard access
+## Historical dialog keyboard access
 
 The shared workspace dialog uses its heading as its accessible name, wraps focus in both directions and restores the launcher on dismissal. Search and message fields have visible keyboard focus, and sign-in errors are announced as alerts. Run npm run ops:test:browser against the seeded preview to reproduce the keyboard checks. The remaining accessibility work in issue #9 includes assistive technology, contrast, and additional browsers.
 
 The five-role flow now also passes in Playwright Firefox on Windows. CI runs the same workflow sequentially in Chromium and Firefox. A Chromium channel override must be cleared before selecting Firefox.
 
-## Concurrent session refresh
+## Historical concurrent session refresh
 
 A conditional PostgreSQL update consumes each valid token once. The replacement session is created in the same transaction. Access-token denial through the existing revocation service follows commit. A stale browser refresh returns 401 without emitting cookie deletions. Explicit logout still clears the browser cookies. No migration or provider credentials are required.

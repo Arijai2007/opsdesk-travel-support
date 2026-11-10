@@ -111,7 +111,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       where: { userId },
       include: { user: true },
     });
-    if (!profile)
+    if (!profile || profile.status !== 'ACTIVE')
       throw new ForbiddenException(
         'This account has no OpsDesk workspace access.',
       );
@@ -1060,6 +1060,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           dto.agentId &&
           (!agent ||
             agent.kind !== 'AGENT' ||
+            agent.status !== 'ACTIVE' ||
             !agent.available ||
             ![t.region, 'GLOBAL'].includes(agent.region || ''))
         )

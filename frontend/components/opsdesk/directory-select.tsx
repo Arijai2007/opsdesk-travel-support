@@ -34,6 +34,7 @@ export function DirectorySelect<T extends { id: string }>({
       <input
         aria-label={`Search ${label}`}
         placeholder={`Search ${label}`}
+        maxLength={100}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />

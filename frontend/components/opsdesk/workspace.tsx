@@ -37,6 +37,7 @@ import {
   type Mutation,
 } from "./ui";
 import { OpsLogin } from "./login";
+import { Membership } from "./membership";
 import { NewTicket, OnDemandTicket, SupplierDesk } from "./ticket-detail";
 import { useTravelQueue } from "./use-travel-queue";
 import {
@@ -491,6 +492,7 @@ export function OpsDeskWorkspace() {
                 <>
                   {view === "manager" && data.me.kind === "MANAGER" && (
                     <>
+                      <Membership actorId={data.me.id} />
                       <RoutingSettings
                         data={data}
                         busy={busy}
