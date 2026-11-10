@@ -41,6 +41,8 @@ const receipts = [];
 const marker = "Inbound fixture " + randomUUID();
 const originalFetch = globalThis.fetch;
 let ticket;
+let supplierTicket;
+let supplierMailbox;
 let requests = 0;
 
 try {
@@ -58,12 +60,13 @@ try {
     where: { kind: "MANAGER" },
   });
 
-  async function createJob(recipient, age = 0) {
+  async function createJob(recipient, age = 0, conversation) {
     const message = await db.travelMessage.create({
       data: {
-        ticketId: ticket.id,
+        ticketId: conversation?.ticketId ?? ticket.id,
+        conversationId: conversation?.id,
         senderId: staff.userId,
-        visibility: "CUSTOMER",
+        visibility: conversation ? "SUPPLIER" : "CUSTOMER",
         content: "Fixture outbound",
       },
     });
@@ -174,8 +177,142 @@ try {
   console.log(
     "PASS: signed customer reply, invalid signature and address, wrong and stale customer, expiry, concurrent replay deduplication, and no outbox loop.",
   );
+
+  const supplier = await db.travelProfile.findUniqueOrThrow({
+    where: { userId: "supplier-user" },
+    include: { user: true, supplier: true },
+  });
+  assert.equal(supplier.kind, "SUPPLIER");
+  assert(supplier.supplier);
+  supplierMailbox = supplier.supplier;
+  const booking = await db.travelBooking.findFirstOrThrow({
+    where: { supplierId: supplier.supplierId },
+  });
+  supplierTicket = await db.travelTicket.create({
+    data: {
+      reference: "SUPPLIER-INBOUND-" + randomUUID(),
+      title: "Supplier inbound smoke",
+      description: "Temporary isolated case",
+      agencyId: booking.agencyId,
+      customerId: booking.customerId,
+      bookingId: booking.id,
+      category: ticket.category,
+      status: "WAITING_SUPPLIER",
+      region: ticket.region,
+      deadline: new Date(Date.now() + 86_400_000),
+    },
+  });
+  const conversation = await db.travelConversation.create({
+    data: {
+      ticketId: supplierTicket.id,
+      supplierId: supplier.supplierId,
+      subject: "Fixture conversation",
+      dueAt: new Date(Date.now() + 86_400_000),
+    },
+  });
+  const supplierEmail = supplier.user.email;
+  const supplierJob = await createJob(supplierEmail, 0, conversation);
+  delete process.env.OPSDESK_MAIL_SUPPLIER_REPLIES;
+  const before = requests;
+  await ingest(supplierJob, supplierEmail, randomUUID());
+  assert.equal(requests, before, "Supplier opt-in is required");
+  process.env.OPSDESK_MAIL_SUPPLIER_REPLIES = "true";
+  await ingest(supplierJob, supplierEmail, randomUUID());
+  assert.equal(
+    await db.travelMessage.count({
+      where: { conversationId: conversation.id },
+    }),
+    1,
+  );
+  await db.travelSupplier.update({
+    where: { id: supplier.supplierId },
+    data: { email: supplierEmail },
+  });
+
+  await db.travelConversation.update({
+    where: { id: conversation.id },
+    data: { status: "CLOSED" },
+  });
+  const beforeClosed = requests;
+  await ingest(supplierJob, supplierEmail, randomUUID());
+  assert.equal(requests, beforeClosed);
+  await db.travelConversation.update({
+    where: { id: conversation.id },
+    data: { status: "AWAITING_REPLY" },
+  });
+
+  const otherBooking = await db.travelBooking.findFirstOrThrow({
+    where: { supplierId: { not: supplier.supplierId } },
+  });
+  await db.travelTicket.update({
+    where: { id: supplierTicket.id },
+    data: { bookingId: otherBooking.id },
+  });
+  await ingest(supplierJob, supplierEmail, randomUUID());
+  assert.equal(
+    await db.travelMessage.count({
+      where: { conversationId: conversation.id },
+    }),
+    1,
+  );
+  await db.travelTicket.update({
+    where: { id: supplierTicket.id },
+    data: { bookingId: booking.id },
+  });
+
+  const supplierEmailId = randomUUID();
+  await Promise.all(
+    Array.from({ length: 3 }, () =>
+      ingest(supplierJob, supplierEmail, supplierEmailId),
+    ),
+  );
+  const supplierMessages = await db.travelMessage.findMany({
+    where: { conversationId: conversation.id, content: marker },
+  });
+  assert.equal(supplierMessages.length, 1);
+  assert.equal(supplierMessages[0].visibility, "SUPPLIER");
+  assert.equal(supplierMessages[0].senderId, supplier.userId);
+  assert.equal(
+    await db.travelMailJob.count({
+      where: { messageId: supplierMessages[0].id },
+    }),
+    0,
+  );
+  const replied = await db.travelConversation.findUniqueOrThrow({
+    where: { id: conversation.id },
+  });
+  assert.equal(replied.status, "REPLIED");
+  assert.equal(+replied.dueAt, +conversation.dueAt);
+  assert.equal(
+    (
+      await db.travelTicket.findUniqueOrThrow({
+        where: { id: supplierTicket.id },
+      })
+    ).status,
+    "IN_PROGRESS",
+  );
+  assert.equal(
+    await db.travelEvent.count({
+      where: {
+        ticketId: supplierTicket.id,
+        kind: "SUPPLIER_REPLY",
+        actorId: supplier.userId,
+      },
+    }),
+    1,
+  );
+  console.log(
+    "PASS: supplier opt-in, active mailbox mapping, changed booking and closed thread rejection, private reply, unchanged due date, workflow transition and duplicate-free audit.",
+  );
 } finally {
   globalThis.fetch = originalFetch;
+  if (supplierTicket)
+    await db.travelTicket.delete({ where: { id: supplierTicket.id } });
+  if (supplierMailbox)
+    await db.travelSupplier.update({
+      where: { id: supplierMailbox.id },
+      data: { email: supplierMailbox.email },
+    });
   await db.travelInboundMail.deleteMany({ where: { id: { in: receipts } } });
   await db.travelMessage.deleteMany({
     where: { OR: [{ id: { in: sourceMessages } }, { content: marker }] },

@@ -94,7 +94,7 @@ export class ResendMailWebhookController {
         !resendId.test(providerId)
       )
         return;
-      await this.travel.receiveCustomerMail(jobId, sender, providerId, () =>
+      await this.travel.receiveThreadMail(jobId, sender, providerId, () =>
         receiveReplyText(config, providerId),
       );
       return;

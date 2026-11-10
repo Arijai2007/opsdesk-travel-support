@@ -18,7 +18,11 @@ import {
   syntheticAddress,
 } from './resend-mail.transport';
 
-import { incomingConfig, replyAddress } from './resend-mail-reply';
+import {
+  incomingConfig,
+  replyAddress,
+  supplierRepliesEnabled,
+} from './resend-mail-reply';
 
 const MAX_ATTEMPTS = 5;
 const LEASE_MS = 60_000;
@@ -125,8 +129,27 @@ export class TravelMailService
     return {
       recipient,
       text: message.content,
-      customer: message.visibility === 'CUSTOMER',
+      supplierId: conversation?.supplierId,
     };
+  }
+
+  private async replyEligible(
+    tx: Prisma.TransactionClient,
+    envelope: { recipient: string; supplierId?: string },
+  ) {
+    if (!envelope.supplierId) return true;
+    if (!supplierRepliesEnabled()) return false;
+    return Boolean(
+      await tx.travelProfile.findFirst({
+        where: {
+          supplierId: envelope.supplierId,
+          kind: 'SUPPLIER',
+          status: 'ACTIVE',
+          user: { email: envelope.recipient },
+        },
+        select: { userId: true },
+      }),
+    );
   }
 
   async enqueue(tx: Prisma.TransactionClient, messageId: string) {
@@ -144,16 +167,22 @@ export class TravelMailService
           recipient: envelope.recipient,
           transport: config ? 'RESEND' : 'SYNTHETIC',
           replyEnabled: Boolean(
-            config && envelope.customer && incomingConfig(),
+            config &&
+            incomingConfig() &&
+            (await this.replyEligible(tx, envelope)),
           ),
         },
       });
   }
 
-  private replyTo(job: { id: string; replyEnabled: boolean }) {
+  private async replyTo(
+    job: { id: string; replyEnabled: boolean },
+    envelope: { recipient: string; supplierId?: string },
+  ) {
     if (!job.replyEnabled) return undefined;
     const config = incomingConfig();
-    if (!config) throw new Error('Reply configuration is unavailable.');
+    if (!config || !(await this.replyEligible(this.db, envelope)))
+      throw new Error('Reply configuration is unavailable.');
     return replyAddress(config, job.id);
   }
 
@@ -221,7 +250,7 @@ export class TravelMailService
           providerId = await this.resend.deliver({
             recipient: envelope.recipient,
             text: envelope.text,
-            replyTo: this.replyTo(job),
+            replyTo: await this.replyTo(job, envelope),
             idempotencyKey: job.id,
           });
           outcome = 'PROVIDER_ACCEPTED';
