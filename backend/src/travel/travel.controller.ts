@@ -1,3 +1,4 @@
+import { RotationPolicyDto } from './rotation.dto';
 import { ContractPolicyDto, ContractDirectoryDto } from './contracts.dto';
 import { SupplierCalendarDto } from './sla.dto';
 import { HandoffPolicyDto } from './sla.dto';
@@ -36,6 +37,16 @@ import {
 @UseGuards(JwtAuthGuard)
 export class TravelController {
   constructor(private readonly travel: TravelService) {}
+  @Get('escalation-rotations') rotations(@Req() req: AuthenticatedRequest) {
+    return this.travel.rotations(req.user.userId);
+  }
+  @Patch('escalation-rotations/:region') rotation(
+    @Req() req: AuthenticatedRequest,
+    @Param('region') region: string,
+    @Body() dto: RotationPolicyDto,
+  ) {
+    return this.travel.configureRotation(req.user.userId, region, dto);
+  }
   @Get('contracts') contracts(
     @Req() req: AuthenticatedRequest,
     @Query() query: ContractDirectoryDto,

@@ -1,8 +1,8 @@
 # OpsDesk — prioritized remaining work
 
-**Current increment: multiple agency contracts (issue #6).** Manager-managed independent contracts, explicit active selection at intake, scoped authorization, paged/searchable selectors, saved response-cycle policies and protected historical references are implemented. Retirement prevents new selection; reopening keeps the same contract. See the [policy contract](OPSDESK_SLA_CALENDARS.md#multiple-agency-contracts) and [exact validation](OPSDESK_VALIDATION.md). Deployment remains paused.
+**Current increment: escalation rotations and manual holds (issue #6).** Ordered regional/global UTC rotations, on-duty backups, explicit coverage gaps and coverage-only/timed overrides are implemented. Existing agency contracts are merged in PR #33 with passing hosted validation. See the [policy contract](OPSDESK_SLA_CALENDARS.md#escalation-rotations-and-manual-holds) and [exact validation](OPSDESK_VALIDATION.md). Deployment remains paused.
 
-Next: richer escalation rotations and override policies; then email outbox/retries, signed inbound webhooks and secure attachments; provider-neutral booking integration; independent AI evaluation, accessibility, realistic load and operational recovery acceptance.
+Next: transactional email outbox/retries, signed inbound webhooks and secure attachments; provider-neutral booking integration; independent AI evaluation, accessibility, realistic load and operational recovery acceptance.
 
 The following older checkpoint notes are retained for context. Their multi-contract/supplier/workload remaining-work statements are superseded by the current handoff.
 
@@ -10,7 +10,7 @@ The following older checkpoint notes are retained for context. Their multi-contr
 
 These are remaining implementation and acceptance tasks. **Deployment is paused: finish local features, verification and review first, as requested by the user.** P0 items remain gates before live data; no external API is required for the synthetic local demo. The free-demo deployment preparation is saved separately and is not part of this feature branch.
 
-Immediate order: complete remaining escalation-rotation and override policies; add email/attachments; add a provider-neutral booking adapter with an explicit owner policy for creation/cancellation. Independent evaluation, accessibility, load and recovery acceptance remain open. Detailed entry files and acceptance steps are in [handoff section 13](OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order).
+Immediate order: review the current rotation/override increment, then add email/attachments; add a provider-neutral booking adapter with an explicit owner policy for creation/cancellation. Independent evaluation, accessibility, load and recovery acceptance remain open. Detailed entry files and acceptance steps are in [handoff section 13](OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order).
 
 ## Merged SLA and coverage features
 
@@ -84,7 +84,7 @@ Managers can edit booking schedules, agent specialties and capacity, and elapsed
 
 Acceptance:
 - Review the current agency calendar/shift/ownership implementation and its tests. Multiple agency contracts and supplier business calendars are implemented; retain their authorization, snapshot and concurrency regressions. Managers can already acknowledge alerts.
-- Automatic opt-in workload handoff is merged. Complete richer escalation rotations/manual override policies.
+- Automatic opt-in workload handoff is merged. Regional/global rotations and explicit coverage/timed manual holds are implemented in the current follow-up; retain their concurrency and access tests. Full policy revision archives, multi-level acknowledgment escalation and external paging remain future extensions.
 - Preserve the merged manager membership panel and its regression coverage: 24-hour manual invitations, single-use activation, agency/supplier creation, reasoned suspension/reactivation, paged searchable directory and audit. Prove historical preservation, immutable scopes, session invalidation, five-role boundaries and self/last-manager protection. This membership work merged in PR #28; retain its regression checks.
 - Leave role/agency/supplier/region reassignment and deletion outside this increment; define their historical-data policy before adding them.
 - Specify reopen behavior and routing when coverage is unavailable.

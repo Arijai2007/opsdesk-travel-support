@@ -1,3 +1,5 @@
+import { RotationPolicyDto } from './rotation.dto';
+import { ROTATION_REGIONS, rotationOwner } from './escalation-rotation';
 import { ContractPolicyDto, ContractDirectoryDto } from './contracts.dto';
 import { SupplierCalendarDto } from './sla.dto';
 import { HandoffPolicyDto } from './sla.dto';
@@ -208,7 +210,13 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           ? [
               {
                 ...ticket,
-                ...(!STAFF.includes(p.kind) ? { escalationOwnerId: null } : {}),
+                ...(!STAFF.includes(p.kind)
+                  ? {
+                      escalationOwnerId: null,
+                      escalationManual: false,
+                      escalationOverrideUntil: null,
+                    }
+                  : {}),
                 customerName: name(ticket.customerId),
                 ownerName: name(ticket.agentId),
                 relatedCount: ticket.bookingId
@@ -275,7 +283,11 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
               ? `${escalationOwner.firstName} ${escalationOwner.lastName}`
               : null,
           }
-        : { escalationOwnerId: null }),
+        : {
+            escalationOwnerId: null,
+            escalationManual: false,
+            escalationOverrideUntil: null,
+          }),
       booking,
       supplierReplied,
       people: people.map((v) => ({
@@ -821,7 +833,13 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
             );
         return {
           ...t,
-          ...(!staff ? { escalationOwnerId: null } : {}),
+          ...(!staff
+            ? {
+                escalationOwnerId: null,
+                escalationManual: false,
+                escalationOverrideUntil: null,
+              }
+            : {}),
           events,
           relatedIds: related.map((v) => v.id),
           summary,
@@ -1079,6 +1097,17 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           ) as Prisma.InputJsonValue;
           data.slaPausedAt = null;
           data.slaRemainingMs = null;
+          data.escalationManual = false;
+          data.escalationOverrideUntil = null;
+          if (t.escalationManual)
+            await this.event(
+              tx,
+              t.id,
+              'ESCALATION_OVERRIDE_ENDED',
+              'Reopening returned escalation ownership to automatic coverage.',
+              userId,
+              now,
+            );
           data.responseDeadline = this.responseTarget(
             now,
             policy.responseTargetHours * 3600000,
@@ -1875,6 +1904,93 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       return updated;
     });
   }
+  async rotations(userId: string) {
+    this.manager(await this.profile(userId));
+    const items = await this.db.travelEscalationRotation.findMany({
+      orderBy: { region: 'asc' },
+    });
+    const members = await this.db.travelProfile.findMany({
+      where: {
+        kind: 'MANAGER',
+        userId: { in: items.flatMap((r) => r.managerIds) },
+      },
+      include: { user: { select: { firstName: true, lastName: true } } },
+    });
+    return {
+      items: items.map((r) => ({
+        ...r,
+        members: r.managerIds.map((id) => {
+          const m = members.find((v) => v.userId === id);
+          return {
+            id,
+            name: m
+              ? `${m.user.firstName} ${m.user.lastName}`
+              : 'Former manager',
+            status: m?.status ?? 'UNAVAILABLE',
+          };
+        }),
+      })),
+    };
+  }
+  async configureRotation(
+    userId: string,
+    region: string,
+    dto: RotationPolicyDto,
+  ) {
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      if (!ROTATION_REGIONS.includes(region))
+        throw new BadRequestException('Choose a supported rotation region.');
+      const reason = this.reason(dto.reason),
+        anchorAt = new Date(dto.anchorAt);
+      if (+anchorAt < Date.UTC(1970, 0, 1) || +anchorAt >= Date.UTC(2101, 0, 1))
+        throw new BadRequestException(
+          'Rotation anchor must be between 1970 and 2100 UTC.',
+        );
+      const members = await tx.travelProfile.count({
+        where: {
+          userId: { in: dto.managerIds },
+          kind: 'MANAGER',
+          ...(dto.enabled ? { status: 'ACTIVE' } : {}),
+        },
+      });
+      if (members !== dto.managerIds.length)
+        throw new BadRequestException(
+          'Choose existing managers; enabled rosters require active membership.',
+        );
+      const previous = await tx.travelEscalationRotation.findUnique({
+        where: { region },
+      });
+      if (
+        previous &&
+        previous.enabled === dto.enabled &&
+        previous.slotHours === dto.slotHours &&
+        +previous.anchorAt === +anchorAt &&
+        JSON.stringify(previous.managerIds) === JSON.stringify(dto.managerIds)
+      )
+        return previous;
+      const policy = {
+        enabled: dto.enabled,
+        slotHours: dto.slotHours,
+        anchorAt,
+        managerIds: dto.managerIds,
+      };
+      const result = await tx.travelEscalationRotation.upsert({
+        where: { region },
+        create: { region, ...policy },
+        update: { ...policy, version: { increment: 1 } },
+      });
+      await tx.membershipAudit.create({
+        data: {
+          actorId: userId,
+          entityId: region,
+          action: 'ESCALATION_ROTATION_CHANGED',
+          reason,
+        },
+      });
+      return result;
+    });
+  }
   async assignEscalationOwner(
     userId: string,
     id: string,
@@ -1895,6 +2011,18 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       this.manager(actor);
       const ticket = await this.ticket(actor, id, tx),
         now = await this.now(tx);
+      if (!active(ticket.status))
+        throw new BadRequestException(
+          'Only active cases can change escalation ownership.',
+        );
+      const until = dto.overrideUntil ? new Date(dto.overrideUntil) : null;
+      if (
+        until &&
+        (!ownerId || +until <= +now || +until > +now + 168 * 3600000)
+      )
+        throw new BadRequestException(
+          'A timed hold needs a manager and must expire within the next 168 hours.',
+        );
       const managers = await tx.travelProfile.findMany({
         where: { kind: 'MANAGER', status: 'ACTIVE' },
       });
@@ -1908,16 +2036,26 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         )
       )
         throw new BadRequestException('Choose an active on-duty manager.');
-      if (ticket.escalationOwnerId === ownerId) return ticket;
+      const manual = Boolean(ownerId);
+      if (
+        ticket.escalationOwnerId === ownerId &&
+        ticket.escalationManual === manual &&
+        Number(ticket.escalationOverrideUntil) === Number(until)
+      )
+        return ticket;
       const result = await tx.travelTicket.update({
         where: { id },
-        data: { escalationOwnerId: ownerId },
+        data: {
+          escalationOwnerId: ownerId,
+          escalationManual: manual,
+          escalationOverrideUntil: until,
+        },
       });
       await this.event(
         tx,
         id,
         'ESCALATION_OWNER_CHANGED',
-        `Owner ${ticket.escalationOwnerId ?? 'unowned'} -> ${ownerId ?? 'unowned'}: ${reason}`,
+        `Owner ${ticket.escalationOwnerId ?? 'unowned'} -> ${ownerId ?? 'unowned'}; ${ownerId ? (until ? `manual hold until ${until.toISOString()}` : 'manual hold while coverage remains') : 'automatic coverage'}: ${reason}`,
         userId,
         now,
       );
@@ -1932,34 +2070,71 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         acknowledgedAt: null,
       },
     });
-    if (!outstanding) return;
+    if (!outstanding && !ticket.escalationManual) return;
     const current = await tx.travelTicket.findUniqueOrThrow({
       where: { id: ticket.id },
-      select: { escalationOwnerId: true },
     });
-    // Membership/coverage writers take profile UPDATE locks but never ticket
-    // locks. Shared locks here prevent committing a choice based on a profile
-    // that was concurrently suspended or taken off duty. Lock IDs consistently.
+    // Lock policy rows before manager profiles. Policy writers never lock tickets
+    // or update profiles, and coverage writers never acquire policy/ticket locks.
+    await tx.$queryRaw`SELECT region FROM "TravelEscalationRotation" WHERE region IN (${ticket.region}, 'GLOBAL') ORDER BY region FOR SHARE`;
+    const rotations = await tx.travelEscalationRotation.findMany({
+      where: { region: { in: [ticket.region, 'GLOBAL'] }, enabled: true },
+    });
+    const rotation =
+      rotations.find((r) => r.region === ticket.region) ??
+      rotations.find((r) => r.region === 'GLOBAL');
     const lockedManagers = await tx.$queryRaw<{ userId: string }[]>`
       SELECT "userId" FROM "TravelProfile" WHERE kind = 'MANAGER'
       ORDER BY "userId" FOR SHARE
     `;
-    const managers = await tx.travelProfile.findMany({
-      where: {
-        userId: { in: lockedManagers.map((m) => m.userId) },
-        kind: 'MANAGER',
-        status: 'ACTIVE',
-      },
-    });
-    const ownerId = chooseEscalationOwner(
-      managers.map((m) => ({
-        ...m,
-        shiftCalendar: this.calendar(m.shiftCalendar),
-      })),
-      now,
-      current.escalationOwnerId,
+    const managers = (
+      await tx.travelProfile.findMany({
+        where: {
+          userId: { in: lockedManagers.map((m) => m.userId) },
+          kind: 'MANAGER',
+          status: 'ACTIVE',
+        },
+      })
+    ).map((m) => ({ ...m, shiftCalendar: this.calendar(m.shiftCalendar) }));
+    const eligibleIds = new Set(
+      managers
+        .filter((m) => m.available && isOnDuty(m.shiftCalendar, now))
+        .map((m) => m.userId),
     );
-    if (ownerId === current.escalationOwnerId) return;
+    if (
+      current.escalationManual &&
+      current.escalationOwnerId &&
+      eligibleIds.has(current.escalationOwnerId) &&
+      (!current.escalationOverrideUntil ||
+        +current.escalationOverrideUntil > +now)
+    )
+      return;
+    const decision = rotation
+      ? rotationOwner(rotation, eligibleIds, now)
+      : null;
+    const ownerId = decision
+      ? decision.ownerId
+      : chooseEscalationOwner(managers, now, current.escalationOwnerId);
+    if (current.escalationManual) {
+      await tx.travelTicket.update({
+        where: { id: ticket.id },
+        data: { escalationManual: false, escalationOverrideUntil: null },
+      });
+      await this.event(
+        tx,
+        ticket.id,
+        'ESCALATION_OVERRIDE_ENDED',
+        current.escalationOverrideUntil &&
+          +current.escalationOverrideUntil <= +now
+          ? 'Manual escalation hold expired.'
+          : 'Manual escalation hold ended because manager coverage was lost.',
+        'system',
+        now,
+      );
+    }
+    // Quiet active cases expire holds, but do not acquire a new automatic
+    // escalation owner until an outstanding alert requires coverage.
+    if (!outstanding || ownerId === current.escalationOwnerId) return;
     await tx.travelTicket.update({
       where: { id: ticket.id },
       data: { escalationOwnerId: ownerId },
@@ -1968,7 +2143,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       tx,
       ticket.id,
       'ESCALATION_OWNER_CHANGED',
-      `Coverage handoff ${current.escalationOwnerId ?? 'unowned'} -> ${ownerId ?? 'unowned'}.`,
+      `Coverage handoff ${current.escalationOwnerId ?? 'unowned'} -> ${ownerId ?? 'unowned'}.${rotation && decision ? ` Rotation ${rotation.region} v${rotation.version}, UTC slot ${decision.slot}, primary ${decision.primaryId}.` : ' Legacy manager coverage.'}`,
       'system',
       now,
     );
@@ -2083,6 +2258,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         where: {
           status: { notIn: ['RESOLVED', 'CLOSED'] },
           OR: [
+            { escalationManual: true },
             {
               events: {
                 some: { kind: { in: ALERT_KINDS }, acknowledgedAt: null },

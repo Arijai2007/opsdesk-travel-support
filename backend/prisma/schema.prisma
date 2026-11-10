@@ -217,6 +217,8 @@ model TravelTicket {
   slaPausedAt DateTime?
   slaRemainingMs Float?
   escalationOwnerId String?
+  escalationManual Boolean @default(false)
+  escalationOverrideUntil DateTime?
   resolvedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -307,4 +309,13 @@ model MembershipAudit {
   reason String
   createdAt DateTime @default(now())
   @@index([createdAt, id])
+}
+
+model TravelEscalationRotation {
+  region String @id
+  enabled Boolean @default(false)
+  managerIds String[]
+  slotHours Int
+  anchorAt DateTime
+  version Int @default(1)
 }

@@ -1,5 +1,15 @@
 # OpsDesk developer handoff
 
+## Escalation-rotation increment - 10 November 2026
+
+Started from merged main `ca3ae28` after PR #33. [PR #33 hosted validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42848596124) for head `e419367819de224325d583c40deb4a830b4364d0`, including recovery and worker termination. Existing uncommitted worktrees were preserved. Deployment remains paused.
+
+The current increment adds opt-in regional/global UTC manager rotations, cyclic primary/backup coverage, explicit unowned gaps, versioned audited configuration and coverage-only or timed case holds. Holds end at expiry or membership/availability/duty loss, and reopening clears them. Quiet active cases also expire holds. Existing SLA/supplier snapshots and deadlines, case history, capacity and session safeguards remain. Read the [policy contract](OPSDESK_SLA_CALENDARS.md#escalation-rotations-and-manual-holds) and [exact validation evidence](OPSDESK_VALIDATION.md).
+
+Next implement transactional email outbox/retries, signed inbound webhooks and secure attachments, then provider-neutral booking integration. Independent AI evaluation, accessibility, realistic load and operational recovery acceptance remain open. Publish the feature branch through the existing user-owned project fork and open a PR targeting this repository's main; leave merge to collaborators. No deployment is authorized.
+
+Earlier checkpoint notes below are historical; this section supersedes their rotation remaining-work and PR #33 pending-status statements.
+
 ## Agency-contract increment - 10 November 2026
 
 Started from latest main `31cd21f42e7a1e9d5f8efbdc8f019ddb3f756d62` (PRs through #32 merged) in a fresh isolated clone. Older uncommitted worktrees were preserved. Deployment remains explicitly paused.
@@ -45,7 +55,7 @@ Run `npm run ops:test` against the isolated preview. Install browsers with `npx 
 
 ## Remaining work and next order
 
-1. Review the agency-contract increment above, then add richer escalation rotations and define override behavior.
+1. Review the escalation-rotation increment above, then continue with email outbox, inbound signatures and secure attachments.
 2. Implement mail outbox, retries, inbound signatures/threading and secure attachments. Live delivery needs the chosen provider's credentials and verified sender.
 3. Extend booking tooling through a provider-neutral adapter with agreed creation/cancellation policy and stable scoped identities.
 4. Complete independent AI evaluation, screen-reader/contrast checks, realistic skewed load and operational recovery acceptance.

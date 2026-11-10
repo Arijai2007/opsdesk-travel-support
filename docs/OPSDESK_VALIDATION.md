@@ -1,3 +1,41 @@
+# Escalation-rotation validation - 10 November 2026
+
+Started from merged main `ca3ae28faedbb081c5231c69d3accba812a82b43` (PR #33). Its [hosted validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42848596124) for head `e419367819de224325d583c40deb4a830b4364d0`; that historical result is separate from this increment. Deployment remains paused.
+
+## Current local evidence
+
+Windows, pinned Node.js **22.23.0**, npm **10.9.4**, PostgreSQL **18.6**, private dependencies and the existing isolated synthetic workspace:
+
+| Check | Observed result |
+| --- | --- |
+| Migration and builds | New migration applied to the existing 21-migration database; all **22 migrations** are current. Prisma generation, backend and optimized frontend builds passed; repeated startup preserved records |
+| Unit tests | **73 passed in six suites**, including 11 new UTC rotation cases |
+| Existing API/concurrency | **548 baseline HTTP checks** and **19 concurrency/reconnect checks** passed |
+| Existing feature regressions | **33 workload checks**, **20 supplier HTTP checks**, **52 agency-contract HTTP checks** and associated assertions passed |
+| New rotations | **63 HTTP checks and 54 policy/concurrency/state assertions** passed |
+| Chromium and Firefox | All **five browser suites per engine** passed: five-role workflow, membership, SLA controls, contracts and rotations; delayed readback and 390px controls included |
+| Offline checks | All **17** booking-export/recovery-safety tests passed |
+| Booking integration | Both PostgreSQL ownership and transactional reconciliation checks passed |
+| Production dependency audit | **Zero vulnerabilities** |
+| Changed-file checks | Backend/frontend ESLint, commitlint and whitespace checks passed. Used direct checks and disabled the local hook wrapper for commit because the previously documented bundled Git/npm shell limitation remains |
+
+The new API suite covers role and stale-session denials, roster validation and order, idempotent version/audit saves, UTC slot boundaries, regional precedence, Global fallback, explicit unowned gaps, primary recovery, coverage-only and timed holds, exact-absolute-expiry retries, off-duty rejection, suspension/reactivation, hold expiry on quiet cases, paused budgets, closed/reopened cases, non-staff metadata masking on details/queue/legacy workspace, policy-update and membership-update blocking, overlapping workers and reconnect durability. Existing response deadlines and snapshots remain equal through rotation changes. Fixture policies, profiles, case ownership, clock and test-created audit events are restored in the dedicated synthetic workspace.
+
+## Failures and corrections
+
+- The first browser harness used a relative Playwright request URL and stopped with `Invalid URL`. An absolute request then returned 401. Replaced that clock-advance shortcut with the actual manager Demo clock dialog; the targeted Chromium flow passed.
+- A full browser pass exposed saved hours temporarily reading as **24 instead of 1** after quickly switching regions while the post-save directory request was pending. The editor now keeps the confirmed saved policy/version until the authoritative directory catches up, and disables fields during save. The regression deliberately delays the readback by 800ms; both final engine runs passed.
+- Review identified that holds should expire on quiet active cases too. The worker now visits active manual holds and clears expired/lost-coverage holds even without a pending alert, while preserving the historical owner until an alert requires automatic routing. The expanded final API suite above passed.
+- Ownership controls remount when persisted owner/hold state changes, preventing an automatic handoff from leaving an old manager selected in the editor. Shared policy forms now have visible input borders, spacing and mobile wrapping.
+
+## Reproduce and boundaries
+
+Use Node 22.23.x, `npm ci`, `npm run ops:preview`, then `npm run ops:test`. Install matching Chromium/Firefox and run `npm run ops:test:browser` for each `OPSDESK_BROWSER_ENGINE`. Targeted scripts are `scripts/rotation-smoke.mjs` and `scripts/rotation-browser.mjs`; both are included in the standard commands. Run against a dedicated isolated seeded workspace only: these harnesses temporarily change global/region policies, clock and synthetic managers, then restore their fixtures. Stop the preview before standalone builds.
+
+Full inherited backend lint, screen-reader/contrast audit, skewed read/write load, live integrations and deployment were not run. Local reconnect/transaction checks do not establish OS crash recovery. Archive/restore and worker-termination validation remain enabled in hosted CI and must be checked for this feature head independently. Drain older workers before deploying rotation semantics when deployment is authorized. Full rotation policy revision archives, multi-level acknowledgment escalation and external paging remain future extensions; see the [policy contract](OPSDESK_SLA_CALENDARS.md#escalation-rotations-and-manual-holds).
+
+Earlier sections below retain historical evidence.
+
 # Agency-contract validation - 10 November 2026
 
 Started from latest main `31cd21f42e7a1e9d5f8efbdc8f019ddb3f756d62` in a fresh private clone. Used Windows, Node.js **22.23.0**, npm **10.9.4** and embedded PostgreSQL **18.6** with isolated synthetic records. Deployment remains paused; older worktrees were untouched.

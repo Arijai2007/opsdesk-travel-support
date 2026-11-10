@@ -2016,6 +2016,48 @@ select:focus {
   outline-offset: 3px;
 }
 
+.od-policy-settings {
+  padding: 20px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.od-policy-settings h4,
+.od-policy-settings > summary {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.od-policy-settings form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  margin: 16px 0;
+  border: 1px solid #e5eae4;
+  border-radius: 8px;
+}
+.od-policy-settings label {
+  display: grid;
+  gap: 6px;
+}
+.od-policy-settings label:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.od-policy-settings input:not([type="checkbox"]),
+.od-policy-settings select,
+.od-policy-settings textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #d5dfd2;
+  border-radius: 6px;
+  background: #fff;
+}
+.od-policy-settings li {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
 /* Membership follows the existing workspace form and table language. */
 .od-membership {
   padding: 24px;
