@@ -12,6 +12,13 @@ import type { Request } from 'express';
 import { Webhook } from 'standardwebhooks';
 import { PrismaService } from '../../prisma/prisma.service';
 import { resendId } from './resend-mail.transport';
+import { TravelService } from './travel.service';
+import {
+  incomingConfig,
+  receiveReplyText,
+  replyJob,
+  replySender,
+} from './resend-mail-reply';
 
 const receiptKinds = new Map([
   ['email.sent', 'SENT'],
@@ -23,7 +30,10 @@ const receiptKinds = new Map([
 
 @Controller('ops/mail/webhooks/resend')
 export class ResendMailWebhookController {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly travel: TravelService,
+  ) {}
 
   @Post()
   @HttpCode(204)
@@ -60,8 +70,36 @@ export class ResendMailWebhookController {
     const event = value as {
       type?: unknown;
       created_at?: unknown;
-      data?: { email_id?: unknown; tags?: { opsdesk_job?: unknown } };
+      data?: {
+        email_id?: unknown;
+        from?: unknown;
+        to?: unknown;
+        received_for?: unknown;
+        tags?: { opsdesk_job?: unknown };
+      };
     } | null;
+    if (event?.type === 'email.received') {
+      const config = incomingConfig();
+      if (!config) return;
+      const providerId = event.data?.email_id;
+      const sender = replySender(event.data?.from);
+      const jobId = replyJob(
+        config,
+        event.data?.received_for ?? event.data?.to,
+      );
+      if (
+        !jobId ||
+        !sender ||
+        typeof providerId !== 'string' ||
+        !resendId.test(providerId)
+      )
+        return;
+      await this.travel.receiveCustomerMail(jobId, sender, providerId, () =>
+        receiveReplyText(config, providerId),
+      );
+      return;
+    }
+
     const kind =
       typeof event?.type === 'string'
         ? receiptKinds.get(event.type)

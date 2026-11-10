@@ -1,3 +1,13 @@
+# Customer email reply validation
+
+Started from the Resend pilot in PR #36 at `3f6646bb99b72408f97a23b03455ae1db5e61093`. On Windows with Node 22.23.4, Prisma applied the inbound-reply migration to the isolated synthetic database, the backend build passed, and Jest passed 86 tests across 9 suites.
+
+The signed reply harness passed against real PostgreSQL with mocked provider retrieval. It checked invalid signatures and reply addresses, mismatched and stale customers, expired and closed cases, concurrent duplicate provider IDs, the customer author and visibility, and absence of any outbound job for the reply. The harness removed its fixture rows and restored case state. It runs as part of `npm run ops:test`.
+
+A verified receiving domain, real provider send/receive acceptance, supplier replies and secure attachments remain open. Deployment stays paused.
+
+---
+
 # Resend mail pilot validation
 
 Started from merged PR #35 at `5661ba79477a41d5a7d36c8ecaa4de87226e51a9`. On Windows with Node 22.23.4, the backend and optimized frontend builds passed and the pilot migration applied to the existing isolated synthetic database. Jest passed 83 tests in 8 suites. New coverage uses mocked provider HTTP and verifies mode isolation, the recipient allowlist, stable request keys, the retry cutoff, signature and timestamp checks, and receipt deduplication.

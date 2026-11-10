@@ -225,6 +225,7 @@ model TravelTicket {
   messages TravelMessage[]
   conversations TravelConversation[]
   events TravelEvent[]
+  inboundMail TravelInboundMail[]
   @@index([agencyId, customerId])
   @@index([status, deadline])
   @@index([autoHandoff, status, id])
@@ -264,6 +265,13 @@ model TravelMessage {
   @@index([conversationId, createdAt, id])
 }
 
+model TravelInboundMail {
+  id String @id
+  ticketId String
+  ticket TravelTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  @@index([ticketId])
+}
+
 model TravelMailJob {
   id String @id @default(cuid())
   messageId String @unique
@@ -271,6 +279,7 @@ model TravelMailJob {
   recipient String
   transport String @default("SYNTHETIC")
   providerId String?
+  replyEnabled Boolean @default(false)
   status String @default("QUEUED")
   attempts Int @default(0)
   nextAttemptAt DateTime @default(now())

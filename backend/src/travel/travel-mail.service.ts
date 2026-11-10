@@ -18,6 +18,8 @@ import {
   syntheticAddress,
 } from './resend-mail.transport';
 
+import { incomingConfig, replyAddress } from './resend-mail-reply';
+
 const MAX_ATTEMPTS = 5;
 const LEASE_MS = 60_000;
 
@@ -120,7 +122,11 @@ export class TravelMailService
       if (!member) return null;
       recipient = conversation.supplier.email;
     } else return null;
-    return { recipient, text: message.content };
+    return {
+      recipient,
+      text: message.content,
+      customer: message.visibility === 'CUSTOMER',
+    };
   }
 
   async enqueue(tx: Prisma.TransactionClient, messageId: string) {
@@ -137,8 +143,18 @@ export class TravelMailService
           messageId,
           recipient: envelope.recipient,
           transport: config ? 'RESEND' : 'SYNTHETIC',
+          replyEnabled: Boolean(
+            config && envelope.customer && incomingConfig(),
+          ),
         },
       });
+  }
+
+  private replyTo(job: { id: string; replyEnabled: boolean }) {
+    if (!job.replyEnabled) return undefined;
+    const config = incomingConfig();
+    if (!config) throw new Error('Reply configuration is unavailable.');
+    return replyAddress(config, job.id);
   }
 
   async processOne() {
@@ -203,13 +219,19 @@ export class TravelMailService
           status = 'CANCELLED';
         } else if (mode === 'RESEND' && this.resend) {
           providerId = await this.resend.deliver({
-            ...envelope,
+            recipient: envelope.recipient,
+            text: envelope.text,
+            replyTo: this.replyTo(job),
             idempotencyKey: job.id,
           });
           outcome = 'PROVIDER_ACCEPTED';
           status = 'PROVIDER_ACCEPTED';
         } else {
-          await this.transport.deliver({ ...envelope, idempotencyKey: job.id });
+          await this.transport.deliver({
+            recipient: envelope.recipient,
+            text: envelope.text,
+            idempotencyKey: job.id,
+          });
           outcome = 'SIMULATED';
           status = 'SIMULATED';
         }

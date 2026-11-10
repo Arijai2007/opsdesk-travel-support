@@ -1,5 +1,9 @@
 # OpsDesk developer handoff
 
+## Customer email replies
+
+Built on PR #36. The [customer reply guide](OPSDESK_MAIL_OUTBOX.md#customer-replies) covers opt-in private Reply-To addresses, active customer checks, plaintext limits and provider-ID deduplication. The synthetic demo remains credential-free. Next validate a verified receiving domain with provider credentials, then design scoped supplier replies and secure attachments. Deployment stays paused.
+
 ## Resend pilot adapter
 
 Based on merged PR #35. The [mail outbox guide](OPSDESK_MAIL_OUTBOX.md#resend-pilot) covers the disabled-by-default Resend adapter, pilot allowlist, retry cutoff and signed delivery receipts. Credentialed pilot acceptance, authorized incoming email replies, thread correlation and secure attachments remain open. Deployment stays paused.

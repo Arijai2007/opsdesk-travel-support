@@ -2,11 +2,16 @@ import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { Webhook } from 'standardwebhooks';
 import type { PrismaService } from '../../prisma/prisma.service';
+import type { TravelService } from './travel.service';
 import { ResendMailWebhookController } from './resend-mail-webhook.controller';
 import {
   ResendTravelMailTransport,
   resendConfig,
 } from './resend-mail.transport';
+
+jest.mock('./travel.service', () => ({
+  TravelService: class TravelService {},
+}));
 
 jest.mock('../../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -98,6 +103,7 @@ describe('Resend mail pilot', () => {
     return {
       controller: new ResendMailWebhookController(
         db as unknown as PrismaService,
+        { receiveCustomerMail: jest.fn() } as unknown as TravelService,
       ),
       create,
       lookup,
