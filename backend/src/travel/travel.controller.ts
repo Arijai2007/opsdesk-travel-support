@@ -1,3 +1,4 @@
+import { CalendarPolicyDto, SlaPauseDto, EscalationOwnerDto } from './sla.dto';
 import { TravelDirectoryDto } from './travel-directory.dto';
 import {
   Body,
@@ -197,5 +198,33 @@ export class TravelController {
       id,
       dto.responseTargetHours,
     );
+  }
+  @Patch('agencies/:id/calendar') calendar(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: CalendarPolicyDto,
+  ) {
+    return this.travel.configureCalendar(req.user.userId, id, dto);
+  }
+  @Patch('members/:id/shift') shift(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: CalendarPolicyDto,
+  ) {
+    return this.travel.configureShift(req.user.userId, id, dto);
+  }
+  @Patch('tickets/:id/sla-pause') pause(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: SlaPauseDto,
+  ) {
+    return this.travel.pauseSla(req.user.userId, id, dto);
+  }
+  @Patch('tickets/:id/escalation-owner') escalationOwner(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: EscalationOwnerDto,
+  ) {
+    return this.travel.assignEscalationOwner(req.user.userId, id, dto);
   }
 }

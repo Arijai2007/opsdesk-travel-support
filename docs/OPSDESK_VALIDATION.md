@@ -1,6 +1,59 @@
 # Prototype validation
 
-## Current membership branch validation 10 November 2026
+## Current SLA calendar / coverage validation - 10 November 2026
+
+Deployment remains paused. Read all four requested project documents before implementation; inspected the existing deadline, routing, membership and lock paths. PR #28 is merged into main `6e97b6f`; its head `3b07fa4` has a successful hosted `validate` check ([run 42812617605](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42812617605)). This follow-up uses an isolated worktree; older uncommitted work was not overwritten.
+
+Implemented opt-in agency business calendars (local holidays, IANA time zones, DST and service-hour budgets), immutable applied-policy snapshots, explicit staff pause/resume, member duty calendars, on-duty new assignments and audited escalation-manager ownership/handoff with an unowned fallback. Existing elapsed-hour targets, invitation/session guards and immutable identity scopes remain. See [policy contract, UI/API routes and limits](OPSDESK_SLA_CALENDARS.md).
+
+### Completed local checks
+
+Windows with explicit Node.js 22.23.0, PostgreSQL 18.6 and the isolated synthetic demo:
+
+| Check | Exact observed result |
+| --- | --- |
+| Backend unit tests | **62 passed**, five suites: 42 existing plus 20 new calendar/coverage cases |
+| Real HTTP checks | **548 passed**: 111 workflow + 124 pagination + 177 directory + 80 membership + 56 SLA checks |
+| Concurrency / reconnect | **19 passed**: 13 existing lock checks plus 6 new overlapping pause/resume, multi-worker alert/ownership, coverage-update blocking and disconnect/reconnect checks |
+| Chromium | Original five-role workflow, membership flow and SLA manager flow all passed |
+| Firefox | Original five-role workflow, membership flow and SLA manager flow all passed |
+| Offline regressions | **17 passed**: 12 booking-export and 5 recovery connection-safety tests |
+| Booking integration | Both reported checks passed: ownership/collisions/schedule drift and transactional updates/replays/rollback/guarded cancellation |
+| Builds and migration | Backend and optimized frontend builds passed; Prisma generation and the new nullable-field migration applied successfully to a fresh local database |
+| Lint and whitespace | Changed backend/frontend file ESLint passed; frontend invocation from the repository root emitted the existing Pages-directory configuration notice, with no lint errors. Whitespace check passed. |
+
+The full two-engine browser run was repeated after the profile-lock race fix. The last small paused-date formatting change was compiled and its SLA browser flows repeated separately. Older npm-shell runs sometimes selected the host Node 24 runtime; the reported final regression scripts and build commands were invoked directly with the pinned Node 22.23.0 executable.
+
+### Failures observed and fixes
+
+| Observed failure | Cause / change | Recheck |
+| --- | --- | --- |
+| Initial test invocation could not load TypeScript; zero tests ran | Dependency installation was still running | Retried after installation; not treated as a product red test |
+| New SLA unit suite could not resolve `./sla-calendar` | Tests were added before the implementation | Implemented the calendar module; all 20 new cases passed |
+| Unchanged calendar save incremented policy version (`3 !== 2`) | JSONB reordered object keys | Compare normalized calendars; idempotent-save HTTP regression passed |
+| Sparse calendar returned HTTP 500 rather than 400 | Coverage horizon error escaped the API boundary | Convert calculation failure to a validation error and authorize before expensive configuration calculation; HTTP regression passed |
+| Changed-file lint rejected an unnecessary assertion | Owner DTO narrowing already established the type | Removed the assertion; changed-file lint passed |
+| SLA browser fixture request had an invalid relative URL, then received 401 | Harness API fixture setup did not establish a usable authenticated request | Replaced it with the real New ticket form; both engine flows passed |
+| Worker finished before an in-flight manager-profile update committed (`early !== waiting`) | Eligibility was read without waiting for concurrent profile writes | Ordered shared manager-profile locks, then fresh eligibility read; deterministic two-connection regression passed |
+
+A final code review also ensured paused travel breaches use the travel reason even when the original response target is earlier, non-staff responses do not expose escalation-owner metadata, audit cleanup is limited to this test's unique reason prefix, and paused date/countdown labels do not render a fake far-future due date.
+
+### Interrupted and not-run checks
+
+No current final unit/HTTP/browser run was interrupted. The final local Chromium/Firefox sequence before PR #28 publication was stopped at the user's request; that historical run still has no completed result and has not been reclassified as a pass or a product failure. New passing runs above are separate evidence.
+
+Full logical backup/restore and OS worker-kill rehearsal were **not rerun locally** in this increment; their existing CI commands remain intact. Recovery connection-safety tests did run (5 passed). New SLA worker checks establish transaction concurrency and reconnect durability, not OS kill/crash recovery. Full inherited backend lint, independent production security review, assistive-technology/contrast audit, cold-cache and skewed concurrent load, hosting and live external integrations were not run or claimed. The new branch's hosted CI result must be checked independently after publication.
+
+### Reproduce and remaining action
+
+Use Node.js 22.23.x; install dependencies, run `npm run ops:preview` against the isolated synthetic demo, then `npm run ops:test`. Install matching Chromium/Firefox and run `npm run ops:test:browser` for each `OPSDESK_BROWSER_ENGINE`. The commands now include the SLA HTTP and browser scripts. Targeted commands are `node scripts/sla-smoke.mjs` and `node scripts/sla-browser.mjs`. The scripts restore temporary policy/shift/clock state and remove their fixtures/audit records. Do not run them on shared or live data. Stop the preview before separate builds.
+
+Next review this PR and run hosted checks, then complete multiple contract/supplier calendars, automatic existing-agent workload handoff and richer escalation rotations. Live email/outbox/inbound signatures, scoped/scanned attachments, provider-neutral booking integration, independent AI evaluation and broader accessibility/load tests remain unfinished. Deployment, saved hosting preparation and live-data policy work remain paused.
+
+
+<a id="current-membership-branch-validation-10-november-2026"></a>
+
+## Historical membership branch validation 10 November 2026
 
 Deployment is paused at the user’s instruction. The merged baseline is `f71b284487e0adad74a91ff15ac2da6554a2f525`, including PRs #25–#27; [main CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42805941972) builds, recovery, `ops:test`, booking integration, Chromium, Firefox and the production dependency audit. The following evidence concerns the unmerged `codex/opsdesk-membership-admin` feature and must not be conflated with that baseline.
 

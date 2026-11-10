@@ -16,13 +16,16 @@ export const initials = (s: string) =>
     .slice(0, 2)
     .join("");
 export const date = (s: string) =>
-  new Date(s).toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  s.startsWith("9999-")
+    ? "Response SLA paused"
+    : new Date(s).toLocaleString("en-GB", {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
 export const remaining = (s: string, now: string) => {
+  if (s.startsWith("9999-")) return "Response SLA paused";
   const h = (+new Date(s) - +new Date(now)) / 3600000;
   return h < 0
     ? `${Math.ceil(-h)}h overdue`

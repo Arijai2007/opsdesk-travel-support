@@ -107,6 +107,7 @@ model TravelAgency {
   id String @id
   name String
   code String @unique
+  slaCalendar Json?
   responseTargetHours Int @default(24)
   responsePolicyVersion Int @default(1)
   bookings TravelBooking[]
@@ -134,6 +135,7 @@ model TravelProfile {
   region String?
   available Boolean @default(true)
   specialties String[] @default([])
+  shiftCalendar Json?
   maxActiveCases Int?
   status String @default("ACTIVE")
   sessionVersion Int @default(0)
@@ -190,6 +192,10 @@ model TravelTicket {
   deadline DateTime
   responseDeadline DateTime?
   responseStartedAt DateTime?
+  slaSnapshot Json?
+  slaPausedAt DateTime?
+  slaRemainingMs Float?
+  escalationOwnerId String?
   resolvedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

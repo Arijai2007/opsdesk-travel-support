@@ -1,4 +1,6 @@
+import type { ServiceCalendar } from "@/components/opsdesk/sla-settings";
 export type Person = {
+  shiftCalendar?: ServiceCalendar | null;
   id: string;
   name: string;
   kind: string;
@@ -8,6 +10,7 @@ export type Person = {
   maxActiveCases?: number | null;
 };
 export type Agency = {
+  slaCalendar?: ServiceCalendar | null;
   id: string;
   name: string;
   code: string;
@@ -50,6 +53,14 @@ export type CaseEvent = {
   actorId: string;
 };
 export type Ticket = {
+  slaSnapshot?: {
+    calendar: ServiceCalendar | null;
+    hours: number;
+    version: number;
+  } | null;
+  escalationOwnerName?: string | null;
+  slaPausedAt?: string | null;
+  escalationOwnerId?: string | null;
   people?: Person[];
   customerName?: string;
   ownerName?: string;

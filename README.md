@@ -6,7 +6,7 @@ Start with the [developer handoff](docs/OPSDESK_HANDOFF.md), [full setup and dem
 
 ## Screenshots
 
-Real local screenshots using synthetic records. Select an image to open it at full size. Membership administration is included in this feature branch; it is not yet merged into `main`.
+Real local screenshots using synthetic records. Select an image to open it at full size. Membership administration is merged in PR #28; SLA controls are the current feature follow-up.
 
 | Shared inbox | Booking-linked case |
 | :---: | :---: |
@@ -83,7 +83,7 @@ npx playwright install chromium
 npm run ops:test:browser
 ```
 
-On this feature branch, `ops:test` passed 42 unit tests, 492 HTTP checks and 13 concurrency checks. It includes the new 80-check membership suite. `ops:test:browser` runs the existing five-role flow and the new membership flow; the final local Chromium/Firefox sequence was stopped at the user's request to prioritize GitHub publication. The earlier membership flow passed with the `msedge` channel. See the [exact pass/failure/fix record](docs/OPSDESK_VALIDATION.md). Suites create temporary fixtures and clean them up; use only the isolated synthetic demo. Run `npm run build` with the preview stopped to check both production builds independently.
+Latest local checks passed 62 unit tests, 548 HTTP checks, 19 concurrency/reconnect checks, and the five-role, membership and SLA flows in both Chromium and Firefox. Exact failures, fixes, interrupted history and not-run checks are recorded in the [validation report](docs/OPSDESK_VALIDATION.md). `ops:test` includes unit, existing API/membership/concurrency, and new SLA suites. `ops:test:browser` runs the original five-role, membership and SLA manager flows. Select Firefox with `OPSDESK_BROWSER_ENGINE=firefox` after installing the matching browser. The final local browser sequence before PR #28 publication was interrupted at the user's request; its historical result has not been relabeled as a pass or a failure. New feature checks are reported separately. Run only against the isolated synthetic demo, and stop the preview before standalone builds.
 
 The query-scaling follow-up adds `npm run ops:profile`. It requires an explicit `OPSDESK_PROFILE_DATABASE_URL` pointing to a local PostgreSQL maintenance `/postgres` database and an account allowed to create databases. Generate Prisma and build the backend first. The harness creates a disposable database, captures actual query plans and compares results before/after the reporting index. See [profiling method, timings and limits](docs/OPSDESK_QUERY_PROFILE.md) for configuration and reproduction.
 
@@ -93,11 +93,13 @@ Historical query-scaling local validation used Windows, Node.js 22.23.0 and Post
 
 **Deployment is paused at the user’s instruction: complete local features, verification and review first.** Saved free-demo deployment preparation is separate from this feature branch; no hosted service or live email is enabled.
 
-PRs #15–#27 are merged at `f71b284487e0adad74a91ff15ac2da6554a2f525`. [Main CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42805941972), including builds, recovery, core API checks, booking integration, Chromium, Firefox and production dependency audit. PRs #25–#27 deliver the offline classifier baseline, audited manager acknowledgment and synthetic booking export tooling.
+PRs #15-#28 are merged at `6e97b6f`. [PR #28 CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42812617605), including builds, recovery, core API checks, booking integration, Chromium, Firefox and production dependency audit. PRs #25–#27 deliver the offline classifier baseline, audited manager acknowledgment and synthetic booking export tooling.
 
-Current unmerged work on `codex/opsdesk-membership-admin` adds manager invitations, public single-use activation, suspension/reactivation, session invalidation, agency/supplier creation and paged membership/audit controls. Invitation delivery is manual; identity scopes are immutable and historical records are preserved. Independent review's activation-quota finding is fixed and covered by passing unit/API tests. Browser completion and PR checks must be evaluated before merging. See [current branch evidence](docs/OPSDESK_VALIDATION.md#current-membership-branch-validation-10-november-2026).
+PR #28 merged manager invitations, public single-use activation, suspension/reactivation, session invalidation, agency/supplier creation and paged membership/audit controls. Invitation delivery remains manual; identity scopes are immutable and historical records are preserved.
 
-Next implement contract business-hour/holiday/timezone calendars, shifts and escalation ownership; then email outbox/inbound webhooks and secure attachments, and a provider-neutral booking adapter with owner-approved creation/cancellation policy. Independent evaluation, accessibility, realistic concurrent load, recovery ownership and P0 live-data acceptance remain open. The [handoff](docs/OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order) identifies entry files and acceptance checks.
+The current follow-up adds opt-in agency business-hour/holiday/timezone calendars, saved case policy snapshots, explicit response-clock pause/resume, on-duty assignment and audited manager escalation handoffs. Travel and supplier deadlines continue during a response pause; missing manager coverage is visibly unowned. See the [SLA policy contract](docs/OPSDESK_SLA_CALENDARS.md) for exact behavior, limits and tests. It is feature work pending collaborator review and merge; deployment remains paused.
+
+Next finish multi-contract/supplier calendars, automatic existing-agent workload handoff and richer escalation rotations; then email outbox/inbound webhooks and secure attachments, and a provider-neutral booking adapter with owner-approved creation/cancellation policy. Independent evaluation, accessibility, realistic concurrent load, recovery ownership and P0 live-data acceptance remain open. The [handoff](docs/OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order) identifies entry files and acceptance checks.
 
 Before live data, confirm production access rules, choose staging, rehearse backup/restore and configure monitoring. Live email, secure attachments, booking/supplier integrations, external AI evaluation and broader accessibility/security reviews remain pending. This repository documents a localhost prototype; it does not provide a production deployment.
 
@@ -109,6 +111,7 @@ Before live data, confirm production access rules, choose staging, rehearse back
 | [Developer handoff](docs/OPSDESK_HANDOFF.md) | Architecture, completed work and transfer notes |
 | [Backlog](docs/OPSDESK_BACKLOG.md) | Prioritized remaining work and acceptance criteria |
 | [Validation](docs/OPSDESK_VALIDATION.md) | Checks, evidence and known limitations |
+| [SLA calendars and coverage](docs/OPSDESK_SLA_CALENDARS.md) | Business calendars, pause/resume, shifts, ownership and limits |
 | [Query profile](docs/OPSDESK_QUERY_PROFILE.md) | Synthetic-volume measurements and reproduction |
 | [Sources](docs/OPSDESK_SOURCES.md) | Dataset attribution and reference material |
 | [Upstream README](docs/IT_HELPDESK_README.md) | Historical IT Helpdesk documentation |
