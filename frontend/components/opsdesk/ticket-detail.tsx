@@ -1,5 +1,6 @@
 "use client";
 import { DirectorySelect } from "./directory-select";
+import { Attachments } from "./attachments";
 import { TicketSlaControls } from "./sla-settings";
 import { useState } from "react";
 import { useOpsResource, useOpsPage, PageControls } from "./paged-data";
@@ -365,6 +366,7 @@ function Thread({ messages, data }: { messages: Message[]; data: Workspace }) {
             <time>{date(m.createdAt)}</time>
           </div>
           <p>{m.content}</p>
+          <Attachments messageId={m.id} author={m.senderId === data.me.id} />
         </div>
       ))}
     </div>

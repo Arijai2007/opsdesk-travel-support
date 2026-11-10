@@ -15,6 +15,8 @@ import {
 } from './travel-mail.transport';
 import { ResendTravelMailTransport } from './resend-mail.transport';
 import { ResendMailWebhookController } from './resend-mail-webhook.controller';
+import { TravelAttachmentsController } from './travel-attachments.controller';
+import { TravelAttachmentsService } from './travel-attachments.service';
 @Module({
   controllers: [
     TravelController,
@@ -23,12 +25,14 @@ import { ResendMailWebhookController } from './resend-mail-webhook.controller';
     InvitationController,
     TravelMailController,
     ResendMailWebhookController,
+    TravelAttachmentsController,
   ],
   providers: [
     TravelService,
     MembershipService,
     TravelMailService,
     ResendTravelMailTransport,
+    TravelAttachmentsService,
     { provide: TravelMailTransport, useClass: SyntheticTravelMailTransport },
   ],
 })

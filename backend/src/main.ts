@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
-import type { Express } from 'express';
 import { AppModule } from './app.module';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   // This backend only ever serves JSON, never HTML, so Helmet's
   // Content-Security-Policy default (designed to constrain a page's own
@@ -26,8 +28,10 @@ async function bootstrap() {
   // instead of the connecting proxy's own address.
   // INestApplication doesn't expose `set()` directly — go through the
   // underlying Express instance.
-  const expressApp = app.getHttpAdapter().getInstance() as Express;
+  const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', 1);
+  // A 2 MiB attachment becomes roughly 2.8 MiB when encoded as JSON base64.
+  app.useBodyParser('json', { limit: '3mb' });
 
   const frontendUrl = process.env.FRONTEND_URL;
   if (!frontendUrl) {

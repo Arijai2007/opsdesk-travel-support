@@ -260,9 +260,25 @@ model TravelMessage {
   content String
   createdAt DateTime @default(now())
   mailJob TravelMailJob?
+  attachments TravelAttachment[]
   @@index([ticketId, createdAt])
   @@index([ticketId, visibility, createdAt, id, senderId])
   @@index([conversationId, createdAt, id])
+}
+
+model TravelAttachment {
+  id String @id @default(cuid())
+  messageId String
+  message TravelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  filename String
+  mimeType String
+  size Int
+  sha256 String
+  bytes Bytes
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([messageId, createdAt])
+  @@index([expiresAt])
 }
 
 model TravelInboundMail {

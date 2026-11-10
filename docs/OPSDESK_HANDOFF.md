@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Attachment increment on main `6d63063`
+
+The `codex/opsdesk-secure-attachments` branch adds per-message attachment controls to customer, internal and supplier threads, private database byte storage, author-only uploads, existing thread scopes, 2 MiB/type checks, a five-file per-message cap, scanner gating, five-minute user-bound authenticated downloads, audit events and 30-day expiry with hourly deletion. See [attachment guide](OPSDESK_ATTACHMENTS.md). Both builds, 90 unit tests, the standard API suite, 23 attachment HTTP checks and all five Chromium browser flows passed; the main browser flow includes a binary attachment round trip. Firefox cannot launch on this Windows host even after reinstalling the Playwright runtime (`spawn UNKNOWN`); hosted Firefox validation is required. Live ClamAV acceptance and approved backup retention remain open. Email attachment delivery/ingestion is not implemented.
+
+No booking provider is selected. Continue with provider-neutral synthetic workflows; new booking creation and cancellations require explicit manager review and audit before any provider change. Live credentials, independent AI evaluation, manual accessibility, representative load and operational acceptance remain open. Deployment remains paused.
+
 ## Current checkpoint — 11 November 2026
 
 Start from [main at `4e17f7c`](https://github.com/DhruvKhanna7777/opsdesk-travel-support/commit/4e17f7ca8d1d38e5347f8801f8ec0a7be97209ef). PRs #35–#38 are merged, covering the synthetic outbox, the opt-in Resend adapter and signed delivery receipts, and customer and supplier email replies. [PR #38 hosted validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42882257980). Deployment remains paused.

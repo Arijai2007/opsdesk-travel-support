@@ -230,6 +230,18 @@ try {
   await manager.getByLabel("Message content").fill(customerReply);
   await manager.getByRole("button", { name: "Send reply" }).click();
   await customerThread.getByText(customerReply, { exact: true }).waitFor();
+  const replyRow = manager.locator('.od-message').filter({ hasText: customerReply });
+  const attachmentBytes = Buffer.from('Browser attachment round trip — synthetic');
+  await replyRow.locator('input[type=file]').setInputFiles({
+    name: 'browser-fixture.txt', mimeType: 'text/plain', buffer: attachmentBytes,
+  });
+  const fileButton = replyRow.getByRole('button', { name: /browser-fixture.txt/ });
+  await fileButton.waitFor();
+  const downloadEvent = manager.waitForEvent('download');
+  await fileButton.click();
+  const downloaded = await downloadEvent;
+  assert.equal(downloaded.suggestedFilename(), 'browser-fixture.txt');
+  assert.deepEqual(readFileSync(await downloaded.path()), attachmentBytes);
   // Exercise actual browser page navigation with a history larger than one page.
   const testCase = (
     await pool.query(

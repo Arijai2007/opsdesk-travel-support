@@ -11,7 +11,7 @@ const pg = new EmbeddedPostgres({
   databaseDir: dir,
   user: "opsdesk",
   password: env.LOCAL_POSTGRES_PASSWORD,
-  port: 55432,
+  port: Number(env.LOCAL_POSTGRES_PORT || 55432),
   persistent: true,
   initdbFlags: ["--encoding=UTF8", "--locale=C"],
   postgresFlags: ["-h", "127.0.0.1"],
@@ -36,7 +36,7 @@ const { rows } = await client.query(
 if (!rows.length) await client.query("CREATE DATABASE opsdesk");
 await client.end();
 console.log(
-  "OpsDesk PostgreSQL ready on 127.0.0.1:55432. Data persists in .opsdesk/postgres.",
+  `OpsDesk PostgreSQL ready on 127.0.0.1:${env.LOCAL_POSTGRES_PORT || 55432}. Data persists in .opsdesk/postgres.`,
 );
 let stopping = false;
 async function stop() {
