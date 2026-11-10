@@ -130,15 +130,17 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 
 ## Current issue status after integration
 
+The merged checkpoint is `efbcb49`. Items identified as in review below are on their PR branches.
+
 | Issue | Completed and verified | Remaining acceptance work |
 | --- | --- | --- |
 | #2 | Six demo scenarios mapped, server-side role/privacy checks, account deletion guard and single-use token rotation | Obtain owner acceptance, define account closure, retention and production tenant boundaries |
 | #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Select hosting, provision secrets and managed services, assign incident ownership, test staging restoration and operational retention |
 | #4 | Supplier and customer conversations persist with scoped visibility | Live mail provider, signatures, delivery outbox, retries, threading and secure attachments |
-| #5 | Seeded booking links, editable schedules, export validation and read-only reconciliation against explicit mappings | Provider-specific adapter, database ownership verification, transactional updates and case handling on cancellation |
-| #6 | Agent specialties, capacities, response targets and versioned response policy | Contract calendars, shifts, manager membership administration and escalation acknowledgment |
+| #5 | Seeded booking links and editable schedules. [PR #27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) adds export validation and read-only reconciliation in review. | Provider-specific adapter, database ownership verification, transactional updates and case handling on cancellation |
+| #6 | Agent specialties, capacities and versioned response targets. [PR #26](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/26) adds manager acknowledgment in review. | Contract calendars, shifts, manager membership administration and escalation ownership |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
-| #8 | Deterministic record-based briefs and classification | Provider choice, redaction, structured grounded outputs and held-out evaluation |
+| #8 | Deterministic record-based briefs and classification. [PR #25](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/25) adds synthetic evaluation, rule improvements and CI checks in review. | Provider choice, redaction, structured grounded outputs and independently labeled evaluation |
 | #9 | End-to-end five-role Chromium and Firefox flows, dialog keyboard checks and release/incident procedure | Screen readers, full contrast audit, platform setup/release qualification, inherited dependency review and named owners |
 
 See the [handoff](OPSDESK_HANDOFF.md) for the developer transfer message and the [validation guide](OPSDESK_VALIDATION.md) for measurements and known limits.

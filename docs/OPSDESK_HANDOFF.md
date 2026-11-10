@@ -5,7 +5,7 @@ Prepared 10 November 2026. This document is the entry point for the next develop
 
 ## Current checkpoint on main
 
-PRs #15 through #23 are merged. The combined build and integration checks passed on Node 22.23.x with PostgreSQL 18. Clone `main` to pick up the complete changes. The [combined CI run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42774645178) covers logical recovery, 28 backend unit tests, 403 HTTP checks, 13 concurrency checks, both browser engines and the production dependency audit.
+PRs #15 through #24 are merged. The merged checkpoint for this handoff is `efbcb49`. Clone `main` for the merged implementation. The [combined CI run for PR #23](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42774645178) covers logical recovery, 28 backend unit tests, 403 HTTP checks, 13 concurrency checks, both browser engines and the production dependency audit.
 
 | Review | Change |
 | --- | --- |
@@ -15,6 +15,17 @@ PRs #15 through #23 are merged. The combined build and integration checks passed
 | [#20](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/20) | Keyboard navigation, dialog names and focus restoration |
 | [#21](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/21) | Firefox coverage for all five roles, built on #20 |
 | [#22](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/22) | Atomic session rotation and safe handling of late browser responses |
+| [#24](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/24) | Worker process termination and restart rehearsal with durable escalation checks |
+
+### Follow-up work in review
+
+These checkpoints are on GitHub in open PRs. They were outside the merged `main` baseline when this handoff was updated.
+
+| PR | Ready for review | Still open |
+| --- | --- | --- |
+| [#25](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/25) | Offline classifier evaluation, revised keyword rules and CI regression checks. [CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42796372823). | Independently labeled evaluation, redaction and any external AI provider |
+| [#26](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/26) | Manager acknowledgment clears the notification while preserving the original escalation and audit event. [CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42798095400). | Escalation ownership, external delivery, SLA calendars and membership administration |
+| [#27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) | [Booking export validation and read-only reconciliation](OPSDESK_BOOKING_EXPORT.md) check mapped identities and flag stale updates, cancellations and conflicts. Twelve local tests passed. | Verify local ownership in PostgreSQL, choose a provider adapter, and apply approved changes with transaction and retry protection |
 
 Use Node 22.23.x. Run the seeded preview, then `npm run ops:test` and `npm run ops:test:browser`. Repeat the browser command with `OPSDESK_BROWSER_ENGINE=firefox`. For recovery, follow the [isolated recovery runbook](OPSDESK_RECOVERY.md). The hosted workflow runs recovery, both builds, the API suites, multi-connection checks, both browsers and the production dependency audit.
 
@@ -293,7 +304,9 @@ These are not implemented promises. Start with product acceptance and production
 >
 > The merged work includes scoped ticket locks, restart-safe escalation, logical restore checks, production configuration checks, atomic token rotation, and Chromium and Firefox regression coverage. The recovery rehearsal now kills a worker mid-transaction and verifies the replacement completes the interrupted case with one durable escalation alert per case. See the validation and recovery guides for reproduction.
 >
-> Start the live-pilot work with #2 and #3. Get the owner's access and retention decisions, a staging target, monitored PostgreSQL and Redis, recovery objectives and a named incident owner. Exercise the six scenarios on staging with approved data. Then implement email and attachments (#4), booking and supplier adapters (#5), calendar and membership policies (#6), load targets and reporting (#7), optional grounded AI evaluation (#8), and remaining accessibility and release checks (#9). Record evidence in each issue before closing it. All changes belong in this repository.
+> Review PRs #25–#27 before relying on the classifier follow-up, escalation acknowledgment or booking preflight in `main`. For booking integration, the next step is to verify the approved mapping against OpsDesk's database and define transactional apply behavior, including what existing cases should do when a booking is cancelled. The current planner writes nothing.
+>
+> Start the live-pilot work with #2 and #3. Get the owner's access and retention decisions, a staging target, monitored PostgreSQL and Redis, recovery objectives and a named incident owner. Exercise the six scenarios on staging with approved data. Then follow the backlog for provider integrations, operations, performance and release qualification. Record evidence in each issue before closing it.
 
 ## Release and incident checks
 
