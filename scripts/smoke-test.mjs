@@ -260,9 +260,8 @@ try {
     "/ops/tickets",
     other,
     {
-      title: "Booking reference outside this agency",
-      description:
-        "Save the complaint without linking the other agency’s booking.",
+      title: "Flight date no longer works",
+      description: "Please change my outbound flight to Saturday.",
       bookingReference: "BK-1042",
       customerId: "customer-1",
     },
@@ -272,6 +271,7 @@ try {
   created.push(foreignReference.id);
   assert.equal(foreignReference.bookingId, null);
   assert.equal(foreignReference.agencyId, "horizon");
+  assert.equal(foreignReference.category, "BOOKING_CHANGE");
   const unmatched = await call(
     "/ops/tickets",
     customer,
@@ -300,9 +300,9 @@ try {
     "/ops/tickets",
     customer,
     {
-      title: "Smoke test recurring refund",
+      title: "Payment still outstanding",
       description:
-        "Our refund for booking BK-1042 is still pending after previous contacts.",
+        "Please reverse the charge for booking BK-1042 as previously agreed.",
       bookingReference: "BK-1042",
     },
     "POST",

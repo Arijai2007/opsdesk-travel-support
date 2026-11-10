@@ -41,6 +41,9 @@ export function classify(text: string): string {
   if (
     /\b(?:reschedul\w*|amend\w*)\b|\b(?:move|change|correct)\b[^.!?;]{0,55}\b(?:booking|reservation|arrival|check[ -]?in|dates?|ticket|name|time)\b/.test(
       complaint,
+    ) ||
+    /\b(?:move|change)\s+(?:(?:my|our|the|this|return|outbound|inbound)\s+){0,4}(?:flight|trip|seat|train)\b/.test(
+      complaint,
     )
   )
     return 'BOOKING_CHANGE';
