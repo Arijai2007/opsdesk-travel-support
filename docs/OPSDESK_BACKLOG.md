@@ -4,13 +4,11 @@
 
 These are remaining implementation and acceptance tasks. **Deployment is paused: finish local features, verification and review first, as requested by the user.** P0 items remain gates before live data; no external API is required for the synthetic local demo. The free-demo deployment preparation is saved separately and is not part of this feature branch.
 
-Immediate order: review and verify the current SLA-calendar/coverage feature; complete remaining contract and shift-handoff policies; add email/attachments; add a provider-neutral booking adapter with an explicit owner policy for creation/cancellation. Independent evaluation, accessibility, load and recovery acceptance remain open. Detailed entry files and acceptance steps are in [handoff section 13](OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order).
+Immediate order: complete remaining agency-contract and escalation-rotation policies; add email/attachments; add a provider-neutral booking adapter with an explicit owner policy for creation/cancellation. Independent evaluation, accessibility, load and recovery acceptance remain open. Detailed entry files and acceptance steps are in [handoff section 13](OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order).
 
-## Current local SLA/coverage increment
+## Merged SLA and coverage features
 
-PR #28 is merged at `6e97b6f` and its hosted validation passed. This follow-up implements agency-level business calendars, local holidays/timezones, per-cycle snapshots, explicit remaining-budget pause/resume, profile shifts for new assignments and audited escalation ownership/handoff. See [scope and limits](OPSDESK_SLA_CALENDARS.md) and the validation report. Calendar/shift configuration is manager-only; paused cases retain real travel/supplier deadlines. Missing coverage leaves intake unassigned and escalations unowned.
-
-Remaining feature acceptance: multiple independent contracts per agency, supplier business calendars, automatic existing-agent workload handoff and richer escalation rotations. Then continue live email/outbox/inbound signatures, secure attachments and provider-neutral booking integration. Independent evaluation, broad accessibility/concurrency/load checks and live-data access/retention/recovery decisions remain unfinished. Deployment is paused.
+PRs #29–#31 are merged. Agency and supplier calendars, response snapshots, pause/resume, duty coverage, audited escalation ownership and opt-in existing-workload handoff are delivered and verified. Continue with multiple agency contracts and richer escalation rotations, then email, attachments and provider adapters. See the current handoff for exact evidence and production acceptance work.
 
 ## [P0] Confirm acceptance criteria and harden travel access boundaries
 
@@ -149,7 +147,7 @@ The merged application checkpoint is `6e97b6f`, including PRs #25-#28. [PR #28 C
 | #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Deployment paused; later configure approved hosting, secrets/managed services, incident ownership, staging restoration and operational retention |
 | #4 | Supplier and customer conversations persist with scoped visibility | Live mail provider, signatures, delivery outbox, retries, threading and secure attachments |
 | #5 | Seeded booking links and editable schedules. Merged [PR #27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) adds export preflight, PostgreSQL ownership verification and transactional apply for approved changes to existing synthetic bookings. | Provider-specific adapter, approved booking creation and production case handling for cancellations and schedule changes |
-| #6 | Agent specialties, capacities, versioned response targets and manager alert acknowledgment | Review current calendar/shift/ownership work; multi-contract calendars, automatic agent workload handoff and any future scope-change policy |
+| #6 | Agent specialties, capacities, versioned response targets and manager alert acknowledgment | Review current calendar/shift/ownership work; multi-contract calendars, escalation rotations and any future scope-change policy |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
 | #8 | Deterministic record-based briefs and a reproducible synthetic classification baseline | Provider choice, redaction, structured grounded outputs and independent held-out evaluation |
 | #9 | End-to-end five-role Chromium and Firefox flows, dialog keyboard checks and release/incident procedure | Screen readers, full contrast audit, platform setup/release qualification, inherited dependency review and named owners |

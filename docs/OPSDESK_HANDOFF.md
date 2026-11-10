@@ -1,73 +1,55 @@
-# Current workload-handoff checkpoint
+# OpsDesk developer handoff
 
-**Supplier calendar handoff.** PR #30 is merged. This follow-up starts from main `243d473`. The manager editor, supplier policy version and current thread-cycle snapshot are implemented. See the supplier-response section in the SLA guide, the new supplier-calendar HTTP harness and the SLA browser flow. To reproduce, run the isolated preview on Node 22.23.x, then `node scripts/supplier-calendar-smoke.mjs` and `node scripts/sla-browser.mjs` in Chromium and Firefox. Large-scale scheduling and multiple contracts within one agency remain open. Deployment remains paused.
+Checkpoint prepared 10 November 2026. The application checkpoint is main `cdd7d3581378d2d5090258a8ee1112c23a837af6`. PRs #29, #30 and #31 are merged. Deployment is paused at the user's instruction.
 
-The current branch reconstructs the missing uncommitted handoff implementation on top of merged PR #29, main 12114c6. Local validation passed both builds, 62 unit tests, 548 existing HTTP checks, 19 existing concurrency checks, 33 workload checks, original/membership/SLA flows in Chromium and Firefox, 17 offline checks and PostgreSQL booking integration. See the validation report for failures and limits. Deployment remains paused.
+## Completed at this checkpoint
 
-**Message for the next developer**
+- Booking-linked case history, agency/customer/regional-agent/supplier access, internal notes and persistent supplier threads.
+- Searchable paged inbox and histories, server-side Insights, booking export tooling and an offline classification baseline.
+- Manager membership administration with invitations, activation, suspension, session invalidation and audit records.
+- Agency business calendars, holidays and IANA zones, saved response-cycle policies, staff pause/resume, duty calendars and escalation ownership.
+- Opt-in automatic workload coverage handoff. Eligible current owners stay assigned. Replacement selection uses membership, availability, shifts, region, specialties and capacity. Manual assignment disables automation. Missing coverage leaves the case unassigned for a later sweep.
+- Supplier response calendars and configurable hours. Each new request, staff follow-up or reopened thread saves the current policy and due date. Existing cycles keep their due dates after a policy edit. The default is four elapsed hours.
+- Per-ticket locking, bounded sweeps, duplicate-free alerts, atomic session rotation, startup checks and synthetic recovery/worker termination rehearsals.
 
-> Review the workload-handoff PR against main 12114c6 and check its hosted validation before merging. It defaults to disabled and lets managers opt active cases into audited automatic coverage handoff. Covered owners stay assigned, replacement uses existing membership/shift/region/specialty/capacity rules, and a manual assignment disables automation. Verify the 100-row candidate pass and capacity-before-ticket lock ordering. Run the full regression and browser commands in the validation guide. Next tackle multiple agency contracts, supplier calendars and richer escalation rotations, then email/outbox/inbound signatures, secure attachments and provider-neutral booking integration. Preserve privacy, membership/session guards and immutable SLA snapshots. Deployment remains paused. The older uncommitted ASUS preview-shutdown checkout and the unavailable Arihant checkout are separate work.
+The workload feature was reconstructed on ASUS from the pasted policy because the Arihant uncommitted checkout was unavailable. The older unrelated uncommitted ASUS preview-shutdown checkout was preserved.
 
-# OpsDesk — project handoff
+## Verification
 
-> **DEPLOYMENT PAUSED: complete local features, verification and review first.** This is the user’s current instruction. Do not provision hosting, apply the saved deployment preparation or publish a demo until the user resumes deployment.
+[PR #31 hosted validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42840920345) passed for code head `2b77f073b17f7e32c4e4f1d8d389405630bacccf`. It runs both builds, recovery and worker termination, all API and concurrency suites, booking integration, Chromium, Firefox and the production dependency audit.
 
-Prepared 10 November 2026. This document is the entry point for the next developer. It describes the delivered localhost prototype, the implementation boundaries, and the work required to turn it into an operational travel-support product.
+Local checks passed on Node 22.23.0 and PostgreSQL 18.6. The supplier increment passed both builds, 62 unit tests, 20 supplier HTTP checks with deadline/snapshot assertions, changed-file lint and both updated SLA browser flows. The preceding workload increment passed 548 baseline HTTP checks, 19 baseline concurrency checks, 33 workload checks, six browser flows, 17 offline checks and booking integration. The [validation report](OPSDESK_VALIDATION.md) retains exact failures, corrections and checks omitted locally.
 
+## Run and reproduce
 
-## Current local feature: SLA calendars and coverage
+Use Node 22.23.x and an isolated synthetic database. From a fresh clone of this repository, run the following.
 
-Based on merged PR #28, main `6e97b6f`. The hosted validation for head `3b07fa4` passed before implementation; deployment preparation was not touched. Work is isolated in `codex/opsdesk-sla-calendars` so older uncommitted changes remain intact.
+```text
+npm ci
+npm run ops:preview
+```
 
-Implemented opt-in agency business calendars with local holidays and IANA zones; immutable per-cycle snapshots; explicit staff pause/resume of remaining service time; agent/manager shift calendars; and row-locked, audited escalation owner handoff with an unowned fallback. Existing elapsed-hour targets and continuous coverage remain defaults. Priority and real travel/supplier deadlines continue during response pauses. New and reopened cases use the current policy; active cycles retain their snapshot. See [the policy contract and API/UI guide](OPSDESK_SLA_CALENDARS.md) and [exact validation evidence](OPSDESK_VALIDATION.md).
+Open http://127.0.0.1:3000. All demo accounts use `OpsDeskDemo!2026`. Start with `manager@opsdesk.demo`, case OPS-1042 and booking BK-1042. The account table below lists the other roles. Run only one launcher at a time.
 
-Still open: multiple contracts inside an agency, supplier business calendars, automatic handoff of existing agent workload, more detailed escalation rotations, live mail and attachments, provider integration, independent AI evaluation, broad accessibility/load qualification and live-data policies. This increment does not complete the whole product. Deployment is paused.
+Run `npm run ops:test` against the isolated preview. Install browsers with `npx playwright install chromium firefox`, then run `npm run ops:test:browser` for Chromium and again with `OPSDESK_BROWSER_ENGINE=firefox`. The supplier-only command is `node scripts/supplier-calendar-smoke.mjs`. The [recovery guide](OPSDESK_RECOVERY.md) explains its separate maintenance connection and PostgreSQL client requirements. Configuration, database files and secrets are excluded from Git.
 
-## Current checkpoint on main
+## Remaining work and next order
 
-PRs #15 through #28 are merged. The application baseline is `6e97b6f`. [PR #28 CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42812617605): both builds, synthetic recovery, `ops:test`, booking integration, Chromium, Firefox and the production dependency audit. This is the reviewed PR #28 baseline; its hosted validation passed. Earlier local browser interruptions are historical and remain recorded below. Earlier validation remains historical evidence for its stated checkpoint.
+1. Add multiple independent agency contracts and explicit contract selection with agency-scoped authorization. Add richer escalation rotations and define override behavior.
+2. Implement mail outbox, retries, inbound signatures/threading and secure attachments. Live delivery needs the chosen provider's credentials and verified sender.
+3. Extend booking tooling through a provider-neutral adapter with agreed creation/cancellation policy and stable scoped identities.
+4. Complete independent AI evaluation, screen-reader/contrast checks, realistic skewed load and operational recovery acceptance.
+5. Obtain owner approval for live-data tenancy, retention and account closure. When deployment is resumed, configure hosting, managed PostgreSQL/Redis, secret storage, monitoring and named incident/recovery ownership.
 
-| Review | Change |
-| --- | --- |
-| [#17](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/17) | Per-ticket locks, bounded escalation sweeps, concurrency and reconnect checks |
-| [#18](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/18) | Rehearsal of a synthetic PostgreSQL backup and restore |
-| [#19](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/19) | Production startup configuration checks |
-| [#20](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/20) | Keyboard navigation, dialog names and focus restoration |
-| [#21](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/21) | Firefox coverage for all five roles, built on #20 |
-| [#22](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/22) | Atomic session rotation and safe handling of late browser responses |
-| [#24](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/24) | Worker process termination and restart rehearsal with durable escalation checks |
+Issues #2–#9 retain these unfinished acceptance items. Use the [backlog](OPSDESK_BACKLOG.md) and [SLA policy guide](OPSDESK_SLA_CALENDARS.md). No PR remains pending from this feature checkpoint. The final handoff change contains documentation only.
 
-### Merged follow-ups
+## Message to forward
 
-PRs #25–#27 are merged into the application baseline above. Their remaining integration work remains open.
+> Continue OpsDesk in DhruvKhanna7777/opsdesk-travel-support from latest main. PRs #29–#31 are merged and PR #31 CI passed. Read docs/OPSDESK_HANDOFF.md, docs/OPSDESK_BACKLOG.md, docs/OPSDESK_VALIDATION.md and docs/OPSDESK_SLA_CALENDARS.md. Use Node 22.23.x and reproduce the seeded five-role workflow. Agency and supplier calendars, immutable case-cycle policies, pause/resume, membership/session protections and opt-in workload handoff are delivered. Next implement multiple agency contracts and richer escalation rotations, then email/attachments and provider-neutral booking integration. Preserve authorization, capacity limits, historical references, saved deadlines and audit/idempotency behavior. Update documentation and exact verification evidence with each increment, push to our repository and open a PR targeting main. Deployment remains paused.
 
-| Merged PR | Delivered | Still open |
-| --- | --- | --- |
-| [#25](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/25) | Offline classifier evaluation, revised keyword rules and CI regression checks. [CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42796372823). | Independently labeled evaluation, redaction and any external AI provider |
-| [#26](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/26) | Manager acknowledgment clears the notification while preserving the original escalation and audit event. [CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42798095400). | Escalation ownership, external delivery, SLA calendars and membership administration |
-| [#27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) | [Booking export preflight](OPSDESK_BOOKING_EXPORT.md), PostgreSQL ownership verification and opt-in transactional apply for existing synthetic bookings. Local validation passed 12 offline tests and a fresh PostgreSQL rehearsal. | Choose a provider adapter, approve a creation flow and define production case behavior on cancellation |
+## Architecture and historical implementation notes
 
-Use Node 22.23.x. Run the seeded preview, then `npm run ops:test` and `npm run ops:test:browser`. Repeat the browser command with `OPSDESK_BROWSER_ENGINE=firefox`. For recovery, follow the [isolated recovery runbook](OPSDESK_RECOVERY.md). The hosted workflow runs recovery, both builds, the API suites, multi-connection checks, both browsers and the production dependency audit.
-
-### Membership administration (merged PR #28)
-
-PR #28 merged local membership provisioning into main. Its hosted validation passed before this follow-up started. Managers can create agencies/suppliers, search and page memberships and audit events, issue/reissue 24-hour invitations, and suspend/reactivate members with a reason. The agency/supplier selectors also search and page through manager-only API endpoints.
-
-Invitation secrets are returned once as manual `/activate` links with a `token` URL fragment; only SHA-256 hashes are stored. The public activation page clears the fragment after capture, accepts a strong password and does not automatically sign in. Reissue revokes earlier invitations; acceptance is single-use under a transaction. There is no email delivery. Acceptance limits expensive valid-invitation work to 20 attempts per invitation and connection IP per 15 minutes; invalid tokens allocate no counter. Forwarded headers are not blindly trusted as client identity.
-
-Suspension preserves cases, messages and ownership, prevents login and new assignments, revokes refresh sessions and advances the membership session version. Reactivation does not restore old tokens. Managers cannot suspend themselves or the last active manager; invited members must accept their invitation. Role, agency, supplier and region scopes remain immutable, preventing historical records from being moved across access boundaries. Generic public registration still does not create travel membership.
-
-Membership changes use the existing capacity lock and recheck actor/target state transactionally. Refresh uses a per-profile `FOR SHARE` lock rather than the global capacity lock, preserving concurrent single-use token rotation. See [feature design](superpowers/specs/2026-11-10-membership-admin-design.md) and [current verification evidence](OPSDESK_VALIDATION.md#current-membership-branch-validation-10-november-2026).
-
-Observed branch checks: 42 backend unit tests in four suites, 492 real HTTP checks (80 membership plus 412 existing), 13 concurrency checks, both builds and changed-file lint passed. The membership browser flow passed in the Chromium-based `msedge` channel before the final quota change and new keyboard assertions. The final local Chromium/Firefox sequence was stopped at the user's request to prioritize GitHub publication, so it has no completed result. Independent review found a shared activation-quota issue; the fix passed unit and real HTTP checks. The validation guide records each observed failure, cause, fix and result. These checks do not complete the remaining backlog.
-
-**Next developer actions:** finish the verification/review/merge gate below, then continue calendars, shifts and escalation ownership. Deployment preparation is saved separately in Git stash `Paused free demo deployment preparation` on `codex/opsdesk-integrated-validation`; it is not included in this membership branch and must remain paused. The previously selected Vercel/Render/Neon/Upstash stack and future Resend adapter do not establish a connected account, deployed service or email delivery.
-
-### Historical query-scaling baseline (10 November 2026)
-
-PR #15 is merged. This follow-up was rebased onto latest main `f865ea9` after reviewing that merge; its source matches the tested `d75efbb` directory baseline. Profiling now covers 6,000 extra bookings, 18,000 cases and 54,000 messages using the real directory, inbox and Insights queries. People authorization now materializes the scoped ID set once rather than repeating correlated checks for every profile. A covering customer-message index improves first-response reporting. See [query plans, timings, reproduction and limits](OPSDESK_QUERY_PROFILE.md).
-
-Validation on pinned Node.js 22.23.0 passed both builds, 9 unit tests, 400 HTTP checks and browser flows. The directory tests now include people visible only through an unbooked case or supplier-thread message. Full backend lint errors in inherited files remain; changed-file lint passes. Global lock behavior was measured but locking is unchanged. Staging, real-world data distributions, read/write load targets and live-data readiness remain open.
+The following sections retain the detailed architecture, API and earlier validation history. The checkpoint and remaining-work list above supersede older branch-status descriptions.
 
 ## 1. Repository and review order
 
