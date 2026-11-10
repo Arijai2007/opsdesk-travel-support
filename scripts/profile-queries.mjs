@@ -7,6 +7,8 @@ import { performance } from "node:perf_hooks";
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../backend/dist/generated/prisma/client.js";
+import { TravelMailService } from "../backend/dist/src/travel/travel-mail.service.js";
+import { SyntheticTravelMailTransport } from "../backend/dist/src/travel/travel-mail.transport.js";
 import { TravelService } from "../backend/dist/src/travel/travel.service.js";
 
 // Dedicated disposable database only: never populate the application database.
@@ -91,7 +93,10 @@ try {
     adapter: new PrismaPg({ connectionString: url.href }),
     log: [{ emit: "event", level: "query" }],
   });
-  const service = new TravelService(db);
+  const service = new TravelService(
+    db,
+    new TravelMailService(db, new SyntheticTravelMailTransport()),
+  );
   let queries = [];
   db.$on("query", (event) =>
     queries.push({

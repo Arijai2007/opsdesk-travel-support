@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import pg from "pg";
 import { PrismaService } from "../backend/dist/prisma/prisma.service.js";
+import { TravelMailService } from "../backend/dist/src/travel/travel-mail.service.js";
+import { SyntheticTravelMailTransport } from "../backend/dist/src/travel/travel-mail.transport.js";
 import { TravelService } from "../backend/dist/src/travel/travel.service.js";
 import { addServiceTime } from "../backend/dist/src/travel/sla-calendar.js";
 Object.assign(
@@ -16,8 +18,14 @@ const base = process.env.OPSDESK_TEST_URL || "http://127.0.0.1:3001";
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaService(),
   peerDb = new PrismaService(),
-  service = new TravelService(db),
-  peer = new TravelService(peerDb);
+  service = new TravelService(
+    db,
+    new TravelMailService(db, new SyntheticTravelMailTransport()),
+  ),
+  peer = new TravelService(
+    peerDb,
+    new TravelMailService(peerDb, new SyntheticTravelMailTransport()),
+  );
 const prefix = "sla-" + randomUUID().slice(0, 8),
   agency = prefix + "-agency",
   customer = prefix + "-customer",

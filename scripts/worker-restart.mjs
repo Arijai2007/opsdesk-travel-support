@@ -123,9 +123,16 @@ if (
     await import("../backend/dist/prisma/prisma.service.js");
   const { TravelService } =
     await import("../backend/dist/src/travel/travel.service.js");
+  const { TravelMailService } =
+    await import("../backend/dist/src/travel/travel-mail.service.js");
+  const { SyntheticTravelMailTransport } =
+    await import("../backend/dist/src/travel/travel-mail.transport.js");
   const db = new PrismaService();
   try {
-    await new TravelService(db).sweep();
+    await new TravelService(
+      db,
+      new TravelMailService(db, new SyntheticTravelMailTransport()),
+    ).sweep();
   } finally {
     await db.$disconnect();
   }

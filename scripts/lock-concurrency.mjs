@@ -6,6 +6,8 @@ import { performance } from "node:perf_hooks";
 import dotenv from "dotenv";
 import pg from "pg";
 import { PrismaService } from "../backend/dist/prisma/prisma.service.js";
+import { TravelMailService } from "../backend/dist/src/travel/travel-mail.service.js";
+import { SyntheticTravelMailTransport } from "../backend/dist/src/travel/travel-mail.transport.js";
 import { TravelService } from "../backend/dist/src/travel/travel.service.js";
 Object.assign(
   process.env,
@@ -16,8 +18,14 @@ assert.equal(new URL(process.env.DATABASE_URL).hostname, "127.0.0.1");
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaService(),
   otherDb = new PrismaService();
-const service = new TravelService(db),
-  other = new TravelService(otherDb);
+const service = new TravelService(
+    db,
+    new TravelMailService(db, new SyntheticTravelMailTransport()),
+  ),
+  other = new TravelService(
+    otherDb,
+    new TravelMailService(otherDb, new SyntheticTravelMailTransport()),
+  );
 const originalAvailability = await db.travelProfile.findUniqueOrThrow({
   where: { userId: "agent-asia" },
   select: { available: true },
@@ -159,7 +167,10 @@ try {
   await otherDb.$disconnect();
   const restartedDb = new PrismaService();
   try {
-    await new TravelService(restartedDb).sweep();
+    await new TravelService(
+      restartedDb,
+      new TravelMailService(restartedDb, new SyntheticTravelMailTransport()),
+    ).sweep();
   } finally {
     await restartedDb.$disconnect();
   }

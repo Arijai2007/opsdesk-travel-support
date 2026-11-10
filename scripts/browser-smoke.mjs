@@ -232,8 +232,31 @@ try {
   await customerThread.getByText(customerReply, { exact: true }).waitFor();
   // Exercise actual browser page navigation with a history larger than one page.
   const testCase = (
-    await pool.query('SELECT id FROM "TravelTicket" WHERE title = $1', [title])
+    await pool.query(
+      'SELECT id, reference FROM "TravelTicket" WHERE title = $1',
+      [title],
+    )
   ).rows[0];
+  await manager
+    .getByRole("button", { name: "Mail outbox", exact: true })
+    .click();
+  const mailDialog = manager.getByRole("dialog", {
+    name: "Mail outbox",
+    exact: true,
+  });
+  await mailDialog.getByText(/Delivery paused/).waitFor();
+  const ownMail = mailDialog
+    .getByRole("listitem")
+    .filter({ hasText: testCase.reference });
+  await ownMail
+    .getByRole("button", { name: "Cancel job", exact: true })
+    .first()
+    .click();
+  await ownMail
+    .getByText(/· Cancelled ·/)
+    .first()
+    .waitFor();
+  await mailDialog.getByRole("button", { name: "Close dialog" }).click();
   for (let i = 0; i < 23; i++) {
     await pool.query(
       'INSERT INTO "TravelMessage" (id, "ticketId", "senderId", visibility, content, "createdAt") VALUES ($1,$2,$3,$4,$5,$6)',
@@ -304,6 +327,12 @@ try {
     viewport: { width: 390, height: 844 },
   });
   await customer.getByRole("button", { name: /All cases/ }).click();
+  assert.equal(
+    await customer
+      .getByRole("button", { name: "Mail outbox", exact: true })
+      .count(),
+    0,
+  );
   await openCase(customer, title, title);
   await customer
     .getByRole("button", { name: "Older messages", exact: true })

@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+The [synthetic mail outbox](docs/OPSDESK_MAIL_OUTBOX.md) starts paused. Managers can inspect and manage queued staff replies. The optional synthetic worker sends no external mail.
+
 Managers can configure ordered **Escalation rotations** for each region, with a Global fallback, UTC slot cadence and on-duty backup managers. Case controls support manual coverage holds and explicit timed expiry; coverage loss always ends a hold. Existing response policies and deadlines are preserved. [Rotation, fallback and override behavior](docs/OPSDESK_SLA_CALENDARS.md#escalation-rotations-and-manual-holds)
 
 Managers can now create independent **Agency contracts** under **Needs attention > SLA calendars and duty coverage**. Each has versioned response hours and a calendar. Intake explicitly selects an active contract once an agency has contracts. Existing cases retain their references and saved deadlines; retiring a contract blocks new selection. [Contract authorization, reopen behavior and API](docs/OPSDESK_SLA_CALENDARS.md#multiple-agency-contracts)

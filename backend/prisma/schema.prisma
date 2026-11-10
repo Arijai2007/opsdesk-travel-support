@@ -258,9 +258,35 @@ model TravelMessage {
   visibility String
   content String
   createdAt DateTime @default(now())
+  mailJob TravelMailJob?
   @@index([ticketId, createdAt])
   @@index([ticketId, visibility, createdAt, id, senderId])
   @@index([conversationId, createdAt, id])
+}
+
+model TravelMailJob {
+  id String @id @default(cuid())
+  messageId String @unique
+  message TravelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  recipient String
+  status String @default("QUEUED")
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseUntil DateTime?
+  leaseToken String?
+  createdAt DateTime @default(now())
+  history TravelMailAttempt[]
+  @@index([status, nextAttemptAt])
+}
+
+model TravelMailAttempt {
+  id String @id @default(cuid())
+  jobId String
+  job TravelMailJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  outcome String
+  actorId String?
+  createdAt DateTime @default(now())
+  @@index([jobId, createdAt])
 }
 
 model TravelEvent {

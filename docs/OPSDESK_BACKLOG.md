@@ -1,5 +1,7 @@
 # OpsDesk — prioritized remaining work
 
+The [synthetic mail outbox](OPSDESK_MAIL_OUTBOX.md) now queues staff replies transactionally and supports manager retry and cancellation. Live delivery, verified sender setup, inbound signature verification, threading and secure attachments remain open under #4.
+
 **Current increment: escalation rotations and manual holds (issue #6).** Ordered regional/global UTC rotations, on-duty backups, explicit coverage gaps and coverage-only/timed overrides are implemented. Existing agency contracts are merged in PR #33 with passing hosted validation. See the [policy contract](OPSDESK_SLA_CALENDARS.md#escalation-rotations-and-manual-holds) and [exact validation](OPSDESK_VALIDATION.md). Deployment remains paused.
 
 Next: transactional email outbox/retries, signed inbound webhooks and secure attachments; provider-neutral booking integration; independent AI evaluation, accessibility, realistic load and operational recovery acceptance.
