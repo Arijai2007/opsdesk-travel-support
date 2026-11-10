@@ -408,10 +408,23 @@ select:focus {
   text-align: left;
   padding: 12px 0;
   border: 0;
-  border-bottom: 1px solid var(--line);
   background: none;
   color: #52685c;
   font-size: 12px;
+}
+.od-notice-row {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.od-notices .od-acknowledge-alert {
+  padding-top: 0;
+  margin-left: auto;
+  text-decoration: underline;
+}
+.od-notices .od-acknowledge-alert:disabled {
+  opacity: 0.55;
 }
 .od-notices button svg {
   flex-shrink: 0;

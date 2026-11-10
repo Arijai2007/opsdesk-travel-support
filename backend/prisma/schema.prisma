@@ -226,6 +226,7 @@ model TravelEvent {
   actorId String
   uniqueKey String? @unique
   createdAt DateTime @default(now())
+  acknowledgedAt DateTime?
   @@index([ticketId, createdAt])
 }
 

@@ -51,8 +51,14 @@ async function openCase(page, search, name) {
 try {
   const channel = process.env.OPSDESK_BROWSER_CHANNEL;
   const engine = process.env.OPSDESK_BROWSER_ENGINE || "chromium";
-  assert(["chromium", "firefox"].includes(engine), "Choose chromium or firefox");
-  assert(!channel || engine === "chromium", "Browser channels require Chromium");
+  assert(
+    ["chromium", "firefox"].includes(engine),
+    "Choose chromium or firefox",
+  );
+  assert(
+    !channel || engine === "chromium",
+    "Browser channels require Chromium",
+  );
   const browserType = engine === "firefox" ? firefox : chromium;
   browser = await browserType.launch(channel ? { channel } : {});
 
@@ -128,10 +134,16 @@ try {
     ),
     "Reverse Tab must remain in the modal",
   );
-  assert(!(await closeDialog.evaluate((button) => button === document.activeElement)));
+  assert(
+    !(await closeDialog.evaluate(
+      (button) => button === document.activeElement,
+    )),
+  );
   await manager.keyboard.press("Tab");
-  assert(await closeDialog.evaluate((button) => button === document.activeElement),
-    "Forward Tab from the last control must wrap to the first");
+  assert(
+    await closeDialog.evaluate((button) => button === document.activeElement),
+    "Forward Tab from the last control must wrap to the first",
+  );
   for (let i = 0; i < 16; i++) {
     await manager.keyboard.press("Tab");
     assert(
@@ -235,7 +247,31 @@ try {
       ],
     );
   }
+  const noticeText = `Browser test escalation for ${title}`;
+  await pool.query(
+    `INSERT INTO "TravelEvent" (id, "ticketId", kind, text, "actorId", "createdAt")
+     SELECT $1, $2, 'ESCALATED', $3, 'system',
+       greatest(max("createdAt"), now() AT TIME ZONE 'UTC') + interval '1 millisecond'
+     FROM "TravelEvent"`,
+    [randomUUID(), testCase.id, noticeText],
+  );
   await manager.reload();
+  const bell = manager.getByRole("button", {
+    name: "Notifications",
+    exact: true,
+  });
+  await bell.click();
+  const acknowledge = manager.getByRole("button", {
+    name: `Acknowledge: ${noticeText}`,
+    exact: true,
+  });
+  await acknowledge.press("Enter");
+  await manager.getByText("Alert acknowledged.", { exact: true }).waitFor();
+  await acknowledge.waitFor({ state: "hidden" });
+  assert(await bell.evaluate((element) => element === document.activeElement));
+  await bell.click();
+  assert.equal(await acknowledge.count(), 0);
+  await bell.click();
   await openCase(manager, title, title);
   await manager
     .getByRole("button", { name: "Older messages", exact: true })

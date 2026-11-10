@@ -39,6 +39,7 @@ import {
 type Tx = Prisma.TransactionClient;
 type Profile = Prisma.TravelProfileGetPayload<{ include: { user: true } }>;
 type Case = Prisma.TravelTicketGetPayload<object>;
+const ALERT_KINDS = ['ESCALATED', 'SUPPLIER_OVERDUE'];
 @Injectable()
 export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   private timer: ReturnType<typeof setInterval>;
@@ -786,13 +787,39 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
               ...(compact
                 ? { ticket: this.scope(p) }
                 : { ticketId: { in: ids } }),
-              kind: { in: ['ESCALATED', 'SUPPLIER_OVERDUE'] },
+              kind: { in: ALERT_KINDS },
+              acknowledgedAt: null,
             },
             orderBy: { createdAt: 'desc' },
             take: 30,
           })
         : [],
     };
+  }
+  async acknowledgeAlert(userId: string, ticketId: string, alertId: string) {
+    this.manager(await this.profile(userId));
+    return this.ticketLocked(ticketId, async (tx) => {
+      const alert = await tx.travelEvent.findFirst({
+        where: { id: alertId, ticketId, kind: { in: ALERT_KINDS } },
+        select: { id: true, text: true, acknowledgedAt: true },
+      });
+      if (!alert) throw new NotFoundException('Alert not found.');
+      if (alert.acknowledgedAt) return { acknowledgedAt: alert.acknowledgedAt };
+      const now = await this.now(tx);
+      await tx.travelEvent.update({
+        where: { id: alert.id },
+        data: { acknowledgedAt: now },
+      });
+      await this.event(
+        tx,
+        ticketId,
+        'ALERT_ACKNOWLEDGED',
+        `Acknowledged alert: ${alert.text}`,
+        userId,
+        now,
+      );
+      return { acknowledgedAt: now };
+    });
   }
   async create(userId: string, dto: NewTravelTicketDto) {
     return this.locked(async (tx) => {

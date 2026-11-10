@@ -69,7 +69,7 @@ Start: TravelBooking, TravelProfile, ticket create/update logic and seed-travel.
 Managers can edit booking schedules, agent specialties and capacity, and elapsed-hour agency response targets. Automatic routing considers category, region, availability, capacity and workload. New and reopened cases record the response policy applied.
 
 Acceptance:
-- Define per-contract SLA/business-hour/holiday calendars and escalation ownership/acknowledgment.
+- Define per-contract SLA/business-hour/holiday calendars and escalation ownership. Managers can already acknowledge alerts.
 - Add shifts and more detailed manual override policies.
 - Add manager administration for agencies, suppliers, agents, customers and travel memberships.
 - Specify reopen behavior and routing when coverage is unavailable.
@@ -136,7 +136,7 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 | #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Select hosting, provision secrets and managed services, assign incident ownership, test staging restoration and operational retention |
 | #4 | Supplier and customer conversations persist with scoped visibility | Live mail provider, signatures, delivery outbox, retries, threading and secure attachments |
 | #5 | Seeded booking links and editable schedules | Real read adapter or agreed export, identity mapping, cancellation and stale-update handling |
-| #6 | Agent specialties, capacities, response targets and versioned response policy | Contract calendars, shifts, manager membership administration and escalation acknowledgment |
+| #6 | Agent specialties, capacities, versioned response targets and manager alert acknowledgment | Contract calendars, shifts, manager membership administration and escalation ownership |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
 | #8 | Deterministic record-based briefs and classification | Provider choice, redaction, structured grounded outputs and held-out evaluation |
 | #9 | End-to-end five-role Chromium and Firefox flows, dialog keyboard checks and release/incident procedure | Screen readers, full contrast audit, platform setup/release qualification, inherited dependency review and named owners |
