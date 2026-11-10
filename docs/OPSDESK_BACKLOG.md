@@ -126,3 +126,5 @@ Acceptance:
 
 Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/smoke-test.mjs.
 
+
+Issue #9 progress: Chromium now exercises dialog naming, forward and reverse Tab wrapping, Escape, and focus restoration. Screen-reader testing, cross-browser behavior and a full contrast review remain open.

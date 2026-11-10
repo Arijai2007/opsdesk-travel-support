@@ -100,3 +100,5 @@ Before live data, confirm production access rules, choose staging, rehearse back
 | [Upstream README](docs/IT_HELPDESK_README.md) | Historical IT Helpdesk documentation |
 
 The original repository history and authorship are retained. The included Bitext Travel examples are complaint wording samples, not actual bookings or supplier policies; their attribution and terms are recorded in the sources guide.
+
+Workspace dialogs support keyboard navigation with Tab, Shift+Tab and Escape. Closing a dialog returns focus to its launcher when it is still on the page.

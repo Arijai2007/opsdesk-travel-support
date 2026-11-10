@@ -1995,3 +1995,10 @@ select:focus {
     scroll-behavior: auto !important;
   }
 }
+
+/* Keep keyboard focus visible in controls whose base style suppresses outlines. */
+.od-search input:focus-visible,
+.od-composer textarea:focus-visible {
+  outline: 3px solid #28765b !important;
+  outline-offset: 3px;
+}
