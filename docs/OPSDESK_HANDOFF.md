@@ -281,3 +281,5 @@ These are not implemented promises. Start with product acceptance and production
 ## Dialog keyboard access
 
 The shared workspace dialog uses its heading as its accessible name, wraps focus in both directions and restores the launcher on dismissal. Search and message fields have visible keyboard focus, and sign-in errors are announced as alerts. Run npm run ops:test:browser against the seeded preview to reproduce the keyboard checks. The remaining accessibility work in issue #9 includes assistive technology, contrast, and additional browsers.
+
+The five-role flow now also passes in Playwright Firefox on Windows. CI runs the same workflow sequentially in Chromium and Firefox. A Chromium channel override must be cleared before selecting Firefox.

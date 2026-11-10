@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import pg from "pg";
-import { chromium } from "playwright";
+import { chromium, firefox } from "playwright";
 
 const env = dotenv.parse(
   readFileSync(new URL("../backend/.env", import.meta.url)),
@@ -50,7 +50,11 @@ async function openCase(page, search, name) {
 
 try {
   const channel = process.env.OPSDESK_BROWSER_CHANNEL;
-  browser = await chromium.launch(channel ? { channel } : {});
+  const engine = process.env.OPSDESK_BROWSER_ENGINE || "chromium";
+  assert(["chromium", "firefox"].includes(engine), "Choose chromium or firefox");
+  assert(!channel || engine === "chromium", "Browser channels require Chromium");
+  const browserType = engine === "firefox" ? firefox : chromium;
+  browser = await browserType.launch(channel ? { channel } : {});
 
   const manager = await signIn("manager");
   await manager.getByRole("button", { name: /All cases/ }).click();

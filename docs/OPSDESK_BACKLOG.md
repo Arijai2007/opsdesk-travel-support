@@ -128,3 +128,5 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 
 
 Issue #9 progress: Chromium now exercises dialog naming, forward and reverse Tab wrapping, Escape, and focus restoration. Screen-reader testing, cross-browser behavior and a full contrast review remain open.
+
+Issue #9 browser coverage now includes Chromium and Firefox for the five-role end-to-end path. WebKit, assistive technology, contrast and delivery-failure recovery remain open.
