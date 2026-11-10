@@ -2,6 +2,8 @@
 
 ## Latest continuation checkpoint
 
+PR #43 is merged: main at `4b755a4` now contains the work from #40–#42. Start new work from latest main. The [free-first resource options](OPSDESK_NEXT_TEAMMATE.md#free-first-options-for-remaining-work) list local/open-source tools, provider free tiers, limits and remaining acceptance requirements. No provider was selected or connected by this documentation update.
+
 Read [the complete next-teammate handoff](OPSDESK_NEXT_TEAMMATE.md) first. It records the published PR stack, exact completed behavior, validation evidence, accessibility failures, remaining work and copy-ready continuation message. It supersedes older checkpoint status below. Deployment remains paused.
 
 ## Booking approvals increment
