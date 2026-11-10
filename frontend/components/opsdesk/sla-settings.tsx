@@ -370,6 +370,39 @@ export function TicketSlaControls({
       </form>
       {manager && (
         <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const reason = String(
+              new FormData(event.currentTarget).get("reason"),
+            );
+            void mutate(
+              `tickets/${ticket.id}/handoff-policy`,
+              { enabled: !ticket.autoHandoff, reason },
+              "Workload handoff policy updated.",
+              "PATCH",
+            ).catch(() => {});
+          }}
+        >
+          <p>
+            Automatic workload handoff{" "}
+            {ticket.autoHandoff ? "enabled" : "disabled"}.
+          </p>
+          <label>
+            Workload handoff reason
+            <input required name="reason" minLength={3} maxLength={1000} />
+          </label>
+          <button
+            className="od-secondary"
+            disabled={busy || ["CLOSED", "RESOLVED"].includes(ticket.status)}
+          >
+            {ticket.autoHandoff
+              ? "Disable automatic handoff"
+              : "Enable automatic handoff"}
+          </button>
+        </form>
+      )}
+      {manager && (
+        <form
           onSubmit={(e) => {
             e.preventDefault();
             const reason = String(new FormData(e.currentTarget).get("reason"));

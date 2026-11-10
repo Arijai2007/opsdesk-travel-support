@@ -1,3 +1,4 @@
+import { HandoffPolicyDto } from './sla.dto';
 import { CalendarPolicyDto, SlaPauseDto, EscalationOwnerDto } from './sla.dto';
 import { TravelDirectoryDto } from './travel-directory.dto';
 import {
@@ -219,6 +220,13 @@ export class TravelController {
     @Body() dto: SlaPauseDto,
   ) {
     return this.travel.pauseSla(req.user.userId, id, dto);
+  }
+  @Patch('tickets/:id/handoff-policy') handoffPolicy(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: HandoffPolicyDto,
+  ) {
+    return this.travel.handoffPolicy(req.user.userId, id, dto);
   }
   @Patch('tickets/:id/escalation-owner') escalationOwner(
     @Req() req: AuthenticatedRequest,

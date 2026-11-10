@@ -100,6 +100,23 @@ try {
       exact: true,
     }),
   });
+  await controls.getByLabel("Workload handoff reason").fill(reason);
+  await patch(page, `tickets/${ticketId}/handoff-policy`, () =>
+    controls
+      .getByRole("button", { name: "Enable automatic handoff", exact: true })
+      .click(),
+  );
+  await controls
+    .getByRole("button", { name: "Disable automatic handoff", exact: true })
+    .waitFor();
+  await patch(page, `tickets/${ticketId}/handoff-policy`, () =>
+    controls
+      .getByRole("button", { name: "Disable automatic handoff", exact: true })
+      .click(),
+  );
+  await controls
+    .getByRole("button", { name: "Enable automatic handoff", exact: true })
+    .waitFor();
   await controls.getByLabel("SLA pause or resume reason").fill(reason);
   await patch(page, `tickets/${ticketId}/sla-pause`, () =>
     controls

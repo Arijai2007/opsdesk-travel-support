@@ -93,11 +93,11 @@ Historical query-scaling local validation used Windows, Node.js 22.23.0 and Post
 
 **Deployment is paused at the user’s instruction: complete local features, verification and review first.** Saved free-demo deployment preparation is separate from this feature branch; no hosted service or live email is enabled.
 
-PRs #15-#28 are merged at `6e97b6f`. [PR #28 CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42812617605), including builds, recovery, core API checks, booking integration, Chromium, Firefox and production dependency audit. PRs #25–#27 deliver the offline classifier baseline, audited manager acknowledgment and synthetic booking export tooling.
+PRs #15-#29 are merged; the current feature baseline is `12114c6`. [PR #28 CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42812617605), including builds, recovery, core API checks, booking integration, Chromium, Firefox and production dependency audit. PRs #25–#27 deliver the offline classifier baseline, audited manager acknowledgment and synthetic booking export tooling.
 
 PR #28 merged manager invitations, public single-use activation, suspension/reactivation, session invalidation, agency/supplier creation and paged membership/audit controls. Invitation delivery remains manual; identity scopes are immutable and historical records are preserved.
 
-The current follow-up adds opt-in agency business-hour/holiday/timezone calendars, saved case policy snapshots, explicit response-clock pause/resume, on-duty assignment and audited manager escalation handoffs. Travel and supplier deadlines continue during a response pause; missing manager coverage is visibly unowned. See the [SLA policy contract](docs/OPSDESK_SLA_CALENDARS.md) for exact behavior, limits and tests. It is feature work pending collaborator review and merge; deployment remains paused.
+The current follow-up adds opt-in agency business-hour/holiday/timezone calendars, saved case policy snapshots, explicit response-clock pause/resume, on-duty assignment and audited manager escalation handoffs. Travel and supplier deadlines continue during a response pause; missing manager coverage is visibly unowned. See the [SLA policy contract](docs/OPSDESK_SLA_CALENDARS.md) for exact behavior, limits and tests. The SLA-calendar feature merged in PR #29; deployment remains paused.
 
 Next finish multi-contract/supplier calendars, automatic existing-agent workload handoff and richer escalation rotations; then email outbox/inbound webhooks and secure attachments, and a provider-neutral booking adapter with owner-approved creation/cancellation policy. Independent evaluation, accessibility, realistic concurrent load, recovery ownership and P0 live-data acceptance remain open. The [handoff](docs/OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order) identifies entry files and acceptance checks.
 
@@ -134,3 +134,11 @@ Workspace dialogs support keyboard navigation with Tab, Shift+Tab and Escape. Cl
 For Firefox coverage, install the matching browser with `npx playwright install firefox`, set `OPSDESK_BROWSER_ENGINE=firefox` in your shell and run `npm run ops:test:browser`. Chromium is the default.
 
 Session refresh tokens are single-use. The HTTP smoke suite forces overlapping requests for the same token, and the browser suite checks that a stale response preserves the replacement cookies.
+
+## Reconstructed automatic workload handoff
+
+PR #29 is merged into main 12114c6. The uncommitted Arihant checkout referenced by the transfer message was unavailable on this ASUS machine. This follow-up was reconstructed from that message in a separate worktree; its validation results apply only to this implementation. Deployment remains paused.
+
+Managers may opt an active case into automatic handoff with a recorded reason. New and existing cases default to disabled. The sweep preserves an eligible current owner, regardless of their existing capacity load. When coverage ends through shift, availability, membership or eligibility changes, the sweep selects an on-duty replacement using the existing regional/category and capacity policy. With no capacity, it clears the owner and retries on later sweeps. Repeated unchanged decisions add no audit event. Waiting and SLA-paused cases participate, while closed/resolved cases are excluded. Manual assignment disables automation, including a manager reaffirming the same owner. Paused budgets, travel deadlines and supplier threads keep their existing state.
+
+Each candidate runs under the shared capacity lock followed by the parent ticket lock and fresh reads. Workers page opted-in active case IDs in batches of 100. The pass still visits all opted-in active cases each sweep, so large-volume scheduling needs further measurement. Existing assignment and membership writers use the same capacity protocol. No external provider is required.

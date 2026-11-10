@@ -1,3 +1,4 @@
+import { HandoffPolicyDto } from './sla.dto';
 import {
   addServiceTime as calculateServiceDeadline,
   serviceTimeBetween,
@@ -1097,6 +1098,23 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           now,
         );
       }
+      if (dto.agentId !== undefined) {
+        if (p.kind !== 'MANAGER' && dto.agentId !== p.userId)
+          throw new ForbiddenException(
+            'Only a manager can reassign another agent.',
+          );
+        if (t.autoHandoff) {
+          data.autoHandoff = false;
+          await this.event(
+            tx,
+            id,
+            'HANDOFF_POLICY_CHANGED',
+            'Automatic workload handoff disabled by manual assignment.',
+            userId,
+            now,
+          );
+        }
+      }
       if (dto.agentId !== undefined && dto.agentId !== t.agentId) {
         if (p.kind !== 'MANAGER' && dto.agentId !== p.userId)
           throw new ForbiddenException(
@@ -1750,7 +1768,106 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       now,
     );
   }
+  async handoffPolicy(userId: string, id: string, dto: HandoffPolicyDto) {
+    return this.locked(async (tx) => {
+      await this.lockTicket(tx, id);
+      const p = await this.profile(userId, tx);
+      this.manager(p);
+      const ticket = await this.ticket(p, id, tx);
+      if (!active(ticket.status))
+        throw new BadRequestException('Case is no longer active.');
+      const reason = dto.reason.trim();
+      if (reason.length < 3)
+        throw new BadRequestException('Add a handoff policy reason.');
+      if (ticket.autoHandoff === dto.enabled) return ticket;
+      const now = await this.now(tx);
+      const updated = await tx.travelTicket.update({
+        where: { id },
+        data: { autoHandoff: dto.enabled, updatedAt: now },
+      });
+      await this.event(
+        tx,
+        id,
+        'HANDOFF_POLICY_CHANGED',
+        `Automatic workload handoff ${dto.enabled ? 'enabled' : 'disabled'}: ${reason}`,
+        userId,
+        now,
+      );
+      return updated;
+    });
+  }
+  private async handoffWorkload() {
+    let cursor: string | undefined;
+    for (;;) {
+      const candidates = await this.db.travelTicket.findMany({
+        where: {
+          autoHandoff: true,
+          status: { notIn: ['CLOSED', 'RESOLVED'] },
+          ...(cursor ? { id: { gt: cursor } } : {}),
+        },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: 100,
+      });
+      if (!candidates.length) return;
+      for (const { id } of candidates) {
+        await this.locked(async (tx) => {
+          await this.lockTicket(tx, id);
+          const ticket = await tx.travelTicket.findUnique({ where: { id } });
+          if (!ticket?.autoHandoff || !active(ticket.status)) return;
+          const now = await this.now(tx);
+          const agents = await tx.travelProfile.findMany({
+            where: { kind: 'AGENT' },
+          });
+          const eligible = agents.filter((a) =>
+            isOnDuty(this.calendar(a.shiftCalendar), now),
+          );
+          const current = eligible.find((a) => a.userId === ticket.agentId);
+          // Capacity gates new assignments. It does not evict a covered owner.
+          if (
+            current &&
+            chooseAgent(
+              [{ ...current, maxActiveCases: null }],
+              ticket.region,
+              {},
+              ticket.category,
+            )
+          )
+            return;
+          const counts = await tx.travelTicket.groupBy({
+            by: ['agentId'],
+            where: {
+              agentId: { not: null },
+              status: { notIn: ['CLOSED', 'RESOLVED'] },
+            },
+            _count: { _all: true },
+          });
+          const loads: Record<string, number> = {};
+          for (const row of counts)
+            if (row.agentId) loads[row.agentId] = row._count._all;
+          const next =
+            chooseAgent(eligible, ticket.region, loads, ticket.category)
+              ?.userId ?? null;
+          if (next === ticket.agentId) return;
+          await tx.travelTicket.update({
+            where: { id },
+            data: { agentId: next, updatedAt: now },
+          });
+          await this.event(
+            tx,
+            id,
+            'ASSIGNED',
+            `Automatic coverage handoff ${ticket.agentId || 'unassigned'} -> ${next || 'unassigned'}.`,
+            'system',
+            now,
+          );
+        });
+      }
+      cursor = candidates[candidates.length - 1].id;
+    }
+  }
   async sweep() {
+    await this.handoffWorkload();
     // Keyset batches bound memory and transaction duration; every candidate is
     // reread after its row lock, including status, booking and supplier state.
     let cursor: string | undefined;

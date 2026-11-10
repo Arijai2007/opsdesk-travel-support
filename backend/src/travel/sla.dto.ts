@@ -17,3 +17,8 @@ export class EscalationOwnerDto {
   @Allow() ownerId: unknown;
   @IsString() @MinLength(3) @MaxLength(1000) reason: string;
 }
+
+export class HandoffPolicyDto {
+  @IsBoolean() enabled: boolean;
+  @IsString() @MinLength(3) @MaxLength(1000) reason: string;
+}
