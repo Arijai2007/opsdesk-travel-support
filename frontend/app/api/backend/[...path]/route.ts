@@ -51,11 +51,16 @@ async function proxy(request: NextRequest, { params }: RouteContext): Promise<Ne
     }
   }
 
-  const responseBody = await backendRes.text();
+  const responseBody = await backendRes.arrayBuffer();
   return new NextResponse(responseBody, {
     status: backendRes.status,
     headers: {
       "Content-Type": backendRes.headers.get("Content-Type") ?? "application/json",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      ...(backendRes.headers.has("Content-Disposition")
+        ? { "Content-Disposition": backendRes.headers.get("Content-Disposition")! }
+        : {}),
     },
   });
 }

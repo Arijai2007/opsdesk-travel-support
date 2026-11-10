@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
+import { randomBytes } from "node:crypto";
 import pg from "pg";
 import "./local-setup.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -32,6 +33,8 @@ async function run(args) {
 const env = dotenv.parse(
   readFileSync(new URL("../backend/.env", import.meta.url)),
 );
+if (env.OPSDESK_DEMO === "true" && env.NODE_ENV !== "production" && !env.OPSDESK_ATTACHMENT_SIGNING_SECRET && !process.env.OPSDESK_ATTACHMENT_SIGNING_SECRET)
+  process.env.OPSDESK_ATTACHMENT_SIGNING_SECRET = randomBytes(32).toString("hex");
 let stopping = false;
 function stop() {
   if (stopping) return;
@@ -94,6 +97,8 @@ try {
         new URL("../node_modules/next/dist/bin/next", import.meta.url),
       ),
       preview ? "start" : "dev",
+      "--port",
+      new URL(env.FRONTEND_URL).port || "3000",
       "--hostname",
       "127.0.0.1",
     ],
@@ -107,7 +112,7 @@ try {
       }
     });
   console.log(
-    "\nOpsDesk is starting: http://127.0.0.1:3000\nSign in as manager@opsdesk.demo / OpsDeskDemo!2026\nPress Ctrl+C to stop. Your records remain on disk.\n",
+    `\nOpsDesk is starting: ${env.FRONTEND_URL}\nSign in as manager@opsdesk.demo / OpsDeskDemo!2026\nPress Ctrl+C to stop. Your records remain on disk.\n`,
   );
 } catch (error) {
   console.error(error.message);

@@ -1,3 +1,7 @@
+# Attachment increment validation
+
+On Node.js 22.23.0, Prisma client generation, both application builds and all 90 backend tests passed (10 suites, including four attachment tests). The 26 migrations applied to a fresh isolated PostgreSQL 18 database on port 55439. `npm run ops:test` passed. The attachment harness passed 23 checks for byte integrity, metadata, scopes, filename/type rejection, synthetic EICAR rejection, tampered signature, expiry and concurrent per-message limits. All five Chromium browser flows passed sequentially; the main flow uploads a file and verifies the downloaded filename and bytes through the browser proxy. Running policy-mutating API and browser suites simultaneously caused an SLA test collision; sequential Chromium execution passed. Firefox failed before executing a test with Windows `spawn UNKNOWN`, including after a fresh Playwright Firefox download; hosted Firefox acceptance remains required. `git diff --check` passed. Real ClamAV acceptance, hosted validation and deployment are not claimed.
+
 # Supplier email reply validation
 
 Started from merged PRs #36 and #37 at `fb5ffea7c1f0cb34202dd175fdcc071700b924e8`. The backend and optimized frontend builds passed on Windows with Node.js 22.23.4. The existing isolated database had no pending migrations.
