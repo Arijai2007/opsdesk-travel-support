@@ -103,7 +103,7 @@ describe('Resend mail pilot', () => {
     return {
       controller: new ResendMailWebhookController(
         db as unknown as PrismaService,
-        { receiveCustomerMail: jest.fn() } as unknown as TravelService,
+        { receiveThreadMail: jest.fn() } as unknown as TravelService,
       ),
       create,
       lookup,

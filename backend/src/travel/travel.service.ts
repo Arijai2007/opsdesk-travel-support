@@ -25,6 +25,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TravelMailService } from './travel-mail.service';
+import { supplierRepliesEnabled } from './resend-mail-reply';
 import { Prisma } from '../../generated/prisma/client';
 import { readTravelInsights } from './travel-insights';
 import { TravelQueueDto } from './travel-queue.dto';
@@ -1221,13 +1222,13 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       return message;
     });
   }
-  async receiveCustomerMail(
+  async receiveThreadMail(
     jobId: string,
     sender: string,
     inboundMailId: string,
     loadText: () => Promise<string | null>,
   ) {
-    const jobFilter = {
+    const jobFilter: Prisma.TravelMailJobWhereInput = {
       id: jobId,
       recipient: sender,
       transport: 'RESEND',
@@ -1236,8 +1237,17 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       replyEnabled: true,
       createdAt: { gt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       message: {
-        visibility: 'CUSTOMER',
-        conversationId: null,
+        OR: [
+          { visibility: 'CUSTOMER', conversationId: null },
+          ...(supplierRepliesEnabled()
+            ? [
+                {
+                  visibility: 'SUPPLIER',
+                  conversation: { status: { not: 'CLOSED' } },
+                },
+              ]
+            : []),
+        ],
         ticket: { status: { notIn: ['CLOSED', 'RESOLVED'] } },
       },
     };
@@ -1259,14 +1269,16 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     const ticketId = job.message.ticketId;
     await this.ticketLocked(ticketId, async (tx) => {
       const target = await tx.travelMailJob.findFirst({
-        where: { ...jobFilter, message: { ...jobFilter.message, ticketId } },
+        where: { AND: [jobFilter, { message: { ticketId } }] },
         select: {
           message: {
             select: {
+              conversation: true,
               ticket: {
                 select: {
                   customerId: true,
                   agencyId: true,
+                  bookingId: true,
                 },
               },
             },
@@ -1275,27 +1287,52 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       });
       const ticket = target?.message.ticket;
       if (!ticket) return;
-      const [customer] = await tx.$queryRaw<{ userId: string }[]>`
-        SELECT p."userId"
-        FROM "TravelProfile" p
-        JOIN "User" u ON u.id = p."userId"
-        WHERE p."userId" = ${ticket.customerId}
-          AND p."agencyId" = ${ticket.agencyId}
-          AND p.kind = 'CUSTOMER' AND p.status = 'ACTIVE'
-          AND u.email = ${sender}
-        FOR SHARE OF p, u
-      `;
-      if (!customer) return;
+      const conversation = target.message.conversation;
+      if (conversation && conversation.ticketId !== ticketId) return;
+      const [member] = conversation
+        ? await tx.$queryRaw<{ userId: string }[]>`
+            SELECT p."userId"
+            FROM "TravelProfile" p
+            JOIN "User" u ON u.id = p."userId"
+            JOIN "TravelSupplier" s ON s.id = p."supplierId"
+            JOIN "TravelBooking" b ON b."supplierId" = s.id
+            WHERE p."supplierId" = ${conversation.supplierId}
+              AND b.id = ${ticket.bookingId}
+              AND p.kind = 'SUPPLIER' AND p.status = 'ACTIVE'
+              AND u.email = ${sender} AND s.email = ${sender}
+            FOR SHARE OF p, u, s, b
+          `
+        : await tx.$queryRaw<{ userId: string }[]>`
+            SELECT p."userId"
+            FROM "TravelProfile" p
+            JOIN "User" u ON u.id = p."userId"
+            WHERE p."userId" = ${ticket.customerId}
+              AND p."agencyId" = ${ticket.agencyId}
+              AND p.kind = 'CUSTOMER' AND p.status = 'ACTIVE'
+              AND u.email = ${sender}
+            FOR SHARE OF p, u
+          `;
+      if (!member) return;
       const inserted = await tx.travelInboundMail.createMany({
         data: [{ id: inboundMailId, ticketId }],
         skipDuplicates: true,
       });
       if (!inserted.count) return;
+      if (conversation) {
+        await this.recordSupplierReply(
+          tx,
+          conversation,
+          member.userId,
+          text,
+          true,
+        );
+        return;
+      }
       const now = await this.now(tx);
       await tx.travelMessage.create({
         data: {
           ticketId,
-          senderId: customer.userId,
+          senderId: member.userId,
           visibility: 'CUSTOMER',
           content: text,
           createdAt: now,
@@ -1382,43 +1419,59 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         );
       if (!dto.content.trim())
         throw new BadRequestException('Message cannot be empty.');
-      const now = await this.now(tx);
-      const message = await tx.travelMessage.create({
-        data: {
-          ticketId: c.ticketId,
-          conversationId: id,
-          senderId: userId,
-          visibility: 'SUPPLIER',
-          content: dto.content.trim(),
-          createdAt: now,
-        },
-      });
-      if (p.kind !== 'SUPPLIER') await this.mail.enqueue(tx, message.id);
-      await tx.travelConversation.update({
-        where: { id },
-        data: {
-          status: p.kind === 'SUPPLIER' ? 'REPLIED' : 'AWAITING_REPLY',
-          ...(p.kind === 'SUPPLIER'
-            ? {}
-            : await this.supplierTarget(tx, c.supplierId, now)),
-        },
-      });
-      const ticket = await tx.travelTicket.findUniqueOrThrow({
-        where: { id: c.ticketId },
-      });
-      await this.syncSupplierWait(tx, ticket, p.kind !== 'SUPPLIER', now);
-      await this.event(
+      await this.recordSupplierReply(
         tx,
-        c.ticketId,
-        'SUPPLIER_REPLY',
-        p.kind === 'SUPPLIER'
-          ? 'Supplier replied; agent review required.'
-          : 'Agent followed up with supplier.',
+        c,
         userId,
-        now,
+        dto.content.trim(),
+        p.kind === 'SUPPLIER',
       );
       return { success: true };
     });
+  }
+
+  private async recordSupplierReply(
+    tx: Tx,
+    c: Prisma.TravelConversationGetPayload<object>,
+    userId: string,
+    content: string,
+    fromSupplier: boolean,
+  ) {
+    const now = await this.now(tx);
+    const message = await tx.travelMessage.create({
+      data: {
+        ticketId: c.ticketId,
+        conversationId: c.id,
+        senderId: userId,
+        visibility: 'SUPPLIER',
+        content,
+        createdAt: now,
+      },
+    });
+    if (!fromSupplier) await this.mail.enqueue(tx, message.id);
+    await tx.travelConversation.update({
+      where: { id: c.id },
+      data: {
+        status: fromSupplier ? 'REPLIED' : 'AWAITING_REPLY',
+        ...(fromSupplier
+          ? {}
+          : await this.supplierTarget(tx, c.supplierId, now)),
+      },
+    });
+    const ticket = await tx.travelTicket.findUniqueOrThrow({
+      where: { id: c.ticketId },
+    });
+    await this.syncSupplierWait(tx, ticket, !fromSupplier, now);
+    await this.event(
+      tx,
+      c.ticketId,
+      'SUPPLIER_REPLY',
+      fromSupplier
+        ? 'Supplier replied; agent review required.'
+        : 'Agent followed up with supplier.',
+      userId,
+      now,
+    );
   }
 
   private async syncSupplierWait(

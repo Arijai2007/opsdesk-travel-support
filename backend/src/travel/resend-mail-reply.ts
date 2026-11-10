@@ -25,6 +25,10 @@ export function incomingConfig() {
   return { domain, secret, apiKey };
 }
 
+export function supplierRepliesEnabled() {
+  return process.env.OPSDESK_MAIL_SUPPLIER_REPLIES === 'true';
+}
+
 type IncomingConfig = NonNullable<ReturnType<typeof incomingConfig>>;
 
 function token(config: IncomingConfig, jobId: string) {

@@ -1,3 +1,13 @@
+# Supplier email reply validation
+
+Started from merged PRs #36 and #37 at `fb5ffea7c1f0cb34202dd175fdcc071700b924e8`. The backend and optimized frontend builds passed on Windows with Node.js 22.23.4. The existing isolated database had no pending migrations.
+
+The signed reply harness passed against PostgreSQL with mocked provider retrieval. Supplier checks covered separate opt-in, the current active mailbox, changed booking and closed conversation rejection, private visibility, unchanged deadline, the existing case transition, three concurrent copies yielding one message and audit event, and no outbound loop. The standard API suite includes this harness. It removes the temporary case and restores the seeded mailbox.
+
+Credentialed send and receive acceptance and secure attachments remain open. Deployment stays paused.
+
+---
+
 # Customer email reply validation
 
 Started from the Resend pilot in PR #36 at `3f6646bb99b72408f97a23b03455ae1db5e61093`. On Windows with Node 22.23.4, Prisma applied the inbound-reply migration to the isolated synthetic database, the backend build passed, and Jest passed 86 tests across 9 suites.
