@@ -46,3 +46,11 @@ Managers use **Needs attention > SLA calendars and duty coverage**. Case staff s
 `scripts/sla-browser.mjs` exercises calendar/holiday configuration, duty coverage, pause/resume and ownership through the actual manager UI. The combined browser command runs the original five-role, membership and SLA flows in the selected engine.
 
 Remaining feature work includes multi-contract calendars, supplier business calendars, automatically handing existing agent workload to another shift, richer escalation rotations, live email/outbox/inbound signatures, authorized/scanned attachments, provider-neutral booking integration and independent AI evaluation. Broader assistive-technology, skewed read/write load and failure-injection checks remain open. Hosting, staging/live-data policy work and deployment preparation remain paused.
+
+## Reconstructed automatic workload handoff
+
+PR #29 is merged into main 12114c6. The uncommitted Arihant checkout referenced by the transfer message was unavailable on this ASUS machine. This follow-up was reconstructed from that message in a separate worktree; its validation results apply only to this implementation. Deployment remains paused.
+
+Managers may opt an active case into automatic handoff with a recorded reason. New and existing cases default to disabled. The sweep preserves an eligible current owner, regardless of their existing capacity load. When coverage ends through shift, availability, membership or eligibility changes, the sweep selects an on-duty replacement using the existing regional/category and capacity policy. With no capacity, it clears the owner and retries on later sweeps. Repeated unchanged decisions add no audit event. Waiting and SLA-paused cases participate, while closed/resolved cases are excluded. Manual assignment disables automation, including a manager reaffirming the same owner. Paused budgets, travel deadlines and supplier threads keep their existing state.
+
+Each candidate runs under the shared capacity lock followed by the parent ticket lock and fresh reads. Workers page opted-in active case IDs in batches of 100. The pass still visits all opted-in active cases each sweep, so large-volume scheduling needs further measurement. Existing assignment and membership writers use the same capacity protocol. No external provider is required.

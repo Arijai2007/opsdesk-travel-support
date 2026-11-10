@@ -153,3 +153,5 @@ The merged application checkpoint is `6e97b6f`, including PRs #25-#28. [PR #28 C
 | #9 | End-to-end five-role Chromium and Firefox flows, dialog keyboard checks and release/incident procedure | Screen readers, full contrast audit, platform setup/release qualification, inherited dependency review and named owners |
 
 See the [handoff](OPSDESK_HANDOFF.md) for the developer transfer message and the [validation guide](OPSDESK_VALIDATION.md) for measurements and known limits.
+
+Workload-handoff follow-up reconstructed from the missing-checkout handoff is in progress. Local builds, 62 unit tests, 548 existing HTTP checks, 19 existing concurrency checks, 33 workload checks, six browser flows, offline regressions and changed-file lint passed. Publication and hosted checks are tracked separately. Multi-contract and supplier calendars, rotations, live email, attachments and provider adapters remain open.

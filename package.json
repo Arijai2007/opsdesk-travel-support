@@ -23,7 +23,7 @@
     "ops:setup": "node scripts/local-setup.mjs",
     "ops:db": "node scripts/local-db.mjs",
     "ops:seed": "npm exec --workspace=backend -- tsx prisma/seed-travel.ts",
-    "ops:test": "npm run test --workspace=backend -- --runInBand && node scripts/smoke-test.mjs && node scripts/pagination-smoke.mjs && node scripts/directory-smoke.mjs && node scripts/lock-concurrency.mjs && node scripts/membership-smoke.mjs && node scripts/sla-smoke.mjs",
+    "ops:test": "npm run test --workspace=backend -- --runInBand && node scripts/smoke-test.mjs && node scripts/pagination-smoke.mjs && node scripts/directory-smoke.mjs && node scripts/lock-concurrency.mjs && node scripts/membership-smoke.mjs && node scripts/sla-smoke.mjs && node scripts/workload-handoff-smoke.mjs",
     "ops:test:browser": "node scripts/browser-smoke.mjs && node scripts/membership-browser.mjs && node scripts/sla-browser.mjs",
     "ops:test:membership": "node scripts/membership-smoke.mjs",
     "ops:test:membership:browser": "node scripts/membership-browser.mjs",

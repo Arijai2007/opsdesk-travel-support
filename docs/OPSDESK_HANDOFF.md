@@ -1,3 +1,11 @@
+# Current workload-handoff checkpoint
+
+The current branch reconstructs the missing uncommitted handoff implementation on top of merged PR #29, main 12114c6. Local validation passed both builds, 62 unit tests, 548 existing HTTP checks, 19 existing concurrency checks, 33 workload checks, original/membership/SLA flows in Chromium and Firefox, 17 offline checks and PostgreSQL booking integration. See the validation report for failures and limits. Deployment remains paused.
+
+**Message for the next developer**
+
+> Review the workload-handoff PR against main 12114c6 and check its hosted validation before merging. It defaults to disabled and lets managers opt active cases into audited automatic coverage handoff. Covered owners stay assigned, replacement uses existing membership/shift/region/specialty/capacity rules, and a manual assignment disables automation. Verify the 100-row candidate pass and capacity-before-ticket lock ordering. Run the full regression and browser commands in the validation guide. Next tackle multiple agency contracts, supplier calendars and richer escalation rotations, then email/outbox/inbound signatures, secure attachments and provider-neutral booking integration. Preserve privacy, membership/session guards and immutable SLA snapshots. Deployment remains paused. The older uncommitted ASUS preview-shutdown checkout and the unavailable Arihant checkout are separate work.
+
 # OpsDesk — project handoff
 
 > **DEPLOYMENT PAUSED: complete local features, verification and review first.** This is the user’s current instruction. Do not provision hosting, apply the saved deployment preparation or publish a demo until the user resumes deployment.
@@ -367,3 +375,11 @@ The five-role flow now also passes in Playwright Firefox on Windows. CI runs the
 ## Historical concurrent session refresh
 
 A conditional PostgreSQL update consumes each valid token once. The replacement session is created in the same transaction. Access-token denial through the existing revocation service follows commit. A stale browser refresh returns 401 without emitting cookie deletions. Explicit logout still clears the browser cookies. No migration or provider credentials are required.
+
+## Reconstructed automatic workload handoff
+
+PR #29 is merged into main 12114c6. The uncommitted Arihant checkout referenced by the transfer message was unavailable on this ASUS machine. This follow-up was reconstructed from that message in a separate worktree; its validation results apply only to this implementation. Deployment remains paused.
+
+Managers may opt an active case into automatic handoff with a recorded reason. New and existing cases default to disabled. The sweep preserves an eligible current owner, regardless of their existing capacity load. When coverage ends through shift, availability, membership or eligibility changes, the sweep selects an on-duty replacement using the existing regional/category and capacity policy. With no capacity, it clears the owner and retries on later sweeps. Repeated unchanged decisions add no audit event. Waiting and SLA-paused cases participate, while closed/resolved cases are excluded. Manual assignment disables automation, including a manager reaffirming the same owner. Paused budgets, travel deadlines and supplier threads keep their existing state.
+
+Each candidate runs under the shared capacity lock followed by the parent ticket lock and fresh reads. Workers page opted-in active case IDs in batches of 100. The pass still visits all opted-in active cases each sweep, so large-volume scheduling needs further measurement. Existing assignment and membership writers use the same capacity protocol. No external provider is required.

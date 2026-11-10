@@ -1,3 +1,23 @@
+# Workload handoff validation - 10 November 2026
+
+Reconstructed on ASUS from the pasted policy because the Arihant worktree was unavailable. Main 12114c6 includes merged PR #29. The supplied 15-unit/16-HTTP/13-policy results belong to that unavailable implementation and are not reported as results of this branch. The user explicitly requested continuation after the earlier 19:00 IST cutoff. Deployment remains paused.
+
+On Windows with Node 22.23.0 and a fresh PostgreSQL 18.6 synthetic database:
+
+- Prisma generation, all 19 migrations, backend build and optimized frontend build passed.
+- All 62 existing backend unit tests passed.
+- All 548 existing HTTP checks and 19 existing concurrency/reconnect checks passed.
+- The new workload suite passed 33 checks, including 12 real HTTP authentication/policy checks and 21 policy, overlapping-worker, capacity, manual-decision, pause and reconnect checks. This suite is part of ops:test.
+- Original five-role, membership and updated SLA browser flows passed in Chromium and Firefox. The SLA flow enables and disables automatic handoff using the manager controls.
+- All 17 offline booking/recovery-safety tests and both PostgreSQL booking-integration checks passed.
+- Changed backend/frontend ESLint and git whitespace checks passed.
+
+Observed setup failures were corrected. Reused dependency junctions caused a missing Nest CLI and Turbopack package-root rejection. A private dependency installation resolved those build issues. An initial lint invocation used the wrong working directory and was rerun successfully. The expanded workload harness initially imported an uncompiled generated Prisma path and stopped before running checks; switching to the compiled path resolved it. The first completed targeted run passed 14 checks; later expanded runs passed 30 and then 33. No current product failure remains observed in completed local checks.
+
+Full logical recovery and worker-kill rehearsal were not repeated locally; their CI steps remain enabled. Full inherited backend lint, assistive-technology/contrast testing, skewed concurrent load, real provider integrations and deployment were not run. Hosted results must be checked for this feature head separately.
+
+Reproduce with Node 22.23.x, npm ci and npm run ops:preview in an isolated synthetic workspace. Run npm run ops:test, then install matching Chromium/Firefox and run npm run ops:test:browser for each engine. The workload-only command is node scripts/workload-handoff-smoke.mjs. The harness restores profile settings and removes its cases. Keep it away from shared or live data.
+
 # Prototype validation
 
 ## Current SLA calendar / coverage validation - 10 November 2026
