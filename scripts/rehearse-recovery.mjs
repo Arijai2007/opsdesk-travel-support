@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { performance } from "node:perf_hooks";
 import pg from "pg";
+import { verifyWorkerRestart } from "./worker-restart.mjs";
 
 // A rehearsal, never a command for backing up or replacing operational databases.
 assert(
@@ -212,6 +213,10 @@ try {
   check("restored foreign key rejects orphan message");
   assert.deepEqual(await snapshot(targetPool), before);
   check("rejected writes leave restored contents unchanged");
+  await verifyWorkerRestart(targetPool, connection(target));
+  check(
+    "worker process termination rolls back the interrupted ticket and restart completes both exactly once",
+  );
   report.elapsedMs = Math.round(performance.now() - started);
   report.tables = Object.fromEntries(
     Object.entries(before.tables).map(([name, value]) => [name, value.count]),
