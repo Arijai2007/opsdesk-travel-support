@@ -1,3 +1,12 @@
+import {
+  addServiceTime as calculateServiceDeadline,
+  serviceTimeBetween,
+  isOnDuty,
+  validateCalendar,
+  chooseEscalationOwner,
+  type ServiceCalendar,
+} from './sla-calendar';
+import { CalendarPolicyDto, SlaPauseDto, EscalationOwnerDto } from './sla.dto';
 import { TravelDirectoryDto } from './travel-directory.dto';
 import {
   BadRequestException,
@@ -31,7 +40,6 @@ import {
   classify,
   effectiveDeadline,
   PRIORITIES,
-  responseDeadlineFor,
   RESPONSE_WINDOW_MS,
   STAFF,
   urgency,
@@ -197,6 +205,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           ? [
               {
                 ...ticket,
+                ...(!STAFF.includes(p.kind) ? { escalationOwnerId: null } : {}),
                 customerName: name(ticket.customerId),
                 ownerName: name(ticket.agentId),
                 relatedCount: ticket.bookingId
@@ -245,8 +254,22 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       },
       include: { user: { select: { firstName: true, lastName: true } } },
     });
+    const escalationOwner =
+      STAFF.includes(p.kind) && t.escalationOwnerId
+        ? await this.db.user.findUnique({
+            where: { id: t.escalationOwnerId },
+            select: { firstName: true, lastName: true },
+          })
+        : null;
     return {
       ...t,
+      ...(STAFF.includes(p.kind)
+        ? {
+            escalationOwnerName: escalationOwner
+              ? `${escalationOwner.firstName} ${escalationOwner.lastName}`
+              : null,
+          }
+        : { escalationOwnerId: null }),
       booking,
       supplierReplied,
       people: people.map((v) => ({
@@ -255,6 +278,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         kind: v.kind,
         region: v.region,
         available: v.available,
+        ...(p.kind === 'MANAGER' ? { shiftCalendar: v.shiftCalendar } : {}),
       })),
       messages: [],
       events: [],
@@ -592,6 +616,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         kind: v.kind,
         region: v.region,
         available: v.available,
+        ...(p.kind === 'MANAGER' ? { shiftCalendar: v.shiftCalendar } : {}),
         ...(p.kind === 'MANAGER' && v.kind === 'AGENT'
           ? { specialties: v.specialties, maxActiveCases: v.maxActiveCases }
           : {}),
@@ -756,6 +781,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         kind: v.kind,
         region: v.region,
         available: v.available,
+        ...(p.kind === 'MANAGER' ? { shiftCalendar: v.shiftCalendar } : {}),
         ...(p.kind === 'MANAGER' && v.kind === 'AGENT'
           ? { specialties: v.specialties, maxActiveCases: v.maxActiveCases }
           : {}),
@@ -779,7 +805,13 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
                 ? { ...event, text: event.text.split(':', 1)[0] }
                 : event,
             );
-        return { ...t, events, relatedIds: related.map((v) => v.id), summary };
+        return {
+          ...t,
+          ...(!staff ? { escalationOwnerId: null } : {}),
+          events,
+          relatedIds: related.map((v) => v.id),
+          summary,
+        };
       }),
       notifications: staff
         ? await this.db.travelEvent.findMany({
@@ -875,13 +907,20 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       const loads: Record<string, number> = {};
       for (const group of current)
         if (group.agentId) loads[group.agentId] = group._count._all;
-      const agent = chooseAgent(agents, region, loads, category);
+      const agent = chooseAgent(
+        agents.filter((a) => isOnDuty(this.calendar(a.shiftCalendar), now)),
+        region,
+        loads,
+        category,
+      );
       const policy = await tx.travelAgency.findUniqueOrThrow({
         where: { id: agencyId },
       });
-      const responseDeadline = responseDeadlineFor(
+      const slaSnapshot = this.policySnapshot(policy);
+      const responseDeadline = this.responseTarget(
         now,
-        policy.responseTargetHours,
+        policy.responseTargetHours * 3600000,
+        slaSnapshot.calendar,
       );
       const deadline = effectiveDeadline(
         category,
@@ -902,6 +941,9 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           deadline,
           responseDeadline,
           responseStartedAt: now,
+          slaSnapshot: JSON.parse(
+            JSON.stringify(slaSnapshot),
+          ) as Prisma.InputJsonValue,
           agentId: agent?.userId,
           priority:
             urgency(category, deadline, booking?.checkInAt, now)?.priority ||
@@ -985,7 +1027,9 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         data.responseDeadline = t.responseDeadline ?? t.deadline;
         data.deadline = effectiveDeadline(
           t.category,
-          data.responseDeadline,
+          t.slaPausedAt
+            ? new Date('9999-01-01T00:00:00Z')
+            : data.responseDeadline,
           booking,
           this.responseCycleStart(t),
         );
@@ -1013,9 +1057,16 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           const policy = await tx.travelAgency.findUniqueOrThrow({
             where: { id: t.agencyId },
           });
-          data.responseDeadline = responseDeadlineFor(
+          const snapshot = this.policySnapshot(policy);
+          data.slaSnapshot = JSON.parse(
+            JSON.stringify(snapshot),
+          ) as Prisma.InputJsonValue;
+          data.slaPausedAt = null;
+          data.slaRemainingMs = null;
+          data.responseDeadline = this.responseTarget(
             now,
-            policy.responseTargetHours,
+            policy.responseTargetHours * 3600000,
+            snapshot.calendar,
           );
           data.responseStartedAt = now;
           data.deadline = effectiveDeadline(
@@ -1062,6 +1113,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
             agent.kind !== 'AGENT' ||
             agent.status !== 'ACTIVE' ||
             !agent.available ||
+            !isOnDuty(this.calendar(agent.shiftCalendar), now) ||
             ![t.region, 'GLOBAL'].includes(agent.region || ''))
         )
           throw new BadRequestException(
@@ -1316,7 +1368,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       tx,
       ticketId,
       'RESPONSE_TARGET_SET',
-      `Agency policy v${policy.responsePolicyVersion}: ${policy.responseTargetHours} elapsed hours to respond.`,
+      `Agency policy v${policy.responsePolicyVersion}: ${policy.responseTargetHours} service hours to respond.`,
       userId,
       now,
     );
@@ -1364,7 +1416,9 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       });
       const now = await this.now(tx);
       for (const ticket of tickets) {
-        const responseDeadline = ticket.responseDeadline ?? ticket.deadline;
+        const responseDeadline = ticket.slaPausedAt
+          ? new Date('9999-01-01T00:00:00Z')
+          : (ticket.responseDeadline ?? ticket.deadline);
         const deadline = effectiveDeadline(
           ticket.category,
           responseDeadline,
@@ -1374,7 +1428,11 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         if (+deadline === +ticket.deadline) continue;
         await tx.travelTicket.update({
           where: { id: ticket.id },
-          data: { deadline, responseDeadline, updatedAt: now },
+          data: {
+            deadline,
+            ...(ticket.slaPausedAt ? {} : { responseDeadline }),
+            updatedAt: now,
+          },
         });
         await this.event(
           tx,
@@ -1425,6 +1483,273 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       });
     });
   }
+  private responseTarget(
+    start: Date,
+    milliseconds: number,
+    calendar: ServiceCalendar | null,
+  ) {
+    try {
+      return calculateServiceDeadline(start, milliseconds, calendar);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'Insufficient calendar coverage.',
+      );
+    }
+  }
+  private calendar(value: unknown): ServiceCalendar | null {
+    if (value === null) return null;
+    try {
+      return validateCalendar(value);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Invalid calendar.',
+      );
+    }
+  }
+  private policySnapshot(policy: {
+    slaCalendar: Prisma.JsonValue | null;
+    responseTargetHours: number;
+    responsePolicyVersion: number;
+  }) {
+    return {
+      calendar: this.calendar(policy.slaCalendar),
+      hours: policy.responseTargetHours,
+      version: policy.responsePolicyVersion,
+    };
+  }
+  private reason(value: string) {
+    if (value.trim().length < 3)
+      throw new BadRequestException('Add a meaningful audit reason.');
+    return value.trim();
+  }
+  async configureCalendar(userId: string, id: string, dto: CalendarPolicyDto) {
+    this.manager(await this.profile(userId));
+    const calendar = this.calendar(dto.calendar),
+      reason = this.reason(dto.reason);
+    // Reject configurations that cannot satisfy the largest supported target.
+    if (calendar) this.responseTarget(new Date(), 168 * 3600000, calendar);
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      const agency = await tx.travelAgency.findUnique({ where: { id } });
+      if (!agency) throw new NotFoundException('Agency not found.');
+      if (
+        JSON.stringify(this.calendar(agency.slaCalendar)) ===
+        JSON.stringify(calendar)
+      )
+        return agency;
+      const updated = await tx.travelAgency.update({
+        where: { id },
+        data: {
+          slaCalendar: calendar
+            ? (JSON.parse(JSON.stringify(calendar)) as Prisma.InputJsonValue)
+            : Prisma.DbNull,
+          responsePolicyVersion: { increment: 1 },
+        },
+      });
+      await tx.membershipAudit.create({
+        data: {
+          actorId: userId,
+          entityId: id,
+          action: 'SLA_CALENDAR_CHANGED',
+          reason,
+        },
+      });
+      return updated;
+    });
+  }
+  async configureShift(userId: string, id: string, dto: CalendarPolicyDto) {
+    const calendar = this.calendar(dto.calendar),
+      reason = this.reason(dto.reason);
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      const target = await tx.travelProfile.findUnique({
+        where: { userId: id },
+      });
+      if (!target || !STAFF.includes(target.kind))
+        throw new NotFoundException('Support member not found.');
+      if (
+        JSON.stringify(this.calendar(target.shiftCalendar)) ===
+        JSON.stringify(calendar)
+      )
+        return { id, calendar };
+      await tx.travelProfile.update({
+        where: { userId: id },
+        data: {
+          shiftCalendar: calendar
+            ? (JSON.parse(JSON.stringify(calendar)) as Prisma.InputJsonValue)
+            : Prisma.DbNull,
+        },
+      });
+      await tx.membershipAudit.create({
+        data: {
+          actorId: userId,
+          entityId: id,
+          action: 'SHIFT_CALENDAR_CHANGED',
+          reason,
+        },
+      });
+      return { id, calendar };
+    });
+  }
+  async pauseSla(userId: string, id: string, dto: SlaPauseDto) {
+    const reason = this.reason(dto.reason);
+    return this.locked(async (tx) => {
+      await this.lockTicket(tx, id);
+      const actor = await this.profile(userId, tx);
+      this.staff(actor);
+      const ticket = await this.ticket(actor, id, tx),
+        now = await this.now(tx);
+      if (!active(ticket.status))
+        throw new BadRequestException('Only active cases can pause or resume.');
+      if (Boolean(ticket.slaPausedAt) === dto.paused) return ticket;
+      const snapshot = ticket.slaSnapshot as {
+        calendar?: Prisma.JsonValue;
+      } | null;
+      const calendar = this.calendar(snapshot?.calendar ?? null);
+      let responseDeadline = ticket.responseDeadline ?? ticket.deadline;
+      let remaining: number | null = null;
+      if (dto.paused) {
+        if (responseDeadline <= now)
+          throw new BadRequestException(
+            'An already breached response target cannot be paused.',
+          );
+        remaining = serviceTimeBetween(now, responseDeadline, calendar);
+      } else
+        responseDeadline = this.responseTarget(
+          now,
+          ticket.slaRemainingMs ?? 0,
+          calendar,
+        );
+      const booking = ticket.bookingId
+        ? await tx.travelBooking.findUnique({ where: { id: ticket.bookingId } })
+        : null;
+      const deadline = effectiveDeadline(
+        ticket.category,
+        dto.paused ? new Date('9999-01-01T00:00:00Z') : responseDeadline,
+        booking,
+        this.responseCycleStart(ticket),
+      );
+      const updated = await tx.travelTicket.update({
+        where: { id },
+        data: {
+          responseDeadline,
+          deadline,
+          slaPausedAt: dto.paused ? now : null,
+          slaRemainingMs: remaining,
+          updatedAt: now,
+        },
+      });
+      await this.event(
+        tx,
+        id,
+        dto.paused ? 'SLA_PAUSED' : 'SLA_RESUMED',
+        reason,
+        userId,
+        now,
+      );
+      return updated;
+    });
+  }
+  async assignEscalationOwner(
+    userId: string,
+    id: string,
+    dto: EscalationOwnerDto,
+  ) {
+    const reason = this.reason(dto.reason);
+    if (
+      dto.ownerId !== null &&
+      (typeof dto.ownerId !== 'string' ||
+        !dto.ownerId ||
+        dto.ownerId.length > 200)
+    )
+      throw new BadRequestException('Choose a manager or release ownership.');
+    const ownerId = dto.ownerId;
+    return this.locked(async (tx) => {
+      await this.lockTicket(tx, id);
+      const actor = await this.profile(userId, tx);
+      this.manager(actor);
+      const ticket = await this.ticket(actor, id, tx),
+        now = await this.now(tx);
+      const managers = await tx.travelProfile.findMany({
+        where: { kind: 'MANAGER', status: 'ACTIVE' },
+      });
+      if (
+        ownerId &&
+        !managers.some(
+          (m) =>
+            m.userId === ownerId &&
+            m.available &&
+            isOnDuty(this.calendar(m.shiftCalendar), now),
+        )
+      )
+        throw new BadRequestException('Choose an active on-duty manager.');
+      if (ticket.escalationOwnerId === ownerId) return ticket;
+      const result = await tx.travelTicket.update({
+        where: { id },
+        data: { escalationOwnerId: ownerId },
+      });
+      await this.event(
+        tx,
+        id,
+        'ESCALATION_OWNER_CHANGED',
+        `Owner ${ticket.escalationOwnerId ?? 'unowned'} -> ${ownerId ?? 'unowned'}: ${reason}`,
+        userId,
+        now,
+      );
+      return result;
+    });
+  }
+  private async refreshEscalationOwner(tx: Tx, ticket: Case, now: Date) {
+    const outstanding = await tx.travelEvent.count({
+      where: {
+        ticketId: ticket.id,
+        kind: { in: ALERT_KINDS },
+        acknowledgedAt: null,
+      },
+    });
+    if (!outstanding) return;
+    const current = await tx.travelTicket.findUniqueOrThrow({
+      where: { id: ticket.id },
+      select: { escalationOwnerId: true },
+    });
+    // Membership/coverage writers take profile UPDATE locks but never ticket
+    // locks. Shared locks here prevent committing a choice based on a profile
+    // that was concurrently suspended or taken off duty. Lock IDs consistently.
+    const lockedManagers = await tx.$queryRaw<{ userId: string }[]>`
+      SELECT "userId" FROM "TravelProfile" WHERE kind = 'MANAGER'
+      ORDER BY "userId" FOR SHARE
+    `;
+    const managers = await tx.travelProfile.findMany({
+      where: {
+        userId: { in: lockedManagers.map((m) => m.userId) },
+        kind: 'MANAGER',
+        status: 'ACTIVE',
+      },
+    });
+    const ownerId = chooseEscalationOwner(
+      managers.map((m) => ({
+        ...m,
+        shiftCalendar: this.calendar(m.shiftCalendar),
+      })),
+      now,
+      current.escalationOwnerId,
+    );
+    if (ownerId === current.escalationOwnerId) return;
+    await tx.travelTicket.update({
+      where: { id: ticket.id },
+      data: { escalationOwnerId: ownerId },
+    });
+    await this.event(
+      tx,
+      ticket.id,
+      'ESCALATION_OWNER_CHANGED',
+      `Coverage handoff ${current.escalationOwnerId ?? 'unowned'} -> ${ownerId ?? 'unowned'}.`,
+      'system',
+      now,
+    );
+  }
   async sweep() {
     // Keyset batches bound memory and transaction duration; every candidate is
     // reread after its row lock, including status, booking and supplier state.
@@ -1436,6 +1761,11 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         where: {
           status: { notIn: ['RESOLVED', 'CLOSED'] },
           OR: [
+            {
+              events: {
+                some: { kind: { in: ALERT_KINDS }, acknowledgedAt: null },
+              },
+            },
             { deadline: { lte: selectionTime } },
             {
               category: { not: 'REFUND' },
@@ -1486,8 +1816,11 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
             t.deadline,
             t.booking?.checkInAt,
             now,
-            t.responseDeadline,
+            t.slaPausedAt
+              ? new Date('9999-01-01T00:00:00Z')
+              : t.responseDeadline,
           );
+          await this.refreshEscalationOwner(tx, t, now);
           if (!rule && t.conversations.length === 0) return;
           checked++;
           if (rule) {
@@ -1533,6 +1866,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
               update: {},
             });
           }
+          await this.refreshEscalationOwner(tx, t, now);
         });
       }
       cursor = candidates[candidates.length - 1].id;

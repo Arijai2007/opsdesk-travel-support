@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SlaSettings } from "./sla-settings";
 import Link from "next/link";
 import {
   ArrowDownToLine,
@@ -498,6 +499,7 @@ export function OpsDeskWorkspace() {
                         busy={busy}
                         mutate={mutate}
                       />
+                      <SlaSettings data={data} busy={busy} mutate={mutate} />
                       <AgencyResponseSettings
                         data={data}
                         busy={busy}

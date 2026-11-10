@@ -96,7 +96,10 @@ export function AgencyResponseSettings({
   return (
     <details className="od-panel">
       <summary>Agency response targets</summary>
-      <p>Targets use elapsed hours and apply to new or reopened cases.</p>
+      <p>
+        Targets use elapsed hours unless a business calendar is configured. They
+        apply to new or reopened cases.
+      </p>
       {data.agencies.map((agency) => (
         <form
           key={`${agency.id}:${agency.responsePolicyVersion}`}

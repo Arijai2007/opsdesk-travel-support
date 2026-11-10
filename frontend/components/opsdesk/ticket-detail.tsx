@@ -1,5 +1,6 @@
 "use client";
 import { DirectorySelect } from "./directory-select";
+import { TicketSlaControls } from "./sla-settings";
 import { useState } from "react";
 import { useOpsResource, useOpsPage, PageControls } from "./paged-data";
 import {
@@ -824,6 +825,15 @@ export function TicketDetail({
           </section>
         </aside>
       </div>
+      {staff && (
+        <TicketSlaControls
+          ticket={t}
+          manager={manager}
+          refresh={data.now}
+          busy={busy}
+          mutate={mutate}
+        />
+      )}
       {showResolve && (
         <Modal
           title={active(t) ? "Record the outcome" : "Reopen this case"}
