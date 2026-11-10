@@ -98,7 +98,7 @@ Keep privacy filtering server-side. Case and conversation pages are capped at 20
 
 [GitHub issue #8](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/8)
 
-Current category suggestions are keyword rules and briefs use saved records. OpsDesk has no connected external LLM.
+Current category suggestions are keyword rules and briefs use saved records. The [offline classifier baseline](OPSDESK_CLASSIFIER_EVALUATION.md) measures those rules against synthetic complaints. OpsDesk has no connected external LLM.
 
 Acceptance:
 - Choose an explicit task/provider (Claude, Gemini or another API) and a provider-neutral adapter.
@@ -138,7 +138,7 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 | #5 | Seeded booking links and editable schedules | Real read adapter or agreed export, identity mapping, cancellation and stale-update handling |
 | #6 | Agent specialties, capacities, response targets and versioned response policy | Contract calendars, shifts, manager membership administration and escalation acknowledgment |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
-| #8 | Deterministic record-based briefs and classification | Provider choice, redaction, structured grounded outputs and held-out evaluation |
+| #8 | Deterministic record-based briefs and a reproducible synthetic classification baseline | Provider choice, redaction, structured grounded outputs and independent held-out evaluation |
 | #9 | End-to-end five-role Chromium and Firefox flows, dialog keyboard checks and release/incident procedure | Screen readers, full contrast audit, platform setup/release qualification, inherited dependency review and named owners |
 
 See the [handoff](OPSDESK_HANDOFF.md) for the developer transfer message and the [validation guide](OPSDESK_VALIDATION.md) for measurements and known limits.
