@@ -217,6 +217,7 @@ export function Bookings({
                 <tr key={b.id}>
                   <td>
                     <b className="od-booking-ref">{b.reference}</b>
+                    {b.bookingStatus === "CANCELLED" && <small>Cancelled booking · support cases remain separate</small>}
                     <small>
                       {b.destination} · {human(b.region)}
                     </small>

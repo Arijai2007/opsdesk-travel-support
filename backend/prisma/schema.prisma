@@ -375,6 +375,23 @@ model MembershipAudit {
   @@index([createdAt, id])
 }
 
+model TravelBookingRequest {
+  id String @id @default(cuid())
+  submitterId String
+  agencyId String
+  bookingId String?
+  kind String
+  payload Json
+  reason String
+  status String @default("PENDING")
+  reviewerId String?
+  decisionReason String?
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  @@index([agencyId, createdAt, id])
+  @@index([status, createdAt, id])
+}
+
 model TravelEscalationRotation {
   region String @id
   enabled Boolean @default(false)

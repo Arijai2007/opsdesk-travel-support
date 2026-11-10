@@ -42,6 +42,7 @@ import { Membership } from "./membership";
 import { NewTicket, OnDemandTicket, SupplierDesk } from "./ticket-detail";
 import { useTravelQueue } from "./use-travel-queue";
 import { MailOutbox } from "./mail-outbox";
+import { BookingRequests } from "./booking-requests";
 import {
   AgencyResponseSettings,
   Bookings,
@@ -347,6 +348,7 @@ export function OpsDeskWorkspace() {
               </button>
             )}
             {manager && <MailOutbox />}
+            {manager && <BookingRequests data={data} />}
             <div className="od-notification-wrap">
               <button
                 className="od-icon"

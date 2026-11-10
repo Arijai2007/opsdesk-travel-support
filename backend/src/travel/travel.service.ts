@@ -551,6 +551,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           take,
           orderBy: [{ reference: 'asc' }, { id: 'asc' }],
           include: {
+            providerImport: { select: { providerStatus: true } },
             supplier: { select: { id: true, name: true, email: true } },
             agency: true,
           },
@@ -564,6 +565,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       ...page,
       items: page.items.map((b) => ({
         ...b,
+        bookingStatus: b.providerImport?.providerStatus || 'ACTIVE',
         customerName:
           customers
             .filter((c) => c.id === b.customerId)
