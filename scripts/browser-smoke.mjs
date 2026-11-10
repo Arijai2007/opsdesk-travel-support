@@ -3,12 +3,21 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import pg from "pg";
-import { chromium } from "playwright";
+import { chromium, firefox } from "playwright";
 
 const env = dotenv.parse(
   readFileSync(new URL("../backend/.env", import.meta.url)),
 );
 const dbUrl = new URL(env.DATABASE_URL);
+const browserUrl = new URL(
+  process.env.OPSDESK_BROWSER_URL || "http://127.0.0.1:3000",
+);
+assert(
+  ["127.0.0.1", "localhost"].includes(browserUrl.hostname),
+  "Use a local browser test target",
+);
+assert.equal(browserUrl.username, "");
+assert.equal(browserUrl.password, "");
 assert.equal(env.OPSDESK_DEMO, "true", "Use the seeded OpsDesk demo.");
 assert.equal(dbUrl.hostname, "127.0.0.1", "Use an isolated local database.");
 const pool = new pg.Pool({ connectionString: env.DATABASE_URL });
@@ -27,7 +36,7 @@ async function signIn(account, options) {
     )
       opsReads.push(request.url());
   });
-  await page.goto("http://127.0.0.1:3000");
+  await page.goto(browserUrl.href);
   await page.getByLabel("Email address").fill(`${account}@opsdesk.demo`);
   await page.getByLabel("Password").fill("OpsDeskDemo!2026");
   await page.getByRole("button", { name: "Sign in to workspace" }).click();
@@ -41,9 +50,34 @@ async function openCase(page, search, name) {
 
 try {
   const channel = process.env.OPSDESK_BROWSER_CHANNEL;
-  browser = await chromium.launch(channel ? { channel } : {});
+  const engine = process.env.OPSDESK_BROWSER_ENGINE || "chromium";
+  assert(["chromium", "firefox"].includes(engine), "Choose chromium or firefox");
+  assert(!channel || engine === "chromium", "Browser channels require Chromium");
+  const browserType = engine === "firefox" ? firefox : chromium;
+  browser = await browserType.launch(channel ? { channel } : {});
 
   const manager = await signIn("manager");
+  await manager.getByRole("button", { name: /All cases/ }).waitFor();
+  const context = manager.context();
+  const original = (await context.cookies()).find(
+    (cookie) => cookie.name === "hd_refresh_token",
+  );
+  assert(original, "Manager sign-in must set the refresh cookie");
+  const refreshUrl = new URL("/api/auth/refresh", manager.url()).href;
+  const rotatedStatus = await manager.evaluate(async (url) => {
+    const response = await fetch(url, { method: "POST" });
+    return response.status;
+  }, refreshUrl);
+  assert.equal(rotatedStatus, 200);
+  const replay = await context.request.post(refreshUrl, {
+    headers: { Cookie: `${original.name}=${original.value}` },
+  });
+  assert.equal(replay.status(), 401);
+  assert.equal(
+    replay.headers()["set-cookie"],
+    undefined,
+    "A stale refresh response must preserve the browser's replacement cookies",
+  );
   await manager.getByRole("button", { name: /All cases/ }).click();
   await manager.getByRole("button", { name: "Next page" }).click();
   await manager.getByText(/^Page 2 of /).waitFor();
@@ -74,6 +108,52 @@ try {
   await manager.getByLabel("Cancellation cutoff (UTC)").waitFor();
   await manager.getByRole("button", { name: "Back to conversations" }).click();
 
+  // Exercise native modal focus containment, accessible naming and restoration.
+  const opener = manager.getByRole("button", {
+    name: "New ticket",
+    exact: true,
+  });
+  await opener.click();
+  const namedDialog = manager.getByRole("dialog", {
+    name: "Start a conversation",
+    exact: true,
+  });
+  await namedDialog.waitFor();
+  const closeDialog = namedDialog.getByRole("button", { name: "Close dialog" });
+  await closeDialog.focus();
+  await manager.keyboard.press("Shift+Tab");
+  assert(
+    await namedDialog.evaluate((dialog) =>
+      dialog.contains(document.activeElement),
+    ),
+    "Reverse Tab must remain in the modal",
+  );
+  assert(!(await closeDialog.evaluate((button) => button === document.activeElement)));
+  await manager.keyboard.press("Tab");
+  assert(await closeDialog.evaluate((button) => button === document.activeElement),
+    "Forward Tab from the last control must wrap to the first");
+  for (let i = 0; i < 16; i++) {
+    await manager.keyboard.press("Tab");
+    assert(
+      await namedDialog.evaluate((dialog) =>
+        dialog.contains(document.activeElement),
+      ),
+      "Tab focus must remain in the modal",
+    );
+  }
+  await manager.keyboard.press("Escape");
+  await namedDialog.waitFor({ state: "hidden" });
+  assert(
+    await opener.evaluate((button) => button === document.activeElement),
+    "Escape must return focus to the opener",
+  );
+  await opener.click();
+  await namedDialog.getByRole("button", { name: "Close dialog" }).click();
+  await namedDialog.waitFor({ state: "hidden" });
+  assert(
+    await opener.evaluate((button) => button === document.activeElement),
+    "Close button must restore opener focus",
+  );
   await manager.getByRole("button", { name: "New ticket" }).click();
   const booking = manager.getByRole("dialog").getByRole("combobox");
   const bookingId = await booking

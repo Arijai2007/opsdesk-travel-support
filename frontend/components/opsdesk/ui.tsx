@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import type { Ticket } from "@/lib/opsdesk-types";
 export const active = (t: Pick<Ticket, "status">) =>
@@ -72,15 +72,55 @@ export function Modal({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
-    ref.current?.showModal();
+    const dialog = ref.current;
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      if (opener?.isConnected) opener.focus();
+    };
   }, []);
   return (
-    <dialog className="od-modal" ref={ref} onCancel={onClose}>
+    <dialog
+      className="od-modal"
+      ref={ref}
+      aria-labelledby={titleId}
+      onKeyDown={(event) => {
+        if (event.key !== "Tab" || event.defaultPrevented) return;
+        const controls = Array.from(
+          event.currentTarget.querySelectorAll<HTMLElement>(
+            'a[href], button, input, select, textarea, [tabindex], [contenteditable="true"]',
+          ),
+        ).filter(
+          (element) =>
+            element.tabIndex >= 0 &&
+            !element.matches(":disabled") &&
+            !element.closest("[inert]") &&
+            element.getClientRects().length > 0 &&
+            getComputedStyle(element).visibility === "visible",
+        );
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        const boundary = event.shiftKey ? first : last;
+        if (boundary && document.activeElement === boundary) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        }
+      }}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
       <div className="od-modal-head">
         <div>
           <span className="od-eyebrow">OPSDESK WORKSPACE</span>
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
         </div>
         <button className="od-icon" onClick={onClose} aria-label="Close dialog">
           <X size={19} />

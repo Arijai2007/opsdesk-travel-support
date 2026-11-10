@@ -100,3 +100,20 @@ Before live data, confirm production access rules, choose staging, rehearse back
 | [Upstream README](docs/IT_HELPDESK_README.md) | Historical IT Helpdesk documentation |
 
 The original repository history and authorship are retained. The included Bitext Travel examples are complaint wording samples, not actual bookings or supplier policies; their attribution and terms are recorded in the sources guide.
+
+
+Lock contention follow-up: ticket messages and supplier operations now serialize per ticket; routing retains its capacity lock. Escalation uses fresh-state transactions in batches of 100 candidates. `npm run ops:test` includes the multi-connection lock regression harness. See [lock protocol and limitations](docs/OPSDESK_VALIDATION.md).
+
+## Synthetic recovery rehearsal - 10 November 2026
+
+Added `npm run ops:recovery` and five connection-safety tests. The rehearsal creates two disposable local databases, migrates/seeds the source, dumps/restores a custom archive, compares all public row data/indexes/constraints and tests restored integrity enforcement. See [runbook and limitations](docs/OPSDESK_RECOVERY.md). Local safety tests passed on Node 22.23.0; full archive/restore validation runs in CI using PostgreSQL 18 client tools because this Windows machine has only the embedded server binaries. CI results must be checked before claiming recovery validation. This is partial progress on issue #3; operational backups, retention, staging restore and production recovery ownership remain open. The branch is based on merged main and has no dependency on unmerged PR #17.
+
+## Production configuration follow-up - 10 November 2026
+
+Added early production startup validation for disabled demo/local-counter modes, separate non-placeholder JWT secrets, exact HTTPS frontend origins, PostgreSQL/Redis URL schemes, and non-test Turnstile settings. Environment typos fail explicitly and configuration errors do not echo secret values. See [settings and limits](docs/OPSDESK_PRODUCTION_CONFIG.md). Local validation includes 28 unit tests, changed-file lint, backend compilation and a real bootstrap rejection of the generated local-demo environment under NODE_ENV=production. These are sanity checks, not provider credential verification, automatic account cleanup or production deployment. This issue #3 follow-up is independent of unmerged PRs #17 and #18 and based on main fcd75fa.
+
+Workspace dialogs support keyboard navigation with Tab, Shift+Tab and Escape. Closing a dialog returns focus to its launcher when it is still on the page.
+
+For Firefox coverage, install the matching browser with `npx playwright install firefox`, set `OPSDESK_BROWSER_ENGINE=firefox` in your shell and run `npm run ops:test:browser`. Chromium is the default.
+
+Session refresh tokens are single-use. The HTTP smoke suite forces overlapping requests for the same token, and the browser suite checks that a stale response preserves the replacement cookies.

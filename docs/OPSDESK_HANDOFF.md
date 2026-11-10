@@ -3,7 +3,24 @@
 Prepared 10 November 2026. This document is the entry point for the next developer. It describes the delivered localhost prototype, the implementation boundaries, and the work required to turn it into an operational travel-support product.
 
 
-### Query-scaling follow-up (10 November 2026)
+## Start here for the current review
+
+PRs #15 and #16 are merged. The integration branch `codex/integrated-travel-validation` brings the following review branches together on top of `fcd75fa`. Its CI workflow exercises the changes together. Review and merge the integration PR into main once its checks and human review pass. Its commit history includes each listed head, so the individual PRs do not also need to be merged.
+
+| Review | Change |
+| --- | --- |
+| [#17](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/17) | Per-ticket locks, bounded escalation sweeps, concurrency and reconnect checks |
+| [#18](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/18) | Rehearsal of a synthetic PostgreSQL backup and restore |
+| [#19](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/19) | Production startup configuration checks |
+| [#20](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/20) | Keyboard navigation, dialog names and focus restoration |
+| [#21](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/21) | Firefox coverage for all five roles, built on #20 |
+| [#22](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/22) | Atomic session rotation and safe handling of late browser responses |
+
+Use Node 22.23.x. Run the seeded preview, then `npm run ops:test` and `npm run ops:test:browser`. Repeat the browser command with `OPSDESK_BROWSER_ENGINE=firefox`. For recovery, follow the [isolated recovery runbook](OPSDESK_RECOVERY.md). The hosted workflow runs recovery, both builds, the API suites, multi-connection checks, both browsers and the production dependency audit.
+
+**Next owner actions.** Review the combined CI results and deployment notes before merging. For a live pilot, settle account provisioning and history retention (#2), deployment ownership, managed services, backup retention and monitoring (#3). The [backlog](OPSDESK_BACKLOG.md) also tracks email and attachments (#4), booking integrations (#5), SLA calendars and memberships (#6), performance and worker fault testing (#7), optional AI (#8) and accessibility/release qualification (#9). All demo data is synthetic.
+
+### Historical query-scaling baseline (10 November 2026)
 
 PR #15 is merged. This follow-up was rebased onto latest main `f865ea9` after reviewing that merge; its source matches the tested `d75efbb` directory baseline. Profiling now covers 6,000 extra bookings, 18,000 cases and 54,000 messages using the real directory, inbox and Insights queries. People authorization now materializes the scoped ID set once rather than repeating correlated checks for every profile. A covering customer-message index improves first-response reporting. See [query plans, timings, reproduction and limits](OPSDESK_QUERY_PROFILE.md).
 
@@ -277,3 +294,36 @@ These are not implemented promises. Start with product acceptance and production
 **Partially finished.** The browser uses compact metadata and loads case histories separately. Initial synthetic-volume profiling is complete; next extend skew/concurrency/load coverage, retire the compatibility workspace endpoint and reduce global lock contention. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
 
 **Still to do.** Before live data, confirm production access rules and choose a staging target. Rehearse backup and restore, configure secrets and monitoring, then select providers for email, attachments and booking/supplier synchronization. External AI evaluation and broader accessibility, load and security reviews remain open. [Open issues](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues)
+
+
+## Ticket lock validation - 10 November 2026
+
+Rebuilt from merged main `fcd75fa` (PR #16 is merged; there is no unmerged PR dependency). The handoff's uncommitted `codex/narrow-travel-locks` checkout was unavailable, so this implementation was reconstructed independently.
+
+Messages and supplier operations acquire the parent ticket row with `FOR UPDATE` before reading mutable case/thread state. Case updates retain the capacity lock, then acquire the same ticket row. Booking schedule updates retain the capacity lock and acquire affected ticket rows in ascending ID order before changing the booking. Availability and specialty changes share the routing lock. Ticket-only paths never acquire the routing lock; this prevents reverse ordering. Automatic routing/capacity selection is unchanged. Manual assignment remains the existing authorized override, rather than being redefined as automatic routing.
+
+Escalation selects keyset batches of at most 100 eligible IDs. Each candidate gets a separate transaction, row lock, fresh clock/status/booking/thread reads and an eligibility recheck. A concurrent close or supplier reply can invalidate a candidate without creating an obsolete alert. Persistent unique event keys remain authoritative across independent workers and reconnections. Each transaction releases its row lock before moving to the next ticket. Newly eligible IDs behind a batch cursor are handled on the next sweep; the sweep is not one globally atomic snapshot.
+
+The new `node scripts/lock-concurrency.mjs` harness is included in `npm run ops:test`. It uses separate database pools/connections, a held capacity lock, a held ticket row, overlapping service instances, 104 overdue fixtures spanning a batch boundary, closure/reply races, reassignment/schedule/reply overlap, demo-clock/worker overlap, and a new Prisma/service instance after disconnect. The restart check establishes durable idempotency after reconnect, not OS kill/recovery or database crash recovery. Temporary fixtures are removed; use only an isolated seeded local demo.
+
+A controlled 150ms blocker measured about 165ms for a shared-lock control query and 21ms for an unrelated message while the routing lock remained held. These are local synthetic observations, not production throughput or load targets. Broad skewed-load benchmarks, process-kill fault injection, starvation/backpressure, row-lock timeouts and production worker monitoring remain open. Schedule changes affecting many tickets still take the capacity lock and can block routing; high-volume booking changes need separate measurement. Profile/access membership administration must follow compatible locking if introduced later.
+
+Validation completed on Node.js 22.23.0 / Windows / PostgreSQL 18.6: backend and optimized frontend builds passed; 9 unit tests, 400 HTTP checks (99 workflow + 124 pagination + 177 directory), 13 multi-connection concurrency checks and the five-role Chromium browser suite passed. Changed backend-file ESLint and whitespace checks passed. These results apply to the rebuilt branch, not the unavailable uncommitted work. Drain old-version workers before deploying the new protocol; mixed legacy global-lock workers and new row-lock workers were not validated. No issue is declared production-complete by these tests.
+
+## Synthetic recovery rehearsal - 10 November 2026
+
+Added `npm run ops:recovery` and five connection-safety tests. The rehearsal creates two disposable local databases, migrates/seeds the source, dumps/restores a custom archive, compares all public row data/indexes/constraints and tests restored integrity enforcement. See [runbook and limitations](OPSDESK_RECOVERY.md). Local safety tests passed on Node 22.23.0; full archive/restore validation runs in CI using PostgreSQL 18 client tools because this Windows machine has only the embedded server binaries. CI results must be checked before claiming recovery validation. This is partial progress on issue #3; operational backups, retention, staging restore and production recovery ownership remain open. The branch is based on merged main and has no dependency on unmerged PR #17.
+
+## Production configuration follow-up - 10 November 2026
+
+Added early production startup validation for disabled demo/local-counter modes, separate non-placeholder JWT secrets, exact HTTPS frontend origins, PostgreSQL/Redis URL schemes, and non-test Turnstile settings. Environment typos fail explicitly and configuration errors do not echo secret values. See [settings and limits](OPSDESK_PRODUCTION_CONFIG.md). Local validation includes 28 unit tests, changed-file lint, backend compilation and a real bootstrap rejection of the generated local-demo environment under NODE_ENV=production. These are sanity checks, not provider credential verification, automatic account cleanup or production deployment. This issue #3 follow-up is independent of unmerged PRs #17 and #18 and based on main fcd75fa.
+
+## Dialog keyboard access
+
+The shared workspace dialog uses its heading as its accessible name, wraps focus in both directions and restores the launcher on dismissal. Search and message fields have visible keyboard focus, and sign-in errors are announced as alerts. Run npm run ops:test:browser against the seeded preview to reproduce the keyboard checks. The remaining accessibility work in issue #9 includes assistive technology, contrast, and additional browsers.
+
+The five-role flow now also passes in Playwright Firefox on Windows. CI runs the same workflow sequentially in Chromium and Firefox. A Chromium channel override must be cleared before selecting Firefox.
+
+## Concurrent session refresh
+
+A conditional PostgreSQL update consumes each valid token once. The replacement session is created in the same transaction. Access-token denial through the existing revocation service follows commit. A stale browser refresh returns 401 without emitting cookie deletions. Explicit logout still clears the browser cookies. No migration or provider credentials are required.
