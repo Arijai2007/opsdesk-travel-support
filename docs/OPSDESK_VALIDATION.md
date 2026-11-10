@@ -1,3 +1,18 @@
+# Synthetic mail outbox validation
+
+Reconstructed on merged main `cb00be2a0d3a2487abaa1250f06f567b6e3f70a6` (PR #34). The prior unpublished implementation and its test results are separate from this increment.
+
+- Windows and Node.js 22.23.4. A fresh isolated PostgreSQL database applied all 23 migrations and loaded the synthetic seed. The backend and optimized frontend builds passed.
+- The full API and concurrency command passed. Jest passed 78 tests across 7 suites. There were 692 counted HTTP checks: 120 workflow, 124 pagination, 177 directory, 80 membership, 56 SLA, 20 supplier calendar, 52 agency contracts and 63 escalation rotations. Workflow coverage includes outbox privacy, the default pause and manager controls.
+- The command also passed 13 routing-lock checks, 6 SLA concurrency and reconnect checks, 33 workload policy, multi-worker and pause checks, and 54 rotation policy, concurrency and state assertions. Supplier-calendar and agency-contract suites passed their additional state assertions.
+- All five standard browser flows passed on Chromium and Firefox, including the outbox manager controls in the five-role flow. The first Firefox launch failed before reaching the app because the Windows installation lacked its mozglue assembly. A fresh Playwright install in a separate cache resolved the launch failure.
+- The pre-commit checks passed changed-file backend and frontend ESLint. Git whitespace checks passed.
+- Local startup initially timed out while embedded PostgreSQL initialized. Starting PostgreSQL separately before the preview resolved it. The first concurrency run exposed direct service construction without the outbox dependency. The harnesses now supply the same synthetic implementation explicitly.
+
+The standard `npm run ops:test` and `npm run ops:test:browser` commands include outbox coverage. Run browser tests for both values of `OPSDESK_BROWSER_ENGINE` (`chromium` and `firefox`) against the isolated preview. The worker transport in this increment is in-process synthetic. Live-provider acceptance and deployment remain pending.
+
+---
+
 # Escalation-rotation validation - 10 November 2026
 
 Started from merged main `ca3ae28faedbb081c5231c69d3accba812a82b43` (PR #33). Its [hosted validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42848596124) for head `e419367819de224325d583c40deb4a830b4364d0`; that historical result is separate from this increment. Deployment remains paused.

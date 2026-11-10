@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import { Prisma } from "../backend/dist/generated/prisma/client.js";
 import { PrismaService } from "../backend/dist/prisma/prisma.service.js";
+import { TravelMailService } from "../backend/dist/src/travel/travel-mail.service.js";
+import { SyntheticTravelMailTransport } from "../backend/dist/src/travel/travel-mail.transport.js";
 import { TravelService } from "../backend/dist/src/travel/travel.service.js";
 Object.assign(
   process.env,
@@ -13,8 +15,14 @@ assert.equal(process.env.OPSDESK_DEMO, "true");
 assert.equal(new URL(process.env.DATABASE_URL).hostname, "127.0.0.1");
 const db = new PrismaService(),
   peerDb = new PrismaService();
-const service = new TravelService(db),
-  peer = new TravelService(peerDb);
+const service = new TravelService(
+    db,
+    new TravelMailService(db, new SyntheticTravelMailTransport()),
+  ),
+  peer = new TravelService(
+    peerDb,
+    new TravelMailService(peerDb, new SyntheticTravelMailTransport()),
+  );
 const ids = [];
 const agents = await db.travelProfile.findMany({ where: { kind: "AGENT" } });
 let checks = 0;
@@ -250,7 +258,10 @@ try {
   });
   const reconnect = new PrismaService();
   try {
-    await new TravelService(reconnect).sweep();
+    await new TravelService(
+      reconnect,
+      new TravelMailService(reconnect, new SyntheticTravelMailTransport()),
+    ).sweep();
   } finally {
     await reconnect.$disconnect();
   }

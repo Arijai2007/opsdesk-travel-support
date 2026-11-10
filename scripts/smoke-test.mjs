@@ -405,6 +405,68 @@ try {
     201,
   );
   const afterReply = await call("/ops/workspace", manager);
+  const outbound = await call(
+    `/ops/tickets/${ticket.id}/messages`,
+    manager,
+    {
+      content: "We have reviewed the latest refund update.",
+      visibility: "CUSTOMER",
+    },
+    "POST",
+    201,
+  );
+  await call(
+    `/ops/tickets/${ticket.id}/messages`,
+    customer,
+    { content: "Thank you for the update.", visibility: "CUSTOMER" },
+    "POST",
+    201,
+  );
+  await call("/ops/mail", agent, undefined, "GET", 403);
+  const outbox = await call("/ops/mail", manager);
+  assert.equal(
+    outbox.mode,
+    "PAUSED",
+    "Run the standard smoke suite with mail paused.",
+  );
+  const mailRows = (
+    await pool.query(
+      `SELECT j.id, j."messageId", j.status, m.visibility
+     FROM "TravelMailJob" j JOIN "TravelMessage" m ON m.id = j."messageId"
+     WHERE m."ticketId" = $1`,
+      [ticket.id],
+    )
+  ).rows;
+  assert.deepEqual(mailRows.map((row) => row.visibility).sort(), [
+    "CUSTOMER",
+    "SUPPLIER",
+    "SUPPLIER",
+  ]);
+  assert(mailRows.every((row) => row.status === "QUEUED"));
+  const job = mailRows.find((row) => row.messageId === outbound.id);
+  assert(job);
+  assert(
+    !Object.hasOwn(
+      outbox.jobs.find((row) => row.id === job.id),
+      "recipient",
+    ),
+  );
+  await call(`/ops/mail/${job.id}/cancel`, customer, {}, "POST", 403);
+  await pool.query('UPDATE "TravelMailJob" SET status = $2 WHERE id = $1', [
+    job.id,
+    "FAILED",
+  ]);
+  await call(`/ops/mail/${job.id}/retry`, manager, {}, "POST", 201);
+  await call(`/ops/mail/${job.id}/cancel`, manager, {}, "POST", 201);
+  await call(`/ops/mail/${job.id}/retry`, manager, {}, "POST", 409);
+  const changedJob = (await call("/ops/mail", manager)).jobs.find(
+    (row) => row.id === job.id,
+  );
+  assert.equal(changedJob.status, "CANCELLED");
+  assert.deepEqual(changedJob.history.map((row) => row.outcome).sort(), [
+    "MANAGER_CANCELLED",
+    "MANAGER_RETRY",
+  ]);
   assert.equal(
     afterReply.tickets.find((t) => t.id === ticket.id).status,
     "WAITING_SUPPLIER",

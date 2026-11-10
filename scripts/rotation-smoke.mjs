@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import pg from "pg";
 import { PrismaService } from "../backend/dist/prisma/prisma.service.js";
+import { TravelMailService } from "../backend/dist/src/travel/travel-mail.service.js";
+import { SyntheticTravelMailTransport } from "../backend/dist/src/travel/travel-mail.transport.js";
 import { TravelService } from "../backend/dist/src/travel/travel.service.js";
 Object.assign(
   process.env,
@@ -16,8 +18,14 @@ assert(["127.0.0.1", "localhost"].includes(new URL(base).hostname));
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaService(),
   peerDb = new PrismaService();
-const service = new TravelService(db),
-  peer = new TravelService(peerDb);
+const service = new TravelService(
+    db,
+    new TravelMailService(db, new SyntheticTravelMailTransport()),
+  ),
+  peer = new TravelService(
+    peerDb,
+    new TravelMailService(peerDb, new SyntheticTravelMailTransport()),
+  );
 const reason = "Rotation test " + randomUUID(),
   prefix = randomUUID();
 const a = prefix + "-a",

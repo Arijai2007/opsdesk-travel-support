@@ -1,5 +1,9 @@
 # OpsDesk developer handoff
 
+## Synthetic mail outbox follow-up
+
+This branch reconstructs the outbox on merged main `cb00be2` (PR #34). The unpublished checkout described in the earlier handoff was unavailable in this environment. The [outbox guide](OPSDESK_MAIL_OUTBOX.md) covers synthetic delivery, manager controls, leases, retries and validation. The standard test commands exercise the new API and browser behavior. Next choose a live provider, then implement signed inbound webhooks and secure attachments. Deployment remains paused.
+
 ## Escalation-rotation increment - 10 November 2026
 
 Started from merged main `ca3ae28` after PR #33. [PR #33 hosted validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42848596124) for head `e419367819de224325d583c40deb4a830b4364d0`, including recovery and worker termination. Existing uncommitted worktrees were preserved. Deployment remains paused.

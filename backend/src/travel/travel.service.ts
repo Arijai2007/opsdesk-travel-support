@@ -24,6 +24,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { TravelMailService } from './travel-mail.service';
 import { Prisma } from '../../generated/prisma/client';
 import { readTravelInsights } from './travel-insights';
 import { TravelQueueDto } from './travel-queue.dto';
@@ -60,7 +61,10 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   private lastSweepCompletedAt: number | undefined;
   private static readonly sweepIntervalMs = 15_000;
   private readonly logger = new Logger(TravelService.name);
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly mail: TravelMailService,
+  ) {}
   onApplicationBootstrap() {
     const check = () => {
       if (this.sweepRunning) return;
@@ -1211,6 +1215,8 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           createdAt: now,
         },
       });
+      if (dto.visibility === 'CUSTOMER' && STAFF.includes(p.kind))
+        await this.mail.enqueue(tx, message.id);
       await tx.travelTicket.update({ where: { id }, data: { updatedAt: now } });
       return message;
     });
@@ -1245,7 +1251,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           createdAt: now,
         },
       });
-      await tx.travelMessage.create({
+      const message = await tx.travelMessage.create({
         data: {
           ticketId: id,
           conversationId: c.id,
@@ -1255,6 +1261,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           createdAt: now,
         },
       });
+      await this.mail.enqueue(tx, message.id);
       await tx.travelTicket.update({
         where: { id },
         data: { status: 'WAITING_SUPPLIER', updatedAt: now },
@@ -1289,7 +1296,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       if (!dto.content.trim())
         throw new BadRequestException('Message cannot be empty.');
       const now = await this.now(tx);
-      await tx.travelMessage.create({
+      const message = await tx.travelMessage.create({
         data: {
           ticketId: c.ticketId,
           conversationId: id,
@@ -1299,6 +1306,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           createdAt: now,
         },
       });
+      if (p.kind !== 'SUPPLIER') await this.mail.enqueue(tx, message.id);
       await tx.travelConversation.update({
         where: { id },
         data: {
