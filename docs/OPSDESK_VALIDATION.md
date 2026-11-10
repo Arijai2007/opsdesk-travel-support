@@ -124,3 +124,5 @@ On Node 22.23.0 both builds, 9 backend unit tests, HTTP suites (102, 124 and 177
 ## Worker process termination checkpoint
 
 On Windows, a compiled worker completed the first ticket and blocked on the second ticket inside its PostgreSQL transaction. Terminating the worker rolled back that ticket. A fresh process completed the sweep with exactly one escalation event per ticket. CI runs the same check in the disposable restored database after snapshot comparisons. Database server crash recovery and multi-host failover remain separate operational tests.
+
+The first post-merge main run restored the fixture successfully, then failed during forced database deletion while a pooled socket was closing. The checkpoint uses ordinary DROP DATABASE after ending the pools and writes the success report only after database and archive cleanup.

@@ -221,21 +221,24 @@ try {
   report.tables = Object.fromEntries(
     Object.entries(before.tables).map(([name, value]) => [name, value.count]),
   );
-  // No credentials, row contents or password hashes are written to the report.
-  writeFileSync(
-    resolve(directory, "latest-report.json"),
-    JSON.stringify(report, null, 2),
-  );
-  console.log(JSON.stringify(report));
 } finally {
   await Promise.all([sourcePool?.end(), targetPool?.end()]);
   try {
     for (const name of created) {
       assert(/^opsdesk_recovery_(source|target)_[a-f0-9]{32}$/.test(name));
-      await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);
+      // pg.Pool.end() can resolve while its idle sockets are still closing.
+      // Ordinary DROP waits for disconnects without sending FATAL to clients.
+      await admin.query(`DROP DATABASE "${name}"`);
     }
   } finally {
     await admin.end();
     if (archiveCreated) unlinkSync(archive);
   }
 }
+check("disposable databases and temporary archive cleaned up");
+// Publish success only after cleanup; the report contains no row contents.
+writeFileSync(
+  resolve(directory, "latest-report.json"),
+  JSON.stringify(report, null, 2),
+);
+console.log(JSON.stringify(report));
