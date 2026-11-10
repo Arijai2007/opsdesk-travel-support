@@ -4,6 +4,16 @@ A local travel-support prototype that connects complaints to agencies, customers
 
 Start with the [developer handoff](docs/OPSDESK_HANDOFF.md), [full setup and demo guide](OPSDESK_README.md), and [prioritized backlog](docs/OPSDESK_BACKLOG.md). Development and pull requests belong to [DhruvKhanna7777/opsdesk-travel-support](https://github.com/DhruvKhanna7777/opsdesk-travel-support).
 
+## Screenshots
+
+Real local screenshots using synthetic records. Select an image to open it at full size. Membership administration is included in this feature branch; it is not yet merged into `main`.
+
+| Shared inbox | Booking-linked case |
+| :---: | :---: |
+| [<img src="docs/assets/inbox-overview.png" width="400" alt="OpsDesk inbox with case filters, priorities and owners">](docs/assets/inbox-overview.png) | [<img src="docs/assets/connected-case.png" width="400" alt="A support case with booking context and connected history">](docs/assets/connected-case.png) |
+| **Operational Insights** | **New membership administration** |
+| [<img src="docs/assets/insights-overview.png" width="400" alt="Response metrics, issue categories and operational trends">](docs/assets/insights-overview.png) | [<img src="docs/assets/membership-overview.png" width="400" alt="Manager membership directory, invitations and access controls">](docs/assets/membership-overview.png) |
+
 ## Run locally
 
 Use **Node.js 22.23.x** and npm. The local demo uses embedded PostgreSQL; Docker, an external database account and an AI API key are not required.
@@ -73,17 +83,21 @@ npx playwright install chromium
 npm run ops:test:browser
 ```
 
-`ops:test` runs 9 policy unit tests and 400 HTTP checks covering access scopes, pagination, routing, supplier privacy and workflow transitions. The browser suite exercises five roles. Suites create temporary fixtures and clean them up; use the local synthetic demo. Run `npm run build` with the preview stopped to check both production builds independently.
+On this feature branch, `ops:test` passed 42 unit tests, 492 HTTP checks and 13 concurrency checks. It includes the new 80-check membership suite. `ops:test:browser` runs the existing five-role flow and the new membership flow; the final local Chromium/Firefox sequence was stopped at the user's request to prioritize GitHub publication. The earlier membership flow passed with the `msedge` channel. See the [exact pass/failure/fix record](docs/OPSDESK_VALIDATION.md). Suites create temporary fixtures and clean them up; use only the isolated synthetic demo. Run `npm run build` with the preview stopped to check both production builds independently.
 
 The query-scaling follow-up adds `npm run ops:profile`. It requires an explicit `OPSDESK_PROFILE_DATABASE_URL` pointing to a local PostgreSQL maintenance `/postgres` database and an account allowed to create databases. Generate Prisma and build the backend first. The harness creates a disposable database, captures actual query plans and compares results before/after the reporting index. See [profiling method, timings and limits](docs/OPSDESK_QUERY_PROFILE.md) for configuration and reproduction.
 
-Latest local validation used Windows, Node.js 22.23.0 and PostgreSQL 18.6. Both builds, the migration, unit/HTTP/browser checks and changed-file lint passed. Existing full-backend lint errors in inherited files remain documented in the [validation notes](docs/OPSDESK_VALIDATION.md). Query timings are local synthetic measurements, not production performance targets.
+Historical query-scaling local validation used Windows, Node.js 22.23.0 and PostgreSQL 18.6. Both builds, the migration, unit/HTTP/browser checks and changed-file lint passed. Existing full-backend lint errors in inherited files remain documented in the [validation notes](docs/OPSDESK_VALIDATION.md). Query timings are local synthetic measurements, not production performance targets.
 
 ## Project status and next work
 
-Case/history and directory pagination are merged through PR #15. [PR #16](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/16) contains the query-scaling follow-up and these README updates; it awaits collaborator review and merge.
+**Deployment is paused at the user’s instruction: complete local features, verification and review first.** Saved free-demo deployment preparation is separate from this feature branch; no hosted service or live email is enabled.
 
-Remaining scaling work includes broader read/write load measurements, global routing/escalation lock redesign, incremental reporting and retirement of the compatibility endpoint. Contract calendars, shifts and membership administration remain open.
+PRs #15–#27 are merged at `f71b284487e0adad74a91ff15ac2da6554a2f525`. [Main CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42805941972), including builds, recovery, core API checks, booking integration, Chromium, Firefox and production dependency audit. PRs #25–#27 deliver the offline classifier baseline, audited manager acknowledgment and synthetic booking export tooling.
+
+Current unmerged work on `codex/opsdesk-membership-admin` adds manager invitations, public single-use activation, suspension/reactivation, session invalidation, agency/supplier creation and paged membership/audit controls. Invitation delivery is manual; identity scopes are immutable and historical records are preserved. Independent review's activation-quota finding is fixed and covered by passing unit/API tests. Browser completion and PR checks must be evaluated before merging. See [current branch evidence](docs/OPSDESK_VALIDATION.md#current-membership-branch-validation-10-november-2026).
+
+Next implement contract business-hour/holiday/timezone calendars, shifts and escalation ownership; then email outbox/inbound webhooks and secure attachments, and a provider-neutral booking adapter with owner-approved creation/cancellation policy. Independent evaluation, accessibility, realistic concurrent load, recovery ownership and P0 live-data acceptance remain open. The [handoff](docs/OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order) identifies entry files and acceptance checks.
 
 Before live data, confirm production access rules, choose staging, rehearse backup/restore and configure monitoring. Live email, secure attachments, booking/supplier integrations, external AI evaluation and broader accessibility/security reviews remain pending. This repository documents a localhost prototype; it does not provide a production deployment.
 
@@ -104,11 +118,11 @@ The original repository history and authorship are retained. The included Bitext
 
 Lock contention follow-up: ticket messages and supplier operations now serialize per ticket; routing retains its capacity lock. Escalation uses fresh-state transactions in batches of 100 candidates. `npm run ops:test` includes the multi-connection lock regression harness. See [lock protocol and limitations](docs/OPSDESK_VALIDATION.md).
 
-## Synthetic recovery rehearsal - 10 November 2026
+## Historical synthetic recovery rehearsal - 10 November 2026
 
 Added `npm run ops:recovery` and five connection-safety tests. The rehearsal creates two disposable local databases, migrates/seeds the source, dumps/restores a custom archive, compares all public row data/indexes/constraints and tests restored integrity enforcement. See [runbook and limitations](docs/OPSDESK_RECOVERY.md). Local safety tests passed on Node 22.23.0; full archive/restore validation runs in CI using PostgreSQL 18 client tools because this Windows machine has only the embedded server binaries. CI results must be checked before claiming recovery validation. This is partial progress on issue #3; operational backups, retention, staging restore and production recovery ownership remain open. The branch is based on merged main and has no dependency on unmerged PR #17.
 
-## Production configuration follow-up - 10 November 2026
+## Historical production configuration follow-up - 10 November 2026
 
 Added early production startup validation for disabled demo/local-counter modes, separate non-placeholder JWT secrets, exact HTTPS frontend origins, PostgreSQL/Redis URL schemes, and non-test Turnstile settings. Environment typos fail explicitly and configuration errors do not echo secret values. See [settings and limits](docs/OPSDESK_PRODUCTION_CONFIG.md). Local validation includes 28 unit tests, changed-file lint, backend compilation and a real bootstrap rejection of the generated local-demo environment under NODE_ENV=production. These are sanity checks, not provider credential verification, automatic account cleanup or production deployment. This issue #3 follow-up is independent of unmerged PRs #17 and #18 and based on main fcd75fa.
 

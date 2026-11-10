@@ -1,13 +1,69 @@
 # Prototype validation
 
+## Current membership branch validation 10 November 2026
 
-## Query profiling follow-up - 10 November 2026
+Deployment is paused at the user’s instruction. The merged baseline is `f71b284487e0adad74a91ff15ac2da6554a2f525`, including PRs #25–#27; [main CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42805941972) builds, recovery, `ops:test`, booking integration, Chromium, Firefox and the production dependency audit. The following evidence concerns the unmerged `codex/opsdesk-membership-admin` feature and must not be conflated with that baseline.
+
+| Check | Observed result / remaining gate |
+| --- | --- |
+| Backend unit tests | 42 tests across four suites passed. |
+| Compilation and lint | Backend/frontend builds and changed-file lint passed. |
+| Membership HTTP regression | 80 real PostgreSQL HTTP checks passed with the final quota change, including independent invitation budgets, unknown-token handling, manager-only selectors and unchanged case ownership/content. |
+| Existing API and concurrency | The final `ops:test` run passed 111 workflow + 124 pagination + 177 directory + 80 membership = 492 HTTP checks, plus 13 concurrency checks and all 42 unit tests. |
+| Browser checkpoint | The membership invitation/activation/suspension/reactivation flow passed with the Chromium-based `msedge` channel before the final quota change and added keyboard assertions. |
+| Final local Chromium/Firefox sequence | Started, then stopped at the user's request to prioritize GitHub publication. No completed final pinned-browser result is claimed. The new keyboard assertions have not completed a run. |
+| Independent review | One material issue found: a shared proxy-IP activation quota could block unrelated invitations. Fixed with separate valid-invitation/IP budgets; unit tests and the 80-check HTTP run passed. No other material defect was reported. |
+
+### Failures observed and fixes
+
+| Observed failure | Cause and fix | Evidence after the fix |
+| --- | --- | --- |
+| Suspended agent selected; suspended password login accepted; stale JWT accepted | Added active-membership checks, routing exclusion and live session-version validation | Backend policy tests passed; real HTTP suspension/reactivation checks passed |
+| `Expected overlapping refresh transactions` in the existing HTTP suite | A global capacity lock serialized refresh requests. Replaced it with a per-profile shared row lock before token claim | Final 111-check workflow suite passed, including concurrent single-use rotation |
+| Expired-invitation fixture unexpectedly accepted | The SQL fixture used a local timestamp while Prisma dates are UTC. Made the fixture explicitly UTC | Expired-invitation API check passed |
+| Initial member directory did not appear | The UI sent an empty `kind` filter that the DTO rejects. Empty filters are now omitted | Membership browser flow passed in `msedge` |
+| Browser could not locate the Role select by its label | Wrapped select names included option text. Added stable explicit accessible names | Membership browser flow passed in `msedge`; lint passed |
+| Shared acceptance quota and unknown-token counter allocation | Initial quota grouped all invitations behind the same server IP. Valid invitations now use independent invitation/IP budgets; invalid tokens stop before counters/bcrypt | Two regression tests observed failing, then passed; final 80-check HTTP suite passed |
+
+There is no known failing backend unit/API test in the completed final run. The stopped final browser sequence has no completed outcome; it must not be described as a pass or a product failure. Provider/hosted/live-data behavior was not tested, and no deployment was performed.
+
+The acceptance quota is 20 attempts per valid invitation and connection IP over 15 minutes. Lookup precedes counter allocation, so invalid token values do not allocate counters or trigger expensive password work. The connection address is used without blindly trusting a caller-supplied forwarded header. This bounded invitation quota does not claim a general network abuse perimeter.
+
+Reproduce from a clean feature checkout with Node.js 22.23.x. First terminal:
+
+```powershell
+npm ci
+npm run ops:preview
+```
+
+The launcher generates Prisma, applies committed migrations and seeds only an empty isolated local synthetic workspace. Keep it running. In a second terminal run:
+
+```powershell
+npm run ops:test
+npx playwright install chromium firefox
+Remove-Item Env:OPSDESK_BROWSER_CHANNEL -ErrorAction SilentlyContinue
+$env:OPSDESK_BROWSER_ENGINE = 'chromium'
+npm run ops:test:browser
+$env:OPSDESK_BROWSER_ENGINE = 'firefox'
+npm run ops:test:browser
+Remove-Item Env:OPSDESK_BROWSER_ENGINE
+```
+
+Stop on a failure and retain a secret-free report. `ops:test` includes the membership HTTP suite; `ops:test:browser` includes the original and membership browser scripts. The membership-only commands are `npm run ops:test:membership` and `npm run ops:test:membership:browser`. They require the isolated loopback PostgreSQL synthetic demo and clean up temporary fixtures. Do not run them on shared/live data. Stop the preview before a separate `npm run build`. Consult the [recovery runbook](OPSDESK_RECOVERY.md) for isolated recovery checks.
+
+Review membership coverage for manager-only administration, bounded/paged selectors and audit, scope validation, invitation expiry/reissue/concurrent single-use acceptance, self/last-manager guards, session invalidation, suspended assignment exclusion and historical preservation. Browser checks should exercise the fragment activation screen, manual link handling, non-manager invisibility and keyboard access. Do not retain invitation links, passwords, token hashes or secrets in reports or screenshots.
+
+The feature does not implement email delivery, contract calendars, shifts, escalation ownership, provider booking creation/cancellation policy, general identity-scope reassignment or deletion. Screen-reader/contrast audits, realistic load and operational live-data/recovery ownership remain acceptance work. No production-readiness claim is made.
+
+
+
+## Historical query profiling follow-up - 10 November 2026
 
 Initially reviewed open PR #15 and main `a5455a4`. PR #15 merged during validation; fetched/reviewed latest main `f865ea9` and rebased onto it. Its source tree matches the tested directory baseline. Validation used the pinned Node.js 22.23.0 runtime on Windows and a separate fresh PostgreSQL 18.6 database. Both production builds, Prisma generation and the new index migration passed. The 9 unit tests and all 400 HTTP checks passed, including extended directory fixtures for an unbooked case customer and a supplier-thread-only author. The five-role Chromium flow and directory page-selection browser checks passed. Changed-file ESLint and git whitespace checks passed. The known inherited full-backend lint errors remain outside this change.
 
 `npm run ops:profile` calls compiled TravelService reads against disposable synthetic databases, captures actual query plans and timings, checks pre/post-index result equality, and probes global advisory lock waiting with two connections. It requires an explicit local maintenance URL and removes its randomly named database in finally. A run added 6,000 bookings, 18,000 cases and 54,000 messages on top of the demo seed. See [profile evidence and reproduction](OPSDESK_QUERY_PROFILE.md) for measured changes, warm-cache/vacuum caveats and remaining load work. Neither production throughput nor safe lock replacement is established by this evidence.
 
-## Directory pagination follow-up - 10 November 2026
+## Historical directory pagination follow-up - 10 November 2026
 
 Reviewed merged PR #14 and latest main `a5455a4` before changes. Local validation used Windows, Node.js 24.21.0, npm 11.19.0 and a fresh embedded PostgreSQL 18 database. The repository still specifies Node.js 22.23.x; this run does not certify that pinned runtime.
 
@@ -24,7 +80,7 @@ Compact workspace metadata returns empty booking/people arrays; legacy full snap
 
 The prior merged implementation baseline is `13873d4`. [CI passed for the merged PR #12 head](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42668187410). The original Windows baseline below used Node.js 22.19.0, npm 10.9.3, PostgreSQL 18 (embedded), Next.js 16.4.5 and NestJS 11. Use Node.js 22.23.x for a fresh setup.
 
-## Case-read pagination follow-up
+## Historical case-read pagination follow-up
 
 Validated locally on Windows with Node.js 22.23.0 and a fresh embedded PostgreSQL database:
 
@@ -37,7 +93,7 @@ Validated locally on Windows with Node.js 22.23.0 and a fresh embedded PostgreSQ
 
 The browser uses the compact metadata endpoint; the legacy full-workspace endpoint remains for compatibility with existing API workflow tests. Booking and people directories are still returned as authorized metadata lists.
 
-## Original prototype checks
+## Historical original prototype checks
 
 - Backend unit suite: 7 tests passed, including 6 travel policy tests.
 - Real HTTP workflow suite: 47 checks passed against the actual NestJS API and PostgreSQL database. Covers authentication, agency/customer/region isolation, payload validation, linking, missing references, private notes, supplier-specific access, supplier-thread closure/reopening, status transitions, least-load/availability routing and idempotent escalation.
@@ -46,7 +102,7 @@ The browser uses the compact metadata endpoint; the legacy full-workspace endpoi
 - `git diff --check` passed.
 - `npm audit --omit=dev` reported 0 known production dependency vulnerabilities at validation time. Development-tool advisories remain; no force-upgrade across major tooling versions was applied.
 
-## Browser checks
+## Historical browser checks
 
 `npm run ops:test:browser` runs the booking-to-supplier-to-resolution flow across manager, regional agent, agency, customer and supplier browser sessions. Run it with the isolated demo preview active. Install Chromium with `npx playwright install chromium`, or set `OPSDESK_BROWSER_CHANNEL=msedge` to use a locally installed Microsoft Edge. The test deletes the temporary case it creates. The Linux CI job runs it in Chromium.
 
@@ -89,7 +145,7 @@ This is a localhost prototype, not a production release. External LLM summaries,
 The test script is for an isolated seeded demo. It creates and removes only its temporary cases, and restores the clock and agent availability used by the test scenario. It does not delete the interactive browser example.
 
 
-## Ticket lock validation - 10 November 2026
+## Historical ticket lock validation - 10 November 2026
 
 Rebuilt from merged main `fcd75fa` (PR #16 is merged; there is no unmerged PR dependency). The handoff's uncommitted `codex/narrow-travel-locks` checkout was unavailable, so this implementation was reconstructed independently.
 
@@ -103,25 +159,25 @@ A controlled 150ms blocker measured about 165ms for a shared-lock control query 
 
 Validation completed on Node.js 22.23.0 / Windows / PostgreSQL 18.6: backend and optimized frontend builds passed; 9 unit tests, 400 HTTP checks (99 workflow + 124 pagination + 177 directory), 13 multi-connection concurrency checks and the five-role Chromium browser suite passed. Changed backend-file ESLint and whitespace checks passed. These results apply to the rebuilt branch, not the unavailable uncommitted work. Drain old-version workers before deploying the new protocol; mixed legacy global-lock workers and new row-lock workers were not validated. No issue is declared production-complete by these tests.
 
-## Synthetic recovery rehearsal - 10 November 2026
+## Historical synthetic recovery rehearsal - 10 November 2026
 
 Added `npm run ops:recovery` and five connection-safety tests. The rehearsal creates two disposable local databases, migrates/seeds the source, dumps/restores a custom archive, compares all public row data/indexes/constraints and tests restored integrity enforcement. See [runbook and limitations](OPSDESK_RECOVERY.md). Local safety tests passed on Node 22.23.0; full archive/restore validation runs in CI using PostgreSQL 18 client tools because this Windows machine has only the embedded server binaries. CI results must be checked before claiming recovery validation. This is partial progress on issue #3; operational backups, retention, staging restore and production recovery ownership remain open. The branch is based on merged main and has no dependency on unmerged PR #17.
 
-## Production configuration follow-up - 10 November 2026
+## Historical production configuration follow-up - 10 November 2026
 
 Added early production startup validation for disabled demo/local-counter modes, separate non-placeholder JWT secrets, exact HTTPS frontend origins, PostgreSQL/Redis URL schemes, and non-test Turnstile settings. Environment typos fail explicitly and configuration errors do not echo secret values. See [settings and limits](OPSDESK_PRODUCTION_CONFIG.md). Local validation includes 28 unit tests, changed-file lint, backend compilation and a real bootstrap rejection of the generated local-demo environment under NODE_ENV=production. These are sanity checks, not provider credential verification, automatic account cleanup or production deployment. This issue #3 follow-up is independent of unmerged PRs #17 and #18 and based on main fcd75fa.
 
-## Dialog keyboard regression
+## Historical dialog keyboard regression
 
 On Node 22.23.0, the optimized frontend build and five-role Chromium smoke suite passed. The new-ticket flow locates the dialog by name, crosses both Tab boundaries, dismisses with Escape and the close button, and verifies focus returns to the launcher after each dismissal. The suite can target a second local frontend using OPSDESK_BROWSER_URL. Screen-reader announcements and non-Chromium keyboard behavior still need manual validation.
 
 The same seeded five-role flow and keyboard regression passed locally in Firefox 153 on Windows with Node 22.23.0. CI installs both pinned Playwright engines and runs each suite against the same isolated preview, with a fresh case per run.
 
-## Single-use session rotation
+## Historical single-use session rotation
 
 On Node 22.23.0 both builds, 9 backend unit tests, HTTP suites (102, 124 and 177 checks), and the five-role Chromium flow passed locally. Holding the session row until two API connections blocked reproduced two successful rotations before the fix. With the fix, six overlapping requests produced one 200 and five 401s. The successor accessed the workspace and a later replay failed. Browser coverage replays a stale cookie after rotation and verifies the rejection emits no Set-Cookie header.
 
-## Worker process termination checkpoint
+## Historical worker process termination checkpoint
 
 On Windows, a compiled worker completed the first ticket and blocked on the second ticket inside its PostgreSQL transaction. Terminating the worker rolled back that ticket. A fresh process completed the sweep with exactly one escalation event per ticket. CI runs the same check in the disposable restored database after snapshot comparisons. Database server crash recovery and multi-host failover remain separate operational tests.
 

@@ -117,6 +117,7 @@ export function chooseAgent<
     userId: string;
     region: string | null;
     available: boolean;
+    status?: string;
     specialties?: string[];
     maxActiveCases?: number | null;
   },
@@ -136,6 +137,7 @@ export function chooseAgent<
     .filter(
       (a) =>
         a.available &&
+        (a.status === undefined || a.status === 'ACTIVE') &&
         (a.region === region || a.region === 'GLOBAL') &&
         (a.maxActiveCases == null ||
           (loads[a.userId] ?? 0) < a.maxActiveCases) &&

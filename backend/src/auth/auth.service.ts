@@ -59,8 +59,12 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { travelProfile: true },
+    });
+    if (!user || (user.travelProfile && user.travelProfile.status !== 'ACTIVE'))
+      throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
     return user;
@@ -91,9 +95,13 @@ export class AuthService {
     role: string,
     db: Prisma.TransactionClient = this.prisma,
   ) {
+    const membership = await db.travelProfile.findUnique({ where: { userId } });
+    if (membership && membership.status !== 'ACTIVE')
+      throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
+    const sessionVersion = membership?.sessionVersion ?? 0;
     // Sign the refresh token first — its own payload doesn't need the row id
     const refreshToken = this.jwt.sign(
-      { sub: userId, jti: randomUUID() },
+      { sub: userId, jti: randomUUID(), sessionVersion },
       {
         secret: requireEnv('JWT_REFRESH_SECRET'),
         expiresIn: JWT_REFRESH_EXPIRY_SECONDS,
@@ -111,7 +119,7 @@ export class AuthService {
     });
 
     const accessToken = this.jwt.sign(
-      { sub: userId, role, refreshTokenId: refreshTokenRow.id },
+      { sub: userId, role, refreshTokenId: refreshTokenRow.id, sessionVersion },
       { secret: requireEnv('JWT_SECRET'), expiresIn: JWT_ACCESS_EXPIRY },
     );
 
@@ -119,7 +127,7 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    let payload: { sub: string };
+    let payload: { sub: string; sessionVersion?: number };
     try {
       payload = this.jwt.verify(refreshToken, {
         secret: requireEnv('JWT_REFRESH_SECRET'),
@@ -129,31 +137,46 @@ export class AuthService {
     }
 
     const tokenHash = hashToken(refreshToken);
-    const { previousId, tokens } = await this.prisma.$transaction(async (tx) => {
-      const [claimed] = await tx.refreshToken.updateManyAndReturn({
-        where: {
-          tokenHash,
-          userId: payload.sub,
-          revoked: false,
-          expiresAt: { gt: new Date() },
-        },
-        data: { revoked: true },
-        select: { id: true },
-      });
-      if (!claimed) {
-        throw new UnauthorizedException(
-          AUTH_ERRORS.REFRESH_TOKEN_EXPIRED_OR_REVOKED,
-        );
-      }
-      const user = await tx.user.findUniqueOrThrow({
-        where: { id: payload.sub },
-        select: { id: true, role: true },
-      });
-      return {
-        previousId: claimed.id,
-        tokens: await this.issueTokens(user.id, user.role, tx),
-      };
-    });
+    const { previousId, tokens } = await this.prisma.$transaction(
+      async (tx) => {
+        // Shared membership locks permit refresh-token claims to overlap while
+        // status changes wait until the replacement tokens commit. Always take
+        // this lock before the refresh-token row; no capacity lock is needed.
+        await tx.$queryRaw`SELECT "userId" FROM "TravelProfile" WHERE "userId" = ${payload.sub} FOR SHARE`;
+        const membership = await tx.travelProfile.findUnique({
+          where: { userId: payload.sub },
+        });
+        if (
+          membership &&
+          (membership.status !== 'ACTIVE' ||
+            membership.sessionVersion !== (payload.sessionVersion ?? 0))
+        )
+          throw new UnauthorizedException(AUTH_ERRORS.INVALID_REFRESH_TOKEN);
+        const [claimed] = await tx.refreshToken.updateManyAndReturn({
+          where: {
+            tokenHash,
+            userId: payload.sub,
+            revoked: false,
+            expiresAt: { gt: new Date() },
+          },
+          data: { revoked: true },
+          select: { id: true },
+        });
+        if (!claimed) {
+          throw new UnauthorizedException(
+            AUTH_ERRORS.REFRESH_TOKEN_EXPIRED_OR_REVOKED,
+          );
+        }
+        const user = await tx.user.findUniqueOrThrow({
+          where: { id: payload.sub },
+          select: { id: true, role: true },
+        });
+        return {
+          previousId: claimed.id,
+          tokens: await this.issueTokens(user.id, user.role, tx),
+        };
+      },
+    );
     await this.sessionRevocation.revoke(previousId);
     return tokens;
   }
