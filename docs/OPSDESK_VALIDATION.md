@@ -1,3 +1,13 @@
+# Resend mail pilot validation
+
+Started from merged PR #35 at `5661ba79477a41d5a7d36c8ecaa4de87226e51a9`. On Windows with Node 22.23.4, the backend and optimized frontend builds passed and the pilot migration applied to the existing isolated synthetic database. Jest passed 83 tests in 8 suites. New coverage uses mocked provider HTTP and verifies mode isolation, the recipient allowlist, stable request keys, the retry cutoff, signature and timestamp checks, and receipt deduplication.
+
+The standard API and concurrency suite passed, including 693 counted HTTP checks and the disabled webhook check in the demo. All five standard browser flows passed in both Chromium and Firefox. Changed-file ESLint and Git whitespace checks passed.
+
+A separate local HTTP run with a fixture signing secret verified that the real Nest route rejects altered raw bytes, accepts three simultaneous deliveries of the same signed event, records out-of-order sent and delivered events once each in PostgreSQL, and ignores incoming-email events. The fixture job and its receipts were removed. Provider credentials, external delivery, and deployment remain pending.
+
+---
+
 # Synthetic mail outbox validation
 
 Reconstructed on merged main `cb00be2a0d3a2487abaa1250f06f567b6e3f70a6` (PR #34). The prior unpublished implementation and its test results are separate from this increment.

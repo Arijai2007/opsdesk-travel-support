@@ -269,6 +269,8 @@ model TravelMailJob {
   messageId String @unique
   message TravelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
   recipient String
+  transport String @default("SYNTHETIC")
+  providerId String?
   status String @default("QUEUED")
   attempts Int @default(0)
   nextAttemptAt DateTime @default(now())
@@ -276,7 +278,18 @@ model TravelMailJob {
   leaseToken String?
   createdAt DateTime @default(now())
   history TravelMailAttempt[]
-  @@index([status, nextAttemptAt])
+  receipts TravelMailReceipt[]
+  @@index([transport, status, nextAttemptAt])
+}
+
+model TravelMailReceipt {
+  id String @id
+  jobId String
+  job TravelMailJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  providerId String
+  kind String
+  occurredAt DateTime
+  @@index([jobId, occurredAt])
 }
 
 model TravelMailAttempt {

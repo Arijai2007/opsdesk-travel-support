@@ -13,6 +13,8 @@ import {
   SyntheticTravelMailTransport,
   TravelMailTransport,
 } from './travel-mail.transport';
+import { ResendTravelMailTransport } from './resend-mail.transport';
+import { ResendMailWebhookController } from './resend-mail-webhook.controller';
 @Module({
   controllers: [
     TravelController,
@@ -20,11 +22,13 @@ import {
     MembershipController,
     InvitationController,
     TravelMailController,
+    ResendMailWebhookController,
   ],
   providers: [
     TravelService,
     MembershipService,
     TravelMailService,
+    ResendTravelMailTransport,
     { provide: TravelMailTransport, useClass: SyntheticTravelMailTransport },
   ],
 })

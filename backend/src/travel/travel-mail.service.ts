@@ -5,15 +5,21 @@ import {
   Logger,
   OnApplicationBootstrap,
   OnModuleDestroy,
+  Optional,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import { TravelMailTransport } from './travel-mail.transport';
+import {
+  ResendTravelMailTransport,
+  resendConfig,
+  resendWindow,
+  syntheticAddress,
+} from './resend-mail.transport';
 
 const MAX_ATTEMPTS = 5;
 const LEASE_MS = 60_000;
-const syntheticAddress = /^[^\s@]+@(?:opsdesk\.demo|supplier\.example)$/i;
 
 @Injectable()
 export class TravelMailService
@@ -26,6 +32,7 @@ export class TravelMailService
   constructor(
     private readonly db: PrismaService,
     private readonly transport: TravelMailTransport,
+    @Optional() private readonly resend?: ResendTravelMailTransport,
   ) {}
 
   private demo() {
@@ -35,20 +42,20 @@ export class TravelMailService
     );
   }
 
-  private enabled() {
-    return this.demo() && process.env.OPSDESK_MAIL_SYNTHETIC === 'true';
+  private mode() {
+    if (this.demo() && process.env.OPSDESK_MAIL_SYNTHETIC === 'true')
+      return 'SYNTHETIC';
+    return this.resend && resendConfig() ? 'RESEND' : 'PAUSED';
   }
 
   onApplicationBootstrap() {
-    if (!this.enabled()) return;
+    if (this.mode() === 'PAUSED') return;
     this.timer = setInterval(() => {
       if (this.busy) return;
       this.busy = true;
       void this.processOne()
         .catch(() =>
-          this.logger.error(
-            'Synthetic mail worker could not process the queue.',
-          ),
+          this.logger.error('Mail worker could not process the queue.'),
         )
         .finally(() => {
           this.busy = false;
@@ -113,24 +120,33 @@ export class TravelMailService
       if (!member) return null;
       recipient = conversation.supplier.email;
     } else return null;
-    return syntheticAddress.test(recipient)
-      ? { recipient, text: message.content }
-      : null;
+    return { recipient, text: message.content };
   }
 
   async enqueue(tx: Prisma.TransactionClient, messageId: string) {
-    if (!this.demo()) return;
+    const config = this.resend && resendConfig();
+    if (!this.demo() && !config) return;
     const envelope = await this.envelope(tx, messageId);
-    if (envelope)
+    if (!envelope) return;
+    const permitted = config
+      ? config.recipients.includes(envelope.recipient)
+      : syntheticAddress.test(envelope.recipient);
+    if (permitted)
       await tx.travelMailJob.create({
-        data: { messageId, recipient: envelope.recipient },
+        data: {
+          messageId,
+          recipient: envelope.recipient,
+          transport: config ? 'RESEND' : 'SYNTHETIC',
+        },
       });
   }
 
   async processOne() {
-    if (!this.enabled()) return;
+    const mode = this.mode();
+    if (mode === 'PAUSED') return;
     const now = new Date();
     const eligible: Prisma.TravelMailJobWhereInput = {
+      transport: mode,
       OR: [
         { status: 'QUEUED', nextAttemptAt: { lte: now } },
         { status: 'PROCESSING', leaseUntil: { lte: now } },
@@ -172,12 +188,26 @@ export class TravelMailService
 
     let outcome = 'FAILED';
     let status = 'FAILED';
-    if (job.attempts <= MAX_ATTEMPTS) {
+    let providerId: string | undefined;
+    if (mode === 'RESEND' && Date.now() - +job.createdAt >= resendWindow) {
+      outcome = 'RECONCILIATION_REQUIRED';
+    } else if (job.attempts <= MAX_ATTEMPTS) {
       try {
         const envelope = await this.envelope(this.db, job.messageId);
-        if (!envelope || envelope.recipient !== job.recipient) {
+        const permitted =
+          mode === 'RESEND'
+            ? resendConfig()?.recipients.includes(job.recipient)
+            : syntheticAddress.test(job.recipient);
+        if (!envelope || envelope.recipient !== job.recipient || !permitted) {
           outcome = 'BLOCKED';
           status = 'CANCELLED';
+        } else if (mode === 'RESEND' && this.resend) {
+          providerId = await this.resend.deliver({
+            ...envelope,
+            idempotencyKey: job.id,
+          });
+          outcome = 'PROVIDER_ACCEPTED';
+          status = 'PROVIDER_ACCEPTED';
         } else {
           await this.transport.deliver({ ...envelope, idempotencyKey: job.id });
           outcome = 'SIMULATED';
@@ -192,6 +222,7 @@ export class TravelMailService
         where: { id: job.id, status: 'PROCESSING', leaseToken: job.token },
         data: {
           status,
+          providerId,
           leaseToken: null,
           leaseUntil: null,
           nextAttemptAt: new Date(
@@ -222,6 +253,13 @@ export class TravelMailService
         id: true,
         status: true,
         attempts: true,
+        providerId: true,
+        transport: true,
+        receipts: {
+          take: 10,
+          orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+          select: { id: true, kind: true, occurredAt: true, providerId: true },
+        },
         createdAt: true,
         nextAttemptAt: true,
         message: { select: { ticket: { select: { reference: true } } } },
@@ -232,7 +270,19 @@ export class TravelMailService
         },
       },
     });
-    return { mode: this.enabled() ? 'SYNTHETIC' : 'PAUSED', jobs };
+    return {
+      mode: this.mode(),
+      jobs: jobs.map(({ providerId, transport, receipts, ...job }) => ({
+        ...job,
+        retryable:
+          job.status === 'FAILED' &&
+          (transport === 'SYNTHETIC' ||
+            Date.now() - +job.createdAt < resendWindow),
+        receipts: receipts
+          .filter((receipt) => receipt.providerId === providerId)
+          .map(({ id, kind, occurredAt }) => ({ id, kind, occurredAt })),
+      })),
+    };
   }
 
   async change(userId: string, id: string, action: 'retry' | 'cancel') {
@@ -242,6 +292,15 @@ export class TravelMailService
         where: {
           id,
           status: action === 'retry' ? 'FAILED' : { in: ['QUEUED', 'FAILED'] },
+          ...(action === 'retry' && {
+            OR: [
+              { transport: 'SYNTHETIC' },
+              {
+                transport: 'RESEND',
+                createdAt: { gt: new Date(Date.now() - resendWindow) },
+              },
+            ],
+          }),
         },
         data:
           action === 'retry'

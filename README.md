@@ -99,6 +99,8 @@ Historical query-scaling local validation used Windows, Node.js 22.23.0 and Post
 
 ## Project status and next work
 
+The [mail outbox guide](docs/OPSDESK_MAIL_OUTBOX.md) covers the synthetic demo and the disabled-by-default Resend pilot adapter.
+
 **Deployment is paused at the user’s instruction: complete local features, verification and review first.** Saved free-demo deployment preparation is separate from this feature branch; no hosted service or live email is enabled.
 
 The feature branch starts from latest main `31cd21f` with PRs through #32 merged. The [supplier checkpoint CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42840920345); current contract-increment results are recorded separately in the validation guide.

@@ -422,6 +422,7 @@ try {
     "POST",
     201,
   );
+  await call("/ops/mail/webhooks/resend", undefined, {}, "POST", 404);
   await call("/ops/mail", agent, undefined, "GET", 403);
   const outbox = await call("/ops/mail", manager);
   assert.equal(

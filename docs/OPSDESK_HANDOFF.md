@@ -1,5 +1,9 @@
 # OpsDesk developer handoff
 
+## Resend pilot adapter
+
+Based on merged PR #35. The [mail outbox guide](OPSDESK_MAIL_OUTBOX.md#resend-pilot) covers the disabled-by-default Resend adapter, pilot allowlist, retry cutoff and signed delivery receipts. Credentialed pilot acceptance, authorized incoming email replies, thread correlation and secure attachments remain open. Deployment stays paused.
+
 ## Synthetic mail outbox follow-up
 
 This branch reconstructs the outbox on merged main `cb00be2` (PR #34). The unpublished checkout described in the earlier handoff was unavailable in this environment. The [outbox guide](OPSDESK_MAIL_OUTBOX.md) covers synthetic delivery, manager controls, leases, retries and validation. The standard test commands exercise the new API and browser behavior. Next choose a live provider, then implement signed inbound webhooks and secure attachments. Deployment remains paused.
