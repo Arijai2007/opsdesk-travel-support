@@ -116,6 +116,9 @@ model TravelAgency {
 }
 
 model TravelSupplier {
+  slaCalendar Json?
+  responseTargetHours Int @default(4)
+  responsePolicyVersion Int @default(1)
   id String @id
   name String
   email String
@@ -216,6 +219,7 @@ model TravelConversation {
   supplierId String
   supplier TravelSupplier @relation(fields: [supplierId], references: [id])
   subject String
+  slaSnapshot Json?
   status String @default("AWAITING_REPLY")
   dueAt DateTime
   createdAt DateTime @default(now())

@@ -1,5 +1,11 @@
 # SLA calendars, shifts and escalation ownership
 
+## Supplier response cycles
+
+The manager endpoint `PATCH /ops/suppliers/:id/calendar` accepts a calendar (or null), an integer responseTargetHours from 1 through 168 and a reason. Saving changed hours or a changed schedule increments the supplier's policy version and records the actor and reason. Submitting the same normalized policy preserves its version. Null selects elapsed hours. Weekly intervals, holidays and time zones use the same service-time calculator as agency calendars.
+
+Opening a supplier thread, sending a staff follow-up or reopening a closed thread starts a response cycle. The transaction reads the supplier policy under a shared supplier-row lock and stores the calculated due date and the applied hours, calendar and version on the thread. Each new cycle replaces that snapshot. Supplier replies and repeated status requests preserve the existing deadline. Migration leaves existing due dates intact. Supplier escalation continues to use the saved due date even when the case response clock is paused.
+
 Deployment remains paused. This feature starts from main `6e97b6f`, the merge of PR #28 (`3b07fa4`). The PR's hosted `validate` check passed on [run 42812617605](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42812617605). Old uncommitted work in another checkout was preserved; this implementation uses a separate worktree.
 
 ## Calendar contract

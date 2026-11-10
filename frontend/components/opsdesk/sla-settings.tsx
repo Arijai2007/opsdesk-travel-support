@@ -271,6 +271,11 @@ export function SlaSettings({
           mutate={mutate}
         />
       ))}
+      <SupplierCalendarSettings
+        refresh={data.now}
+        busy={busy}
+        mutate={mutate}
+      />
       <h4>Agent and escalation-manager shifts</h4>
       <label>
         Coverage role
@@ -305,6 +310,96 @@ export function SlaSettings({
         />
       )}
     </details>
+  );
+}
+type SupplierPolicy = {
+  id: string;
+  name: string;
+  slaCalendar: ServiceCalendar | null;
+  responseTargetHours: number;
+  responsePolicyVersion: number;
+};
+function SupplierCalendar({
+  supplier,
+  busy,
+  mutate,
+}: {
+  supplier: SupplierPolicy;
+  busy: boolean;
+  mutate: Mutation;
+}) {
+  const [calendar, setCalendar] = useState(supplier.slaCalendar);
+  const [hours, setHours] = useState(supplier.responseTargetHours);
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const reason = String(new FormData(event.currentTarget).get("reason"));
+        void mutate(
+          `suppliers/${supplier.id}/calendar`,
+          { calendar, responseTargetHours: hours, reason },
+          "Supplier policy saved for future response cycles.",
+          "PATCH",
+        ).catch(() => {});
+      }}
+    >
+      <h4>{supplier.name} response calendar</h4>
+      <label>
+        Supplier response hours
+        <input
+          type="number"
+          min={1}
+          max={168}
+          required
+          value={hours}
+          onChange={(event) => setHours(Number(event.target.value))}
+        />
+      </label>
+      <CalendarFields value={calendar} onChange={setCalendar} />
+      <label>
+        Supplier policy reason
+        <input name="reason" required minLength={3} maxLength={1000} />
+      </label>
+      <button className="od-secondary" disabled={busy}>
+        Save supplier policy
+      </button>
+    </form>
+  );
+}
+function SupplierCalendarSettings({
+  refresh,
+  busy,
+  mutate,
+}: {
+  refresh: string;
+  busy: boolean;
+  mutate: Mutation;
+}) {
+  const [supplier, setSupplier] = useState<SupplierPolicy>();
+  return (
+    <>
+      <h4>Supplier response calendars</h4>
+      <DirectorySelect<SupplierPolicy>
+        key={refresh}
+        disabled={busy}
+        path="admin/suppliers"
+        label="Supplier calendar"
+        refresh={refresh}
+        value={supplier?.id ?? ""}
+        onSelect={(_, item) => setSupplier(item)}
+        text={(item) => item.name}
+      >
+        <option value="">Choose a supplier</option>
+      </DirectorySelect>
+      {supplier && (
+        <SupplierCalendar
+          key={supplier.id}
+          supplier={supplier}
+          busy={busy}
+          mutate={mutate}
+        />
+      )}
+    </>
   );
 }
 export function TicketSlaControls({

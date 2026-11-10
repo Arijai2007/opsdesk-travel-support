@@ -15,6 +15,9 @@ const original = (
     'SELECT "slaCalendar","responsePolicyVersion" FROM "TravelAgency" WHERE id=\'atlas\'',
   )
 ).rows[0];
+const supplierPolicy = (
+  await pool.query('SELECT * FROM "TravelSupplier" WHERE id=$1', ["supplier-0"])
+).rows[0];
 const shift = (
   await pool.query(
     'SELECT "shiftCalendar" FROM "TravelProfile" WHERE "userId"=\'agent-asia\'',
@@ -52,6 +55,27 @@ try {
   await page
     .getByText("SLA calendars and duty coverage", { exact: true })
     .click();
+  await page
+    .getByLabel("Supplier calendar", { exact: true })
+    .selectOption("supplier-0");
+  const supplierForm = page
+    .locator("form")
+    .filter({ has: page.getByLabel("Supplier response hours") });
+  const target = supplierPolicy.responseTargetHours === 6 ? 7 : 6;
+  await supplierForm.getByLabel("Supplier response hours").fill(String(target));
+  await supplierForm.getByLabel("Supplier policy reason").fill(reason);
+  const policy = await patch(page, "suppliers/supplier-0/calendar", () =>
+    supplierForm.getByRole("button", { name: "Save supplier policy" }).click(),
+  );
+  assert.equal(policy.responseTargetHours, target);
+  await page.getByLabel("Supplier calendar", { exact: true }).selectOption("");
+  await page
+    .getByLabel("Supplier calendar", { exact: true })
+    .selectOption("supplier-0");
+  assert.equal(
+    await supplierForm.getByLabel("Supplier response hours").inputValue(),
+    String(target),
+  );
   const agency = page.locator("form").filter({
     has: page.getByRole("heading", {
       name: "Atlas Travel business calendar",
@@ -168,5 +192,16 @@ try {
     [shift.shiftCalendar ? JSON.stringify(shift.shiftCalendar) : null],
   );
   await pool.query('DELETE FROM "MembershipAudit" WHERE reason=$1', [reason]);
+  await pool.query(
+    'UPDATE "TravelSupplier" SET "slaCalendar"=$1::jsonb,"responseTargetHours"=$2,"responsePolicyVersion"=$3 WHERE id=$4',
+    [
+      supplierPolicy.slaCalendar
+        ? JSON.stringify(supplierPolicy.slaCalendar)
+        : null,
+      supplierPolicy.responseTargetHours,
+      supplierPolicy.responsePolicyVersion,
+      "supplier-0",
+    ],
+  );
   await pool.end();
 }
