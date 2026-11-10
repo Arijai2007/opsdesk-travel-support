@@ -80,6 +80,13 @@ try {
   await configure(supplier, rule, 4, 403);
   await configure(agent, rule, 4, 403);
   await configure(manager, rule, 0, 400);
+  // A one-hour weekly window can cover a one-hour target within the horizon.
+  await configure(
+    manager,
+    { timeZone: "UTC", week: [{ day: 1, start: 540, end: 600 }], holidays: [] },
+    1,
+    200,
+  );
   await pool.query('UPDATE "TravelClock" SET "offsetMinutes"=$1 WHERE id=$2', [
     Math.round((Date.parse("2026-01-09T16:00:00Z") - Date.now()) / 60000),
     "demo",
@@ -126,7 +133,9 @@ try {
     version: applied.responsePolicyVersion,
   });
   assert(
-    Math.abs(Date.parse(conversation.dueAt) - Date.parse("2026-01-13T12:00:00Z")) < 60000,
+    Math.abs(
+      Date.parse(conversation.dueAt) - Date.parse("2026-01-13T12:00:00Z"),
+    ) < 60000,
     "Skip weekend and Monday holiday",
   );
   const updated = await configure(manager, null, 2, 200);
@@ -186,4 +195,3 @@ try {
   await pool.query('DELETE FROM "MembershipAudit" WHERE reason=$1', [reason]);
   await pool.end();
 }
-

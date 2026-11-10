@@ -1539,7 +1539,12 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     this.manager(await this.profile(userId));
     const calendar = this.calendar(dto.calendar),
       reason = this.reason(dto.reason);
-    if (calendar) this.responseTarget(new Date(), 168 * 3600000, calendar);
+    if (calendar)
+      this.responseTarget(
+        new Date(),
+        dto.responseTargetHours * 3600000,
+        calendar,
+      );
     return this.locked(async (tx) => {
       this.manager(await this.profile(userId, tx));
       const supplier = await tx.travelSupplier.findUnique({ where: { id } });
