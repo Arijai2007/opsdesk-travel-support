@@ -70,6 +70,13 @@ export class TravelController {
   ) {
     return this.travel.events(req.user.userId, id, query);
   }
+  @Post('tickets/:id/alerts/:alertId/acknowledge') acknowledgeAlert(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('alertId') alertId: string,
+  ) {
+    return this.travel.acknowledgeAlert(req.user.userId, id, alertId);
+  }
   @Get('tickets/:id/related') related(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
