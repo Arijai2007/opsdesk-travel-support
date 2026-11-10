@@ -28,7 +28,11 @@ function readMappings(rows, label, scoped = false) {
   return result;
 }
 
-export function planBookingExport(incoming, trustedMappings, previous) {
+export function prepareBookingReconciliation(
+  incoming,
+  trustedMappings,
+  previous,
+) {
   const next = readBookingExport(incoming);
   const accepted = readBookingExport(previous);
   if (
@@ -48,16 +52,24 @@ export function planBookingExport(incoming, trustedMappings, previous) {
     accepted.bookings.map((row) => [key(row.agencyId, row.reference), row.id]),
   );
 
-  return next.bookings.map((row, index) => {
+  const candidates = [];
+  const plan = next.bookings.map((row, index) => {
     const decision = (action, reason) => ({ row: index + 1, action, reason });
-    if (
-      !agencies.has(key(row.agencyId)) ||
-      !customers.has(key(row.agencyId, row.customerId)) ||
-      !suppliers.has(key(row.supplierId))
-    )
+    const agencyId = agencies.get(key(row.agencyId));
+    const customerId = customers.get(key(row.agencyId, row.customerId));
+    const supplierId = suppliers.get(key(row.supplierId));
+    if (!agencyId || !customerId || !supplierId)
       return decision("REVIEW", "Unmapped agency, customer or supplier");
 
     const prior = existing.get(row.id);
+    candidates.push({
+      row: index + 1,
+      agencyId,
+      customerId,
+      supplierId,
+      reference: row.reference,
+      prior,
+    });
     const referenceOwner = references.get(key(row.agencyId, row.reference));
     if (referenceOwner && referenceOwner !== row.id)
       return decision(
@@ -88,4 +100,9 @@ export function planBookingExport(incoming, trustedMappings, previous) {
       return decision("CANCEL", "Newer explicit cancellation");
     return decision("UPDATE", "Newer record with unchanged ownership");
   });
+  return { plan, candidates };
+}
+
+export function planBookingExport(incoming, trustedMappings, previous) {
+  return prepareBookingReconciliation(incoming, trustedMappings, previous).plan;
 }

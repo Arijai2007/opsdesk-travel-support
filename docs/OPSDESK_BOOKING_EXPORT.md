@@ -23,4 +23,8 @@ The mapping file must use version 1 and the same source as both snapshots. Opera
 
 The planner emits `CREATE`, `UPDATE`, `CANCEL`, `UNCHANGED`, `STALE` or `REVIEW` per incoming row. Cancellation requires a newer explicit cancellation of an accepted booking. Missing rows are ignored. Ownership changes, reference collisions, unknown cancellations, reactivations and conflicting records with identical timestamps require review. An invalid input exits with code 1. A valid plan that contains a review row exits with code 2. The command only prints row numbers and decisions.
 
-A future importer must verify the mapping against database ownership, enforce stale-update checks inside the write transaction, and decide how a schedule change or cancellation affects existing cases. Import and live provider selection remain in [issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5).
+To also verify against a local OpsDesk database, set `OPSDESK_BOOKING_VERIFY_DATABASE_URL` in the shell and add `--verify-db` before the input files. Use a read-only database role. This mode opens a read-only transaction and checks that mapped agencies and suppliers exist, that the customer profile belongs to the mapped agency, and that the local reference, ownership and accepted schedule agree. Reference collisions and local drift require review. A previously cancelled snapshot also requires review because the current booking schema cannot verify stored cancellation status.
+
+`node scripts/booking-ownership.integration.mjs` checks this behavior against the isolated seeded PostgreSQL database. CI runs it after startup.
+
+A future importer must repeat ownership and stale-update checks inside its write transaction, persist a provider version and cancellation state, and decide how a schedule change or cancellation affects existing cases. Import and live provider selection remain in [issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5).

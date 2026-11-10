@@ -1,6 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import { readBookingExport } from "./booking-export.mjs";
-import { planBookingExport } from "./reconcile-booking-export.mjs";
+import { prepareBookingReconciliation } from "./reconcile-booking-export.mjs";
+import { verifyBookingOwnership } from "./verify-booking-ownership.mjs";
 
 async function readJson(file) {
   const info = await stat(file).catch(() => null);
@@ -17,16 +18,35 @@ async function readJson(file) {
 }
 
 try {
-  const [file, mappingFile, snapshotFile, ...extra] = process.argv.slice(2);
-  if (!file || Boolean(mappingFile) !== Boolean(snapshotFile) || extra.length)
+  const args = process.argv.slice(2);
+  const verifyDatabase = args[0] === "--verify-db";
+  const [file, mappingFile, snapshotFile, ...extra] = verifyDatabase
+    ? args.slice(1)
+    : args;
+  if (
+    !file ||
+    Boolean(mappingFile) !== Boolean(snapshotFile) ||
+    extra.length ||
+    (verifyDatabase && !mappingFile)
+  )
     throw new Error(
-      "Usage: npm run ops:check-booking-export -- <export.json> [<trusted-mappings.json> <accepted-snapshot.json>]",
+      "Usage: npm run ops:check-booking-export -- [--verify-db] <export.json> [<trusted-mappings.json> <accepted-snapshot.json>]",
     );
   const json = await readJson(file);
   if (mappingFile) {
     const mappings = await readJson(mappingFile);
     const snapshot = await readJson(snapshotFile);
-    const plan = planBookingExport(json, mappings, snapshot);
+    const reconciliation = prepareBookingReconciliation(
+      json,
+      mappings,
+      snapshot,
+    );
+    const plan = verifyDatabase
+      ? await verifyBookingOwnership(
+          reconciliation,
+          process.env.OPSDESK_BOOKING_VERIFY_DATABASE_URL,
+        )
+      : reconciliation.plan;
     for (const { row, action, reason } of plan)
       console.log(`Booking row ${row}: ${action} (${reason})`);
     console.log(
