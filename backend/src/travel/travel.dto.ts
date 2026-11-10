@@ -16,6 +16,7 @@ import {
 } from 'class-validator';
 import { CATEGORIES, PRIORITIES, STATUSES } from './travel.rules';
 export class NewTravelTicketDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(100) contractId?: string;
   @IsString() @MinLength(5) @MaxLength(180) title: string;
   @IsString() @MinLength(10) @MaxLength(10000) description: string;
   @IsOptional() @IsString() @MaxLength(60) bookingReference?: string;

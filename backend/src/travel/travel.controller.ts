@@ -1,3 +1,4 @@
+import { ContractPolicyDto, ContractDirectoryDto } from './contracts.dto';
 import { SupplierCalendarDto } from './sla.dto';
 import { HandoffPolicyDto } from './sla.dto';
 import { CalendarPolicyDto, SlaPauseDto, EscalationOwnerDto } from './sla.dto';
@@ -35,6 +36,27 @@ import {
 @UseGuards(JwtAuthGuard)
 export class TravelController {
   constructor(private readonly travel: TravelService) {}
+  @Get('contracts') contracts(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: ContractDirectoryDto,
+  ) {
+    return this.travel.contracts(req.user.userId, query);
+  }
+  @Post('agencies/:id/contracts') createContract(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: ContractPolicyDto,
+  ) {
+    return this.travel.saveContract(req.user.userId, id, null, dto);
+  }
+  @Patch('agencies/:id/contracts/:contractId') updateContract(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('contractId') contractId: string,
+    @Body() dto: ContractPolicyDto,
+  ) {
+    return this.travel.saveContract(req.user.userId, id, contractId, dto);
+  }
   @Get('workspace') workspace(
     @Req() req: AuthenticatedRequest,
     @Query('compact') compact?: string,

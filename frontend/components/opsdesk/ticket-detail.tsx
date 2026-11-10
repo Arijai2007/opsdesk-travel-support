@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type {
+  AgencyContract,
   Booking,
   Person,
   CaseEvent,
@@ -122,6 +123,51 @@ function BookingSchedule({
     </>
   );
 }
+function IntakeContract({
+  agencyId,
+  refresh,
+  value,
+  onSelect,
+}: {
+  agencyId: string;
+  refresh: string;
+  value: string;
+  onSelect: (id: string) => void;
+}) {
+  const path = `contracts?agencyId=${encodeURIComponent(agencyId)}`;
+  const result = useOpsResource<{ selectionRequired: boolean }>(path, refresh);
+  if (result.error)
+    return (
+      <p role="alert">
+        {result.error}
+        <button type="button" onClick={result.retry}>
+          Retry contracts
+        </button>
+      </p>
+    );
+  if (!result.data) return <p role="status">Loading agency contracts...</p>;
+  if (!result.data.selectionRequired)
+    return <p>Agency default response policy applies.</p>;
+  return (
+    <div>
+      <DirectorySelect<AgencyContract>
+        path={path}
+        label="Agency contract"
+        refresh={refresh}
+        value={value}
+        onSelect={onSelect}
+        required
+        text={(c) => `${c.name}  -  ${c.responseTargetHours} service hours`}
+      >
+        <option value="">Select an active contract</option>
+      </DirectorySelect>
+      <small>
+        A contract is required. Contact support if no active contract is
+        available.
+      </small>
+    </div>
+  );
+}
 export function NewTicket({
   data,
   busy,
@@ -136,6 +182,7 @@ export function NewTicket({
   const [title, setTitle] = useState(""),
     [description, setDescription] = useState(""),
     [bookingId, setBookingId] = useState(""),
+    [contractId, setContractId] = useState(""),
     [submittedReference, setSubmittedReference] = useState(""),
     [error, setError] = useState(""),
     [exampleUsed, setExampleUsed] = useState(false);
@@ -172,6 +219,7 @@ export function NewTicket({
           void onCreate({
             title,
             description,
+            contractId: contractId || undefined,
             ...(booking
               ? {
                   bookingReference: booking.reference,
@@ -193,6 +241,7 @@ export function NewTicket({
             onSelect={(id, item) => {
               setBookingId(id);
               setBooking(item);
+              if (item?.agencyId !== booking?.agencyId) setContractId("");
             }}
             text={(b) =>
               `${b.reference}  -  ${b.destination}  -  ${b.customerName || ""}`
@@ -215,6 +264,15 @@ export function NewTicket({
             />
             <small>Support will review references we can’t match.</small>
           </label>
+        )}
+        {(booking?.agencyId || data.me.agencyId) && (
+          <IntakeContract
+            key={booking?.agencyId || data.me.agencyId}
+            agencyId={(booking?.agencyId || data.me.agencyId)!}
+            refresh={data.now}
+            value={contractId}
+            onSelect={setContractId}
+          />
         )}
         <div className="od-flex od-space">
           <span className="od-eyebrow">DESCRIBE THE ISSUE</span>

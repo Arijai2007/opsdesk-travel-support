@@ -1,6 +1,11 @@
 "use client";
 import { useState } from "react";
-import type { Workspace, Person, Ticket } from "@/lib/opsdesk-types";
+import type {
+  Workspace,
+  Person,
+  Ticket,
+  AgencyContract,
+} from "@/lib/opsdesk-types";
 import { DirectorySelect } from "./directory-select";
 import type { Mutation } from "./ui";
 export type ServiceCalendar = {
@@ -271,6 +276,7 @@ export function SlaSettings({
           mutate={mutate}
         />
       ))}
+      <ContractSettings data={data} busy={busy} mutate={mutate} />
       <SupplierCalendarSettings
         refresh={data.now}
         busy={busy}
@@ -310,6 +316,163 @@ export function SlaSettings({
         />
       )}
     </details>
+  );
+}
+function ContractEditor({
+  agencyId,
+  contract,
+  busy,
+  mutate,
+  saved,
+}: {
+  agencyId: string;
+  contract?: AgencyContract;
+  busy: boolean;
+  mutate: Mutation;
+  saved: () => void;
+}) {
+  const [name, setName] = useState(contract?.name ?? "");
+  const [hours, setHours] = useState(contract?.responseTargetHours ?? 24);
+  const [calendar, setCalendar] = useState<ServiceCalendar | null>(
+    contract?.slaCalendar ?? null,
+  );
+  const [enabled, setEnabled] = useState(contract?.active ?? true);
+  const [reason, setReason] = useState("");
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void mutate(
+          `agencies/${agencyId}/contracts${contract ? `/${contract.id}` : ""}`,
+          {
+            name,
+            responseTargetHours: hours,
+            calendar,
+            active: enabled,
+            reason,
+          },
+          "Agency contract saved.",
+          contract ? "PATCH" : "POST",
+        )
+          .then(saved)
+          .catch(() => {});
+      }}
+    >
+      <h4>{contract ? "Edit agency contract" : "Create agency contract"}</h4>
+      <label>
+        Contract name
+        <input
+          required
+          minLength={3}
+          maxLength={100}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </label>
+      <label>
+        Contract response hours
+        <input
+          required
+          type="number"
+          min={1}
+          max={168}
+          value={hours}
+          onChange={(e) => setHours(Number(e.target.value))}
+        />
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+        />
+        Active for new cases
+      </label>
+      <CalendarFields value={calendar} onChange={setCalendar} />
+      <label>
+        Contract change reason
+        <input
+          required
+          minLength={3}
+          maxLength={1000}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </label>
+      <button className="od-secondary" disabled={busy}>
+        Save contract
+      </button>
+    </form>
+  );
+}
+function ContractSettings({
+  data,
+  busy,
+  mutate,
+}: {
+  data: Workspace;
+  busy: boolean;
+  mutate: Mutation;
+}) {
+  const [agencyId, setAgencyId] = useState(data.agencies[0]?.id ?? "");
+  const [contract, setContract] = useState<AgencyContract>();
+  const [revision, setRevision] = useState(0);
+  return (
+    <section>
+      <h4>Agency contracts</h4>
+      <p>
+        Each contract has independent response hours and a calendar. Retiring
+        one prevents new selection; existing cases keep their reference.
+        Reopening uses the current policy for the same contract.
+      </p>
+      <label>
+        Contract agency
+        <select
+          aria-label="Contract agency"
+          value={agencyId}
+          disabled={busy}
+          onChange={(e) => {
+            setAgencyId(e.target.value);
+            setContract(undefined);
+          }}
+        >
+          {data.agencies.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {agencyId && (
+        <>
+          <DirectorySelect<AgencyContract>
+            key={agencyId}
+            path={`contracts?agencyId=${encodeURIComponent(agencyId)}&includeInactive=1`}
+            label="Contract to edit"
+            refresh={`${data.now}:${revision}`}
+            value={contract?.id ?? ""}
+            disabled={busy}
+            onSelect={(_, item) => setContract(item)}
+            text={(c) =>
+              `${c.name}${c.active ? "" : " (retired)"}  -  v${c.responsePolicyVersion}`
+            }
+          >
+            <option value="">Create a new contract</option>
+          </DirectorySelect>
+          <ContractEditor
+            key={`${agencyId}:${contract?.id}:${contract?.responsePolicyVersion}:${revision}`}
+            agencyId={agencyId}
+            contract={contract}
+            busy={busy}
+            mutate={mutate}
+            saved={() => {
+              setContract(undefined);
+              setRevision((v) => v + 1);
+            }}
+          />
+        </>
+      )}
+    </section>
   );
 }
 type SupplierPolicy = {
@@ -421,7 +584,7 @@ export function TicketSlaControls({
       <h4>SLA and escalation coverage</h4>
       <p>
         {ticket.slaSnapshot
-          ? `Applied policy v${ticket.slaSnapshot.version}: ${ticket.slaSnapshot.hours} ${ticket.slaSnapshot.calendar ? `business hours in ${ticket.slaSnapshot.calendar.timeZone}` : "elapsed hours"}.`
+          ? `${ticket.slaSnapshot.contractName ? `Contract ${ticket.slaSnapshot.contractName}  -  ` : "Agency "}Applied policy v${ticket.slaSnapshot.version}: ${ticket.slaSnapshot.hours} ${ticket.slaSnapshot.calendar ? `business hours in ${ticket.slaSnapshot.calendar.timeZone}` : "elapsed hours"}.`
           : "Legacy elapsed-hour response target."}
       </p>
       <p>

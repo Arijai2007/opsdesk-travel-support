@@ -1,3 +1,43 @@
+# Agency-contract validation - 10 November 2026
+
+Started from latest main `31cd21f42e7a1e9d5f8efbdc8f019ddb3f756d62` in a fresh private clone. Used Windows, Node.js **22.23.0**, npm **10.9.4** and embedded PostgreSQL **18.6** with isolated synthetic records. Deployment remains paused; older worktrees were untouched.
+
+## Completed local checks for this increment
+
+| Check | Observed result |
+| --- | --- |
+| Clean installation | `npm ci` passed using Node 22.23.0; private dependencies, no reused junctions |
+| Migration/builds | Prisma generation and all 21 migrations applied to a fresh database; backend and optimized frontend production builds passed; a second startup preserved records |
+| Backend unit tests | All **62 tests in five suites** passed |
+| Existing API and concurrency | **548 HTTP checks** (111 workflow, 124 pagination, 177 directory, 80 membership, 56 SLA) and **19 lock/concurrency/reconnect checks** passed |
+| Workload and supplier regressions | **33 workload checks** and **20 supplier-calendar HTTP checks** plus their policy assertions passed |
+| Agency-contract regressions | **52 HTTP checks** plus snapshot, FK, version, pagination and concurrency assertions passed |
+| Chromium and Firefox | All **four suites per engine** passed: five-role workflow, membership, SLA manager and new agency contracts |
+| Offline checks | **17 passed**: 12 booking-export and five recovery connection-safety tests |
+| Booking integration | Both PostgreSQL checks passed: ownership/collisions/schedule drift and transactional apply/replay/rollback/cancellation guards |
+| Production audit | `npm audit --omit=dev` reported **zero vulnerabilities** |
+| Changed-file checks | ESLint passed for changed backend/frontend TypeScript; `git diff --check` passed |
+
+The contract harness checks role denials, persisted agency scope despite spoofed agency input, foreign/missing/retired contract rejection, mandatory selection even with all contracts retired, independent contract targets, business-calendar snapshots, policy edits preserving active deadlines, pause/resume under saved policy, same-contract reopen including retirement, legacy default reopen, forbidden contract reassignment, referenced-contract deletion restrictions and database-enforced agency matching. Concurrent identical PATCH saves add one version/audit change; overlapping intake/policy edits save one coherent version. A 23-contract tied-name fixture proves bounded, complete, nonoverlapping pages. Browser coverage creates a contract through manager controls, reads it back, explicitly selects it for booking-linked intake and verifies the saved snapshot; the same dialog is exercised at 390px width. Screenshots were inspected locally. Fixtures and audit records are removed in finally blocks.
+
+## Observed failures and corrections
+
+- The initial frontend build rejected two source files after an editing helper wrote non-UTF-8 punctuation. Converted the edits to UTF-8, corrected replacement characters and repeated both builds successfully.
+- The first referenced-contract deletion assertion expected only PostgreSQL `23503`; PostgreSQL 18 returned `23001` for the intended RESTRICT rejection. The assertion now accepts both integrity-violation codes; final API checks passed.
+- The first contract browser attempt could not find the exact wrapped select label because option text affected its accessible name. Added an explicit `aria-label` to the agency selector; Chromium and Firefox rechecks passed.
+- Early lint/formatting invocations used the wrong monorepo dependency path and did not run. Corrected paths; final changed-file ESLint and formatting completed successfully.
+- Commit hooks could not find `npx`; adding the existing npm bin path then exposed missing Bash and an incompatible npm-wrapper layout. Direct staged-hook attempts restored their temporary stash cleanly. Ran equivalent changed-file ESLint and commitlint directly, then disabled only the hook wrapper for the local commit. Repository hook files were preserved.
+
+## Reproduce and limits
+
+Use Node 22.23.x, `npm ci`, and `npm run ops:preview` in a fresh isolated synthetic workspace. Run `npm run ops:test`. Install matching Playwright Chromium/Firefox, then run `npm run ops:test:browser` once per `OPSDESK_BROWSER_ENGINE`. Targeted commands are `node scripts/contracts-smoke.mjs` and `node scripts/contracts-browser.mjs`. Baseline suites expect seed agency policies without operator-created contracts; run on a dedicated test workspace, never shared/live data. Stop the preview before independent builds.
+
+Full archive/restore and OS worker-termination rehearsals were not repeated locally; their existing hosted CI steps remain enabled. Full inherited backend lint, screen-reader/contrast audits, skewed load, live providers and deployment were not run. Development installation reports 29 development advisories (five low, 24 moderate); no unvalidated force upgrade was applied. Hosted validation for the published PR must be read independently from these local results. Richer escalation rotations and override policies remain next.
+
+The following sections retain historical checkpoint evidence.
+
+Publication resolved: direct upstream push returned HTTP 403 for `mehakgupta0406`. After the user supplied the earlier PR #14 publishing workflow, used the same existing project fork, `mehakgupta0406/opsdesk-travel-support`. GitHub initially rejected inherited workflow commits because the CLI lacked `workflow` scope; the user completed authorization and the branch push succeeded. [PR #33](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/33) is open against the requested repository's `main`, with collaborator edits enabled. The validated code commit is `acac059e8c6761a33147f9228ad8a57597bc7178`; this follow-up updates publication evidence only. Hosted checks have not yet reported a result. The PR was not merged and deployment remains paused.
+
 # Workload handoff validation - 10 November 2026
 
 Final checkpoint verification passed in [hosted run 42840920345](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42840920345) for supplier code head 2b77f073b17f7e32c4e4f1d8d389405630bacccf, merged into main cdd7d35. The final handoff PR changes documentation only.
