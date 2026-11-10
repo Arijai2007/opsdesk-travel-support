@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "source": "synthetic-demo",
+  "bookings": [
+    {
+      "id": "booking-001",
+      "agencyId": "agency-one",
+      "customerId": "customer-001",
+      "supplierId": "supplier-001",
+      "reference": "demo-10",
+      "status": "ACTIVE",
+      "timezone": "Europe/Paris",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "checkInAt": "2026-11-15T12:00:00Z",
+      "departureAt": "2026-11-16T10:00:00Z",
+      "cancellationCutoffAt": "2026-11-14T12:00:00Z"
+    },
+    {
+      "id": "booking-002",
+      "agencyId": "agency-two",
+      "customerId": "customer-002",
+      "supplierId": "supplier-001",
+      "reference": "DEMO-10",
+      "status": "CANCELLED",
+      "timezone": "America/New_York",
+      "updatedAt": "2026-11-10T10:00:00Z",
+      "checkInAt": "2026-11-15T16:00:00Z"
+    }
+  ]
+}

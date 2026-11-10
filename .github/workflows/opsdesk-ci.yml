@@ -38,6 +38,7 @@ jobs:
           node-version: '22.23.x'
           cache: npm
       - run: npm ci
+      - run: node --test scripts/booking-export.test.mjs
       - name: Configure isolated database
         run: |
           npm run ops:setup

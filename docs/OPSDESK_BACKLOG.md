@@ -50,7 +50,7 @@ Provider credentials become necessary only when this integration is selected. St
 
 [GitHub issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5)
 
-All booking and supplier operational records are synthetic seed data.
+All booking and supplier operational records are synthetic seed data. The [booking export preflight](OPSDESK_BOOKING_EXPORT.md) validates versioned batches before a future importer maps or applies them.
 
 Acceptance:
 - Add a provider interface and a read-only adapter for the chosen booking API or export.
@@ -135,7 +135,7 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 | #2 | Six demo scenarios mapped, server-side role/privacy checks, account deletion guard and single-use token rotation | Obtain owner acceptance, define account closure, retention and production tenant boundaries |
 | #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Select hosting, provision secrets and managed services, assign incident ownership, test staging restoration and operational retention |
 | #4 | Supplier and customer conversations persist with scoped visibility | Live mail provider, signatures, delivery outbox, retries, threading and secure attachments |
-| #5 | Seeded booking links and editable schedules | Real read adapter or agreed export, identity mapping, cancellation and stale-update handling |
+| #5 | Seeded booking links, editable schedules and a validated offline export format | Provider-specific adapter, trusted identity mapping, cancellation reconciliation and stale-update handling |
 | #6 | Agent specialties, capacities, response targets and versioned response policy | Contract calendars, shifts, manager membership administration and escalation acknowledgment |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
 | #8 | Deterministic record-based briefs and classification | Provider choice, redaction, structured grounded outputs and held-out evaluation |
