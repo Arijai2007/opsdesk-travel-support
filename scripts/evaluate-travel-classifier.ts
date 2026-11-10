@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { CATEGORIES, classify } from '../backend/src/travel/travel.rules';
 
+const fixture =
+  process.argv[2] === '--holdout'
+    ? './travel-classifier-holdout.json'
+    : './travel-classifier-cases.json';
 const input: unknown = JSON.parse(
-  readFileSync(
-    new URL('./travel-classifier-cases.json', import.meta.url),
-    'utf8',
-  ),
+  readFileSync(new URL(fixture, import.meta.url), 'utf8'),
 );
 if (!Array.isArray(input) || input.length === 0)
   throw new Error('Expected a non-empty evaluation fixture.');

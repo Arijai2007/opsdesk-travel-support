@@ -121,4 +121,13 @@ describe('travel policy decisions', () => {
     expect(classify('Please help me')).toBe('OTHER');
     expect(classify('Please give me an update')).toBe('OTHER');
   });
+  it.each([
+    ["I don't want a refund; please cancel the room.", 'CANCELLATION'],
+    ['Can you reverse the charge for my unused booking?', 'REFUND'],
+    ['Please move my check-in to Friday.', 'BOOKING_CHANGE'],
+    ['My suitcase never arrived.', 'BAGGAGE'],
+    ['Does reception open early on Mondays?', 'OTHER'],
+  ])('recognizes the requested outcome in %s', (complaint, expected) => {
+    expect(classify(complaint)).toBe(expected);
+  });
 });
