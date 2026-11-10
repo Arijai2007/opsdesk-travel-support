@@ -126,3 +126,5 @@ Acceptance:
 
 Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/smoke-test.mjs.
 
+
+Issue #2 progress: concurrent refresh-token replay and stale browser cookie responses have regression coverage. Provisioning, account retention and production boundary review remain open.

@@ -44,6 +44,27 @@ try {
   browser = await chromium.launch(channel ? { channel } : {});
 
   const manager = await signIn("manager");
+  await manager.getByRole("button", { name: /All cases/ }).waitFor();
+  const context = manager.context();
+  const original = (await context.cookies()).find(
+    (cookie) => cookie.name === "hd_refresh_token",
+  );
+  assert(original, "Manager sign-in must set the refresh cookie");
+  const refreshUrl = new URL("/api/auth/refresh", manager.url()).href;
+  const rotatedStatus = await manager.evaluate(async (url) => {
+    const response = await fetch(url, { method: "POST" });
+    return response.status;
+  }, refreshUrl);
+  assert.equal(rotatedStatus, 200);
+  const replay = await context.request.post(refreshUrl, {
+    headers: { Cookie: `${original.name}=${original.value}` },
+  });
+  assert.equal(replay.status(), 401);
+  assert.equal(
+    replay.headers()["set-cookie"],
+    undefined,
+    "A stale refresh response must preserve the browser's replacement cookies",
+  );
   await manager.getByRole("button", { name: /All cases/ }).click();
   await manager.getByRole("button", { name: "Next page" }).click();
   await manager.getByText(/^Page 2 of /).waitFor();

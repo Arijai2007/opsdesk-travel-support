@@ -277,3 +277,7 @@ These are not implemented promises. Start with product acceptance and production
 **Partially finished.** The browser uses compact metadata and loads case histories separately. Initial synthetic-volume profiling is complete; next extend skew/concurrency/load coverage, retire the compatibility workspace endpoint and reduce global lock contention. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
 
 **Still to do.** Before live data, confirm production access rules and choose a staging target. Rehearse backup and restore, configure secrets and monitoring, then select providers for email, attachments and booking/supplier synchronization. External AI evaluation and broader accessibility, load and security reviews remain open. [Open issues](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues)
+
+## Concurrent session refresh
+
+A conditional PostgreSQL update consumes each valid token once. The replacement session is created in the same transaction. Access-token denial through the existing revocation service follows commit. A stale browser refresh returns 401 without emitting cookie deletions. Explicit logout still clears the browser cookies. No migration or provider credentials are required.

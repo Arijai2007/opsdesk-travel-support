@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import { readFileSync } from "node:fs";
 import dotenv from "dotenv";
 import pg from "pg";
@@ -46,6 +47,69 @@ async function login(id) {
 }
 try {
   await call("/ops/workspace", null, undefined, "GET", 401);
+  const session = await call("/auth/login", null, {
+    email: "agency@opsdesk.demo",
+    password: "OpsDeskDemo!2026",
+  });
+  const rotate = (refreshToken) =>
+    fetch(base + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+  const blocker = await pool.connect();
+  let pendingRotations;
+  try {
+    await blocker.query("BEGIN");
+    const hash = createHash("sha256")
+      .update(session.refreshToken)
+      .digest("hex");
+    const held = await blocker.query(
+      'SELECT id FROM "RefreshToken" WHERE "tokenHash" = $1 FOR UPDATE',
+      [hash],
+    );
+    assert.equal(held.rowCount, 1);
+    pendingRotations = Promise.all(
+      Array.from({ length: 6 }, () => rotate(session.refreshToken)),
+    );
+    // Hold the original session until at least two API connections are
+    // contending for it. This also exercises PostgreSQL's predicate recheck.
+    const deadline = Date.now() + 5000;
+    for (;;) {
+      const { rows } = await pool.query(
+        `SELECT count(*)::int AS waiters FROM pg_stat_activity
+         WHERE datname = current_database() AND wait_event_type = 'Lock'
+         AND query LIKE '%UPDATE%"RefreshToken"%'`,
+      );
+      if (rows[0].waiters >= 2) break;
+      assert(
+        Date.now() < deadline,
+        "Expected overlapping refresh transactions",
+      );
+      await delay(25);
+    }
+  } finally {
+    try {
+      await blocker.query("ROLLBACK");
+    } finally {
+      blocker.release();
+    }
+  }
+  const rotations = await pendingRotations;
+  assert.deepEqual(
+    rotations.map((response) => response.status).sort(),
+    [200, 401, 401, 401, 401, 401],
+    "Concurrent refresh requests must produce one successor session",
+  );
+  const successor = await rotations.find((response) => response.ok).json();
+  await call("/ops/workspace?compact=1", successor.accessToken);
+  await call(
+    "/auth/refresh",
+    null,
+    { refreshToken: session.refreshToken },
+    "POST",
+    401,
+  );
   const manager = await login("manager"),
     customer = await login("maya"),
     agency = await login("agency"),

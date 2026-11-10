@@ -87,3 +87,7 @@ GitHub validation: the initial hosted Windows run could not start embedded Postg
 This is a localhost prototype, not a production release. External LLM summaries, live email delivery, attachments and live supplier/booking-system integration were not exercised or presented as connected. All operational demo data is synthetic. The Bitext sample supplies complaint wording only.
 
 The test script is for an isolated seeded demo. It creates and removes only its temporary cases, and restores the clock and agent availability used by the test scenario. It does not delete the interactive browser example.
+
+## Single-use session rotation
+
+On Node 22.23.0 both builds, 9 backend unit tests, HTTP suites (102, 124 and 177 checks), and the five-role Chromium flow passed locally. Holding the session row until two API connections blocked reproduced two successful rotations before the fix. With the fix, six overlapping requests produced one 200 and five 401s. The successor accessed the workspace and a later replay failed. Browser coverage replays a stale cookie after rotation and verifies the rejection emits no Set-Cookie header.
