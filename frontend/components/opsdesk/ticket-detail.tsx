@@ -885,6 +885,7 @@ export function TicketDetail({
       </div>
       {staff && (
         <TicketSlaControls
+          key={`${t.id}:${t.escalationOwnerId}:${t.escalationManual}:${t.escalationOverrideUntil}`}
           ticket={t}
           manager={manager}
           refresh={data.now}

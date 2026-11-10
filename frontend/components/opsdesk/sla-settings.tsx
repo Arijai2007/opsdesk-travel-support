@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { EscalationSettings } from "./escalation-settings";
 import type {
   Workspace,
   Person,
@@ -7,7 +8,7 @@ import type {
   AgencyContract,
 } from "@/lib/opsdesk-types";
 import { DirectorySelect } from "./directory-select";
-import type { Mutation } from "./ui";
+import { date, type Mutation } from "./ui";
 export type ServiceCalendar = {
   timeZone: string;
   week: { day: number; start: number; end: number }[];
@@ -260,7 +261,7 @@ export function SlaSettings({
   const [kind, setKind] = useState("AGENT"),
     [member, setMember] = useState<Person>();
   return (
-    <details className="od-panel">
+    <details className="od-panel od-policy-settings">
       <summary>SLA calendars and duty coverage</summary>
       <p>
         Calendars apply to new and reopened cases. Existing cases keep their
@@ -282,6 +283,7 @@ export function SlaSettings({
         busy={busy}
         mutate={mutate}
       />
+      <EscalationSettings refresh={data.now} busy={busy} mutate={mutate} />
       <h4>Agent and escalation-manager shifts</h4>
       <label>
         Coverage role
@@ -579,8 +581,14 @@ export function TicketSlaControls({
   mutate: Mutation;
 }) {
   const [owner, setOwner] = useState(ticket.escalationOwnerId ?? "");
+  const [timedHold, setTimedHold] = useState(
+    Boolean(ticket.escalationOverrideUntil),
+  );
+  const [overrideUntil, setOverrideUntil] = useState(
+    ticket.escalationOverrideUntil?.slice(0, 16) ?? "",
+  );
   return (
-    <section className="od-panel">
+    <section className="od-panel od-policy-settings">
       <h4>SLA and escalation coverage</h4>
       <p>
         {ticket.slaSnapshot
@@ -598,6 +606,14 @@ export function TicketSlaControls({
           (ticket.escalationOwnerId
             ? "Assigned manager"
             : "Unowned - requires manager coverage")}
+      </p>
+      <p>
+        Escalation control:{" "}
+        {ticket.escalationManual
+          ? ticket.escalationOverrideUntil
+            ? `Manual hold until ${date(ticket.escalationOverrideUntil)}. Coverage loss ends it earlier.`
+            : "Manual hold while manager coverage remains."
+          : "Automatic coverage and rotations."}
       </p>
       <form
         onSubmit={(e) => {
@@ -666,7 +682,12 @@ export function TicketSlaControls({
             const reason = String(new FormData(e.currentTarget).get("reason"));
             void mutate(
               `tickets/${ticket.id}/escalation-owner`,
-              { ownerId: owner || null, reason },
+              {
+                ownerId: owner || null,
+                overrideUntil:
+                  owner && timedHold ? `${overrideUntil}:00Z` : null,
+                reason,
+              },
               "Escalation ownership updated.",
               "PATCH",
             ).catch(() => {});
@@ -682,11 +703,43 @@ export function TicketSlaControls({
           >
             <option value="">Release to automatic coverage</option>
           </DirectorySelect>
+          {owner && (
+            <>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={timedHold}
+                  onChange={(e) => setTimedHold(e.target.checked)}
+                />
+                Expire manual hold at a chosen time
+              </label>
+              {timedHold && (
+                <label>
+                  Manual hold expiry (UTC)
+                  <input
+                    required
+                    type="datetime-local"
+                    value={overrideUntil}
+                    onChange={(e) => setOverrideUntil(e.target.value)}
+                  />
+                </label>
+              )}
+              <p>
+                Manual holds override rotations while this manager is active,
+                available and on duty. A timed hold must end within 168 hours.
+                Releasing ownership restores automatic coverage on the next
+                alert sweep.
+              </p>
+            </>
+          )}
           <label>
             Ownership change reason
             <input required name="reason" minLength={3} maxLength={1000} />
           </label>
-          <button className="od-secondary" disabled={busy}>
+          <button
+            className="od-secondary"
+            disabled={busy || ["CLOSED", "RESOLVED"].includes(ticket.status)}
+          >
             Save escalation owner
           </button>
         </form>

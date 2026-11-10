@@ -1,5 +1,8 @@
 import {
   Allow,
+  IsOptional,
+  IsISO8601,
+  Matches,
   IsInt,
   Min,
   Max,
@@ -17,6 +20,10 @@ export class SlaPauseDto {
   @IsString() @MinLength(3) @MaxLength(1000) reason: string;
 }
 export class EscalationOwnerDto {
+  @IsOptional()
+  @IsISO8601({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?Z$/)
+  overrideUntil?: string | null;
   @Allow() ownerId: unknown;
   @IsString() @MinLength(3) @MaxLength(1000) reason: string;
 }

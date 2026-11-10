@@ -74,6 +74,8 @@ export type Ticket = {
   autoHandoff?: boolean;
   slaPausedAt?: string | null;
   escalationOwnerId?: string | null;
+  escalationManual?: boolean;
+  escalationOverrideUntil?: string | null;
   people?: Person[];
   customerName?: string;
   ownerName?: string;
