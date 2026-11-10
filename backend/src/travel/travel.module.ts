@@ -17,6 +17,8 @@ import { ResendTravelMailTransport } from './resend-mail.transport';
 import { ResendMailWebhookController } from './resend-mail-webhook.controller';
 import { TravelAttachmentsController } from './travel-attachments.controller';
 import { TravelAttachmentsService } from './travel-attachments.service';
+import { BookingRequestsService } from './booking-requests.service';
+import { BookingRequestsController } from './booking-requests.controller';
 @Module({
   controllers: [
     TravelController,
@@ -26,6 +28,7 @@ import { TravelAttachmentsService } from './travel-attachments.service';
     TravelMailController,
     ResendMailWebhookController,
     TravelAttachmentsController,
+    BookingRequestsController,
   ],
   providers: [
     TravelService,
@@ -33,6 +36,7 @@ import { TravelAttachmentsService } from './travel-attachments.service';
     TravelMailService,
     ResendTravelMailTransport,
     TravelAttachmentsService,
+    BookingRequestsService,
     { provide: TravelMailTransport, useClass: SyntheticTravelMailTransport },
   ],
 })

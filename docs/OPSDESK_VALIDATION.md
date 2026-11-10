@@ -1,5 +1,11 @@
 # Attachment increment validation
 
+## Booking approval follow-up
+
+On Node 22.23.0, both builds and changed-file lint passed. Two booking migrations applied to the isolated PostgreSQL 18 database (28 migrations total). The full `ops:test` suite passed, and all six standard Chromium flows passed sequentially, including the new manager booking-review flow. The final focused booking harness passed 31 checks, including request/review retries, three concurrent approvals, exactly one audit record, cross-agency rejection, changed-booking rejection, database decision constraints, cancelled directory state, and preservation of linked case status/deadlines with one cancellation event. Synthetic classifier checks passed at 27/30 development and 17/18 holdout examples; those are not independent evaluation. Exploratory mixed-load results and production limits are recorded in [booking approval guide](OPSDESK_BOOKING_APPROVALS.md). Hosted validation for this follow-up is pending.
+
+Attachment PR #40 separately passed [hosted validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42889371405), including Firefox; the Windows launch limitation below remains a local runtime issue.
+
 On Node.js 22.23.0, Prisma client generation, both application builds and all 90 backend tests passed (10 suites, including four attachment tests). The 26 migrations applied to a fresh isolated PostgreSQL 18 database on port 55439. `npm run ops:test` passed. The attachment harness passed 23 checks for byte integrity, metadata, scopes, filename/type rejection, synthetic EICAR rejection, tampered signature, expiry and concurrent per-message limits. All five Chromium browser flows passed sequentially; the main flow uploads a file and verifies the downloaded filename and bytes through the browser proxy. Running policy-mutating API and browser suites simultaneously caused an SLA test collision; sequential Chromium execution passed. Firefox failed before executing a test with Windows `spawn UNKNOWN`, including after a fresh Playwright Firefox download; hosted Firefox acceptance remains required. `git diff --check` passed. Real ClamAV acceptance, hosted validation and deployment are not claimed.
 
 # Supplier email reply validation

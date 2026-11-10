@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Booking approvals increment
+
+`codex/opsdesk-booking-approvals` is stacked on the attachment branch. It adds manager-reviewed synthetic booking creation and cancellation, stale-booking detection, scoped paged requests, request/review idempotency, transactionally saved audit and cancellation case events, and manager browser controls. [Policy, endpoints and limits](OPSDESK_BOOKING_APPROVALS.md). No live booking provider is selected; manager review is required before consequential changes. Live provider commands, fees/refunds and agency/customer browser forms remain open. Support cases and saved deadlines survive cancellation.
+
+Attachment [PR #40](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/40) passed [hosted validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42889371405), including Firefox. It remains a draft because the connected account could not mark it ready. Leave merge to collaborators. Deployment remains paused.
+
 ## Attachment increment on main `6d63063`
 
 The `codex/opsdesk-secure-attachments` branch adds per-message attachment controls to customer, internal and supplier threads, private database byte storage, author-only uploads, existing thread scopes, 2 MiB/type checks, a five-file per-message cap, scanner gating, five-minute user-bound authenticated downloads, audit events and 30-day expiry with hourly deletion. See [attachment guide](OPSDESK_ATTACHMENTS.md). Both builds, 90 unit tests, the standard API suite, 23 attachment HTTP checks and all five Chromium browser flows passed; the main browser flow includes a binary attachment round trip. Firefox cannot launch on this Windows host even after reinstalling the Playwright runtime (`spawn UNKNOWN`); hosted Firefox validation is required. Live ClamAV acceptance and approved backup retention remain open. Email attachment delivery/ingestion is not implemented.

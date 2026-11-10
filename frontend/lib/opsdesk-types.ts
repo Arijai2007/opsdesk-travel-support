@@ -28,6 +28,7 @@ export type AgencyContract = {
 };
 export type Supplier = { id: string; name: string; email: string };
 export type Booking = {
+  bookingStatus?: string;
   customerName?: string;
   id: string;
   reference: string;
