@@ -4,6 +4,8 @@ Started from the Resend pilot in PR #36 at `3f6646bb99b72408f97a23b03455ae1db5e6
 
 The signed reply harness passed against real PostgreSQL with mocked provider retrieval. It checked invalid signatures and reply addresses, mismatched and stale customers, expired and closed cases, concurrent duplicate provider IDs, the customer author and visibility, and absence of any outbound job for the reply. The harness removed its fixture rows and restored case state. It runs as part of `npm run ops:test`.
 
+The optimized frontend build, changed-file ESLint, 693 HTTP checks, concurrency suites and all five browser flows in both Chromium and Firefox passed locally. The first API run stopped on a preview connection reset. The full rerun passed against the same isolated preview.
+
 A verified receiving domain, real provider send/receive acceptance, supplier replies and secure attachments remain open. Deployment stays paused.
 
 ---
