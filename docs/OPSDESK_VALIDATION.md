@@ -1,5 +1,11 @@
 # Workload handoff validation - 10 November 2026
 
+## Supplier response calendar checks
+
+On Windows with Node 22.23.0, the supplier migration applied, both production builds passed, all 62 backend unit tests passed and changed backend/frontend lint passed. The dedicated suite passed 20 real HTTP checks and associated assertions covering role denial, a one-hour weekly schedule with a one-hour target, hour limits, unchanged-policy retries, four elapsed hours, skipping a weekend and local holiday, saved deadlines after edits and supplier replies, and fresh targets on staff follow-up and reopening. Chromium and Firefox passed the updated SLA manager flow, including saving a supplier target and reading it again from the directory.
+
+An early HTTP attempt reached the API before startup completed. A fixture assertion then interpreted a timezone-free PostgreSQL value in the Windows local zone. The corrected check compares the UTC deadline returned by the API. A browser check reproduced stale hours after reselecting a supplier. The editor now disables selection while saving and reloads the directory on refresh. Both engine rechecks passed. The full integrated workflow, recovery and dependency audit run in hosted CI. Deployment remains paused.
+
 Reconstructed on ASUS from the pasted policy because the Arihant worktree was unavailable. Main 12114c6 includes merged PR #29. The supplied 15-unit/16-HTTP/13-policy results belong to that unavailable implementation and are not reported as results of this branch. The user explicitly requested continuation after the earlier 19:00 IST cutoff. Deployment remains paused.
 
 On Windows with Node 22.23.0 and a fresh PostgreSQL 18.6 synthetic database:

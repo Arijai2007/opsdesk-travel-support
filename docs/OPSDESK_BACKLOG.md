@@ -1,5 +1,7 @@
 # OpsDesk — prioritized remaining work
 
+**Supplier calendar progress on issue #6.** Manager-managed supplier business hours and per-cycle deadline snapshots are implemented on top of merged workload-handoff PR #30. Multiple agency contracts and richer manager escalation rotations remain outstanding. The existing email and attachment, booking adapter, evaluation, accessibility and load milestones follow those policy features.
+
 These are remaining implementation and acceptance tasks. **Deployment is paused: finish local features, verification and review first, as requested by the user.** P0 items remain gates before live data; no external API is required for the synthetic local demo. The free-demo deployment preparation is saved separately and is not part of this feature branch.
 
 Immediate order: review and verify the current SLA-calendar/coverage feature; complete remaining contract and shift-handoff policies; add email/attachments; add a provider-neutral booking adapter with an explicit owner policy for creation/cancellation. Independent evaluation, accessibility, load and recovery acceptance remain open. Detailed entry files and acceptance steps are in [handoff section 13](OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order).

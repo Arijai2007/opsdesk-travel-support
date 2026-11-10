@@ -1,5 +1,7 @@
 # Current workload-handoff checkpoint
 
+**Supplier calendar handoff.** PR #30 is merged. This follow-up starts from main `243d473`. The manager editor, supplier policy version and current thread-cycle snapshot are implemented. See the supplier-response section in the SLA guide, the new supplier-calendar HTTP harness and the SLA browser flow. To reproduce, run the isolated preview on Node 22.23.x, then `node scripts/supplier-calendar-smoke.mjs` and `node scripts/sla-browser.mjs` in Chromium and Firefox. Large-scale scheduling and multiple contracts within one agency remain open. Deployment remains paused.
+
 The current branch reconstructs the missing uncommitted handoff implementation on top of merged PR #29, main 12114c6. Local validation passed both builds, 62 unit tests, 548 existing HTTP checks, 19 existing concurrency checks, 33 workload checks, original/membership/SLA flows in Chromium and Firefox, 17 offline checks and PostgreSQL booking integration. See the validation report for failures and limits. Deployment remains paused.
 
 **Message for the next developer**

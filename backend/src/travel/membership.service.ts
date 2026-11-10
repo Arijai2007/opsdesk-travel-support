@@ -155,7 +155,14 @@ export class MembershipService {
         (skip, take) =>
           tx.travelSupplier.findMany({
             where,
-            select: { id: true, name: true, email: true },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              slaCalendar: true,
+              responseTargetHours: true,
+              responsePolicyVersion: true,
+            },
             orderBy: [{ name: 'asc' }, { id: 'asc' }],
             skip,
             take,

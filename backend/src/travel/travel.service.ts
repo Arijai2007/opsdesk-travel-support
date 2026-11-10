@@ -1,3 +1,4 @@
+import { SupplierCalendarDto } from './sla.dto';
 import { HandoffPolicyDto } from './sla.dto';
 import {
   addServiceTime as calculateServiceDeadline,
@@ -225,7 +226,10 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     const booking = t.bookingId
       ? await this.db.travelBooking.findUnique({
           where: { id: t.bookingId },
-          include: { supplier: true, agency: true },
+          include: {
+            supplier: { select: { id: true, name: true, email: true } },
+            agency: true,
+          },
         })
       : null;
     const relatedCount = t.bookingId
@@ -440,7 +444,9 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           where,
           skip,
           take,
-          include: { supplier: true },
+          include: {
+            supplier: { select: { id: true, name: true, email: true } },
+          },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         });
         return rows.map((c) => ({ ...c, messages: [] }));
@@ -526,7 +532,10 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           skip,
           take,
           orderBy: [{ reference: 'asc' }, { id: 'asc' }],
-          include: { supplier: true, agency: true },
+          include: {
+            supplier: { select: { id: true, name: true, email: true } },
+            agency: true,
+          },
         }),
     );
     const customers = await this.db.user.findMany({
@@ -701,7 +710,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
                 : { id: '__none__' },
           include: {
             messages: { orderBy: { createdAt: 'asc' } },
-            supplier: true,
+            supplier: { select: { id: true, name: true, email: true } },
           },
           orderBy: { createdAt: 'desc' },
         });
@@ -717,7 +726,10 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
                   agencyId: p.agencyId || 'NONE',
                   ...(p.kind === 'CUSTOMER' ? { customerId: p.userId } : {}),
                 },
-            include: { supplier: true, agency: true },
+            include: {
+              supplier: { select: { id: true, name: true, email: true } },
+              agency: true,
+            },
             orderBy: { reference: 'asc' },
           });
     const visibleUserIds = [
@@ -1197,7 +1209,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           ticketId: id,
           supplierId: booking.supplierId,
           subject: dto.subject.trim(),
-          dueAt: new Date(now.getTime() + 4 * 3600000),
+          ...(await this.supplierTarget(tx, booking.supplierId, now)),
           createdAt: now,
         },
       });
@@ -1261,7 +1273,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           status: p.kind === 'SUPPLIER' ? 'REPLIED' : 'AWAITING_REPLY',
           ...(p.kind === 'SUPPLIER'
             ? {}
-            : { dueAt: new Date(now.getTime() + 4 * 3600000) }),
+            : await this.supplierTarget(tx, c.supplierId, now)),
         },
       });
       const ticket = await tx.travelTicket.findUniqueOrThrow({
@@ -1325,7 +1337,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         data: {
           status,
           ...(status === 'AWAITING_REPLY'
-            ? { dueAt: new Date(now.getTime() + 4 * 3600000) }
+            ? await this.supplierTarget(tx, conversation.supplierId, now)
             : {}),
         },
       });
@@ -1499,6 +1511,69 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           responsePolicyVersion: { increment: 1 },
         },
       });
+    });
+  }
+  private async supplierTarget(tx: Tx, supplierId: string, now: Date) {
+    // A policy update commits before the cycle snapshot is read.
+    await tx.$queryRaw`SELECT id FROM "TravelSupplier" WHERE id = ${supplierId} FOR SHARE`;
+    const policy = await tx.travelSupplier.findUniqueOrThrow({
+      where: { id: supplierId },
+    });
+    const snapshot = this.policySnapshot(policy);
+    return {
+      dueAt: this.responseTarget(
+        now,
+        snapshot.hours * 3600000,
+        snapshot.calendar,
+      ),
+      slaSnapshot: JSON.parse(
+        JSON.stringify(snapshot),
+      ) as Prisma.InputJsonValue,
+    };
+  }
+  async configureSupplierCalendar(
+    userId: string,
+    id: string,
+    dto: SupplierCalendarDto,
+  ) {
+    this.manager(await this.profile(userId));
+    const calendar = this.calendar(dto.calendar),
+      reason = this.reason(dto.reason);
+    if (calendar)
+      this.responseTarget(
+        new Date(),
+        dto.responseTargetHours * 3600000,
+        calendar,
+      );
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      const supplier = await tx.travelSupplier.findUnique({ where: { id } });
+      if (!supplier) throw new NotFoundException('Supplier not found.');
+      if (
+        supplier.responseTargetHours === dto.responseTargetHours &&
+        JSON.stringify(this.calendar(supplier.slaCalendar)) ===
+          JSON.stringify(calendar)
+      )
+        return supplier;
+      const result = await tx.travelSupplier.update({
+        where: { id },
+        data: {
+          slaCalendar: calendar
+            ? (JSON.parse(JSON.stringify(calendar)) as Prisma.InputJsonValue)
+            : Prisma.DbNull,
+          responseTargetHours: dto.responseTargetHours,
+          responsePolicyVersion: { increment: 1 },
+        },
+      });
+      await tx.membershipAudit.create({
+        data: {
+          actorId: userId,
+          entityId: id,
+          action: 'SUPPLIER_CALENDAR_CHANGED',
+          reason,
+        },
+      });
+      return result;
     });
   }
   private responseTarget(

@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+Managers can configure supplier response hours, weekly schedules, local holidays and time zones in **Needs attention → SLA calendars and duty coverage → Supplier response calendars**. New supplier requests, staff follow-ups and reopened threads use the supplier policy in effect when that response cycle starts. The default target is four elapsed hours. [Supplier calendar behavior](docs/OPSDESK_SLA_CALENDARS.md#supplier-response-cycles)
+
 A local travel-support prototype that connects complaints to agencies, customers, bookings, earlier cases and private supplier conversations. Built with Next.js, NestJS, Prisma and PostgreSQL on the [IT Helpdesk foundation](https://github.com/Molnar-Zoltan/it-helpdesk).
 
 Start with the [developer handoff](docs/OPSDESK_HANDOFF.md), [full setup and demo guide](OPSDESK_README.md), and [prioritized backlog](docs/OPSDESK_BACKLOG.md). Development and pull requests belong to [DhruvKhanna7777/opsdesk-travel-support](https://github.com/DhruvKhanna7777/opsdesk-travel-support).

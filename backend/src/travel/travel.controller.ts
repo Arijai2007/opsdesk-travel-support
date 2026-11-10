@@ -1,3 +1,4 @@
+import { SupplierCalendarDto } from './sla.dto';
 import { HandoffPolicyDto } from './sla.dto';
 import { CalendarPolicyDto, SlaPauseDto, EscalationOwnerDto } from './sla.dto';
 import { TravelDirectoryDto } from './travel-directory.dto';
@@ -206,6 +207,13 @@ export class TravelController {
     @Body() dto: CalendarPolicyDto,
   ) {
     return this.travel.configureCalendar(req.user.userId, id, dto);
+  }
+  @Patch('suppliers/:id/calendar') supplierCalendar(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: SupplierCalendarDto,
+  ) {
+    return this.travel.configureSupplierCalendar(req.user.userId, id, dto);
   }
   @Patch('members/:id/shift') shift(
     @Req() req: AuthenticatedRequest,

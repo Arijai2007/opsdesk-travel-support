@@ -1,5 +1,8 @@
 import {
   Allow,
+  IsInt,
+  Min,
+  Max,
   IsBoolean,
   IsString,
   MinLength,
@@ -21,4 +24,8 @@ export class EscalationOwnerDto {
 export class HandoffPolicyDto {
   @IsBoolean() enabled: boolean;
   @IsString() @MinLength(3) @MaxLength(1000) reason: string;
+}
+
+export class SupplierCalendarDto extends CalendarPolicyDto {
+  @IsInt() @Min(1) @Max(168) responseTargetHours: number;
 }
