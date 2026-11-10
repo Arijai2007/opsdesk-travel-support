@@ -1,3 +1,4 @@
+import { ContractPolicyDto, ContractDirectoryDto } from './contracts.dto';
 import { SupplierCalendarDto } from './sla.dto';
 import { HandoffPolicyDto } from './sla.dto';
 import {
@@ -926,9 +927,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         loads,
         category,
       );
-      const policy = await tx.travelAgency.findUniqueOrThrow({
-        where: { id: agencyId },
-      });
+      const policy = await this.casePolicy(tx, agencyId, dto.contractId, true);
       const slaSnapshot = this.policySnapshot(policy);
       const responseDeadline = this.responseTarget(
         now,
@@ -947,6 +946,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           title: dto.title.trim(),
           description: dto.description.trim(),
           agencyId,
+          contractId: dto.contractId,
           customerId,
           bookingId: booking?.id,
           category,
@@ -1067,9 +1067,12 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         data.status = dto.status;
         data.resolvedAt = active(dto.status) ? null : now;
         if (!active(t.status) && active(dto.status)) {
-          const policy = await tx.travelAgency.findUniqueOrThrow({
-            where: { id: t.agencyId },
-          });
+          const policy = await this.casePolicy(
+            tx,
+            t.agencyId,
+            t.contractId,
+            false,
+          );
           const snapshot = this.policySnapshot(policy);
           data.slaSnapshot = JSON.parse(
             JSON.stringify(snapshot),
@@ -1390,7 +1393,11 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   private recordResponseTarget(
     tx: Tx,
     ticketId: string,
-    policy: { responseTargetHours: number; responsePolicyVersion: number },
+    policy: {
+      responseTargetHours: number;
+      responsePolicyVersion: number;
+      name: string;
+    },
     userId: string,
     now: Date,
   ) {
@@ -1398,7 +1405,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       tx,
       ticketId,
       'RESPONSE_TARGET_SET',
-      `Agency policy v${policy.responsePolicyVersion}: ${policy.responseTargetHours} service hours to respond.`,
+      `${policy.name} policy v${policy.responsePolicyVersion}: ${policy.responseTargetHours} service hours to respond.`,
       userId,
       now,
     );
@@ -1497,6 +1504,123 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
         select: { userId: true, specialties: true, maxActiveCases: true },
       });
     });
+  }
+  async contracts(userId: string, query: ContractDirectoryDto) {
+    const p = await this.profile(userId);
+    if (p.kind === 'SUPPLIER')
+      throw new ForbiddenException('Agency access required.');
+    const agencyId = STAFF.includes(p.kind) ? query.agencyId : p.agencyId;
+    if (!agencyId || (query.agencyId && query.agencyId !== agencyId))
+      throw new ForbiddenException('Select an authorized agency.');
+    if (query.includeInactive && p.kind !== 'MANAGER')
+      throw new ForbiddenException('Manager access required.');
+    const where: Prisma.TravelContractWhereInput = {
+      agencyId,
+      ...(query.includeInactive === '1' ? {} : { active: true }),
+      ...(query.search?.trim()
+        ? { name: { contains: query.search.trim(), mode: 'insensitive' } }
+        : {}),
+    };
+    const page = await readPage(
+      query,
+      () => this.db.travelContract.count({ where }),
+      (skip, take) =>
+        this.db.travelContract.findMany({
+          where,
+          skip,
+          take,
+          orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        }),
+    );
+    return {
+      ...page,
+      selectionRequired: Boolean(
+        await this.db.travelContract.count({ where: { agencyId } }),
+      ),
+    };
+  }
+  async saveContract(
+    userId: string,
+    agencyId: string,
+    id: string | null,
+    dto: ContractPolicyDto,
+  ) {
+    this.manager(await this.profile(userId));
+    const reason = this.reason(dto.reason),
+      calendar = this.calendar(dto.calendar);
+    const name = dto.name.trim();
+    if (name.length < 3)
+      throw new BadRequestException('Provide a meaningful contract name.');
+    if (calendar)
+      this.responseTarget(
+        new Date(),
+        dto.responseTargetHours * 3600000,
+        calendar,
+      );
+    return this.locked(async (tx) => {
+      this.manager(await this.profile(userId, tx));
+      if (!(await tx.travelAgency.findUnique({ where: { id: agencyId } })))
+        throw new NotFoundException('Agency not found.');
+      const previous = id
+        ? await tx.travelContract.findFirst({ where: { id, agencyId } })
+        : null;
+      if (id && !previous) throw new NotFoundException('Contract not found.');
+      if (
+        previous &&
+        previous.name === name &&
+        previous.active === dto.active &&
+        previous.responseTargetHours === dto.responseTargetHours &&
+        JSON.stringify(this.calendar(previous.slaCalendar)) ===
+          JSON.stringify(calendar)
+      )
+        return previous;
+      const data = {
+        name,
+        active: dto.active,
+        responseTargetHours: dto.responseTargetHours,
+        slaCalendar: calendar
+          ? (JSON.parse(JSON.stringify(calendar)) as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+      };
+      const result = previous
+        ? await tx.travelContract.update({
+            where: { id: previous.id },
+            data: { ...data, responsePolicyVersion: { increment: 1 } },
+          })
+        : await tx.travelContract.create({ data: { ...data, agencyId } });
+      await tx.membershipAudit.create({
+        data: {
+          actorId: userId,
+          entityId: result.id,
+          action: previous ? 'CONTRACT_CHANGED' : 'CONTRACT_CREATED',
+          reason,
+        },
+      });
+      return result;
+    });
+  }
+  private async casePolicy(
+    tx: Tx,
+    agencyId: string,
+    contractId: string | null | undefined,
+    intake: boolean,
+  ) {
+    // Intake, reopen and contract writers share the capacity lock.
+    if (contractId) {
+      const contract = await tx.travelContract.findFirst({
+        where: { id: contractId, agencyId },
+      });
+      if (!contract || (intake && !contract.active))
+        throw new BadRequestException(
+          'Choose an active contract in this agency.',
+        );
+      return contract;
+    }
+    if (intake && (await tx.travelContract.count({ where: { agencyId } })))
+      throw new BadRequestException(
+        'Select an active agency contract explicitly.',
+      );
+    return tx.travelAgency.findUniqueOrThrow({ where: { id: agencyId } });
   }
   async updateAgencyResponsePolicy(userId: string, id: string, hours: number) {
     return this.locked(async (tx) => {
@@ -1605,8 +1729,14 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     slaCalendar: Prisma.JsonValue | null;
     responseTargetHours: number;
     responsePolicyVersion: number;
+    id?: string;
+    name?: string;
+    agencyId?: string;
   }) {
     return {
+      ...(policy.agencyId
+        ? { contractId: policy.id, contractName: policy.name }
+        : {}),
       calendar: this.calendar(policy.slaCalendar),
       hours: policy.responseTargetHours,
       version: policy.responsePolicyVersion,

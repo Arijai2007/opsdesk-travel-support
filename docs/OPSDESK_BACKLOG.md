@@ -1,14 +1,20 @@
 # OpsDesk — prioritized remaining work
 
-**Supplier calendar progress on issue #6.** Manager-managed supplier business hours and per-cycle deadline snapshots are implemented on top of merged workload-handoff PR #30. Multiple agency contracts and richer manager escalation rotations remain outstanding. The existing email and attachment, booking adapter, evaluation, accessibility and load milestones follow those policy features.
+**Current increment: multiple agency contracts (issue #6).** Manager-managed independent contracts, explicit active selection at intake, scoped authorization, paged/searchable selectors, saved response-cycle policies and protected historical references are implemented. Retirement prevents new selection; reopening keeps the same contract. See the [policy contract](OPSDESK_SLA_CALENDARS.md#multiple-agency-contracts) and [exact validation](OPSDESK_VALIDATION.md). Deployment remains paused.
+
+Next: richer escalation rotations and override policies; then email outbox/retries, signed inbound webhooks and secure attachments; provider-neutral booking integration; independent AI evaluation, accessibility, realistic load and operational recovery acceptance.
+
+The following older checkpoint notes are retained for context. Their multi-contract/supplier/workload remaining-work statements are superseded by the current handoff.
+
+**Supplier calendar progress on issue #6.** Manager-managed supplier business hours and per-cycle deadline snapshots are implemented on top of merged workload-handoff PR #30. Multiple agency contracts are implemented in this follow-up; richer manager escalation rotations remain outstanding. The existing email and attachment, booking adapter, evaluation, accessibility and load milestones follow those policy features.
 
 These are remaining implementation and acceptance tasks. **Deployment is paused: finish local features, verification and review first, as requested by the user.** P0 items remain gates before live data; no external API is required for the synthetic local demo. The free-demo deployment preparation is saved separately and is not part of this feature branch.
 
-Immediate order: complete remaining agency-contract and escalation-rotation policies; add email/attachments; add a provider-neutral booking adapter with an explicit owner policy for creation/cancellation. Independent evaluation, accessibility, load and recovery acceptance remain open. Detailed entry files and acceptance steps are in [handoff section 13](OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order).
+Immediate order: complete remaining escalation-rotation and override policies; add email/attachments; add a provider-neutral booking adapter with an explicit owner policy for creation/cancellation. Independent evaluation, accessibility, load and recovery acceptance remain open. Detailed entry files and acceptance steps are in [handoff section 13](OPSDESK_HANDOFF.md#13-remaining-work-in-priority-order).
 
 ## Merged SLA and coverage features
 
-PRs #29–#31 are merged. Agency and supplier calendars, response snapshots, pause/resume, duty coverage, audited escalation ownership and opt-in existing-workload handoff are delivered and verified. Continue with multiple agency contracts and richer escalation rotations, then email, attachments and provider adapters. See the current handoff for exact evidence and production acceptance work.
+PRs #29–#31 are merged. Agency and supplier calendars, response snapshots, pause/resume, duty coverage, audited escalation ownership and opt-in existing-workload handoff are delivered and verified. Review the current agency-contract increment, then continue with richer escalation rotations, email, attachments and provider adapters. See the current handoff for exact evidence and production acceptance work.
 
 ## [P0] Confirm acceptance criteria and harden travel access boundaries
 
@@ -77,8 +83,8 @@ Start: TravelBooking, TravelProfile, ticket create/update logic and seed-travel.
 Managers can edit booking schedules, agent specialties and capacity, and elapsed-hour agency response targets. Automatic routing considers category, region, availability, capacity and workload. New and reopened cases record the response policy applied.
 
 Acceptance:
-- Review the current agency calendar/shift/ownership implementation and its tests. Add multiple contracts within an agency and supplier business calendars; managers can already acknowledge alerts.
-- Complete automatic handoff of existing agent workload at shift boundaries and richer escalation rotations/manual override policies.
+- Review the current agency calendar/shift/ownership implementation and its tests. Multiple agency contracts and supplier business calendars are implemented; retain their authorization, snapshot and concurrency regressions. Managers can already acknowledge alerts.
+- Automatic opt-in workload handoff is merged. Complete richer escalation rotations/manual override policies.
 - Preserve the merged manager membership panel and its regression coverage: 24-hour manual invitations, single-use activation, agency/supplier creation, reasoned suspension/reactivation, paged searchable directory and audit. Prove historical preservation, immutable scopes, session invalidation, five-role boundaries and self/last-manager protection. This membership work merged in PR #28; retain its regression checks.
 - Leave role/agency/supplier/region reassignment and deletion outside this increment; define their historical-data policy before adding them.
 - Specify reopen behavior and routing when coverage is unavailable.
@@ -137,7 +143,7 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 
 
 
-## Current issue status after integration
+## Historical issue status after PR #28 integration
 
 The merged application checkpoint is `6e97b6f`, including PRs #25-#28. [PR #28 CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42812617605). Membership administration merged in PR #28. Current local feature work is SLA calendars, duty coverage and escalation ownership, pending collaborator review. See [current branch evidence](OPSDESK_VALIDATION.md#current-membership-branch-validation-10-november-2026); passing historical/main checks do not establish this branch’s final result.
 

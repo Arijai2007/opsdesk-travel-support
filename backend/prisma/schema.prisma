@@ -110,9 +110,24 @@ model TravelAgency {
   slaCalendar Json?
   responseTargetHours Int @default(24)
   responsePolicyVersion Int @default(1)
+  contracts TravelContract[]
   bookings TravelBooking[]
   profiles TravelProfile[]
   tickets TravelTicket[]
+}
+
+model TravelContract {
+  id String @id @default(cuid())
+  agencyId String
+  agency TravelAgency @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+  name String
+  active Boolean @default(true)
+  slaCalendar Json?
+  responseTargetHours Int
+  responsePolicyVersion Int @default(1)
+  tickets TravelTicket[]
+  @@unique([id, agencyId])
+  @@index([agencyId, active, name, id])
 }
 
 model TravelSupplier {
@@ -184,6 +199,8 @@ model TravelTicket {
   description String
   agencyId String
   agency TravelAgency @relation(fields: [agencyId], references: [id])
+  contractId String?
+  contract TravelContract? @relation(fields: [contractId, agencyId], references: [id, agencyId], onDelete: Restrict, onUpdate: Restrict)
   customerId String
   bookingId String?
   booking TravelBooking? @relation(fields: [bookingId], references: [id])

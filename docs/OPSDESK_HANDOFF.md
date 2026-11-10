@@ -1,5 +1,15 @@
 # OpsDesk developer handoff
 
+## Agency-contract increment - 10 November 2026
+
+Started from latest main `31cd21f42e7a1e9d5f8efbdc8f019ddb3f756d62` (PRs through #32 merged) in a fresh isolated clone. Older uncommitted worktrees were preserved. Deployment remains explicitly paused.
+
+Implemented manager administration of independent contracts, agency-scoped searched/paged selection, explicit active-contract intake, composite agency/contract integrity, immutable case contract references and response-cycle snapshots. Contract retirement blocks new intake without deleting history. Reopening uses the same contract's current policy, including retired contracts; legacy cases keep agency defaults. Policy edits never rewrite active deadlines. [Exact policy and API](OPSDESK_SLA_CALENDARS.md#multiple-agency-contracts).
+
+Read [current validation evidence](OPSDESK_VALIDATION.md) before merging. The standard API and browser commands include contract regressions. Next implement richer escalation rotations and override policies, then mail outbox/retries, signed inbound webhooks, secure attachments and provider-neutral booking integration. Independent AI evaluation, accessibility, realistic load and operational recovery acceptance remain open. Pushes and PRs belong only to this repository and target main.
+
+The earlier checkpoint and detailed architecture below are retained as historical context; this increment supersedes their multi-contract remaining-work statements.
+
 Checkpoint prepared 10 November 2026. The application checkpoint is main `cdd7d3581378d2d5090258a8ee1112c23a837af6`. PRs #29, #30 and #31 are merged. Deployment is paused at the user's instruction.
 
 ## Completed at this checkpoint
@@ -35,7 +45,7 @@ Run `npm run ops:test` against the isolated preview. Install browsers with `npx 
 
 ## Remaining work and next order
 
-1. Add multiple independent agency contracts and explicit contract selection with agency-scoped authorization. Add richer escalation rotations and define override behavior.
+1. Review the agency-contract increment above, then add richer escalation rotations and define override behavior.
 2. Implement mail outbox, retries, inbound signatures/threading and secure attachments. Live delivery needs the chosen provider's credentials and verified sender.
 3. Extend booking tooling through a provider-neutral adapter with agreed creation/cancellation policy and stable scoped identities.
 4. Complete independent AI evaluation, screen-reader/contrast checks, realistic skewed load and operational recovery acceptance.

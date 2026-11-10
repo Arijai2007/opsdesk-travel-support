@@ -17,6 +17,15 @@ export type Agency = {
   responseTargetHours: number;
   responsePolicyVersion: number;
 };
+export type AgencyContract = {
+  id: string;
+  agencyId: string;
+  name: string;
+  active: boolean;
+  slaCalendar: ServiceCalendar | null;
+  responseTargetHours: number;
+  responsePolicyVersion: number;
+};
 export type Supplier = { id: string; name: string; email: string };
 export type Booking = {
   customerName?: string;
@@ -53,7 +62,10 @@ export type CaseEvent = {
   actorId: string;
 };
 export type Ticket = {
+  contractId?: string | null;
   slaSnapshot?: {
+    contractId?: string;
+    contractName?: string;
     calendar: ServiceCalendar | null;
     hours: number;
     version: number;

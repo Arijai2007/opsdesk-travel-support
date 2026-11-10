@@ -1,5 +1,19 @@
 # SLA calendars, shifts and escalation ownership
 
+## Multiple agency contracts
+
+Managers create and edit independent contracts under **Needs attention > SLA calendars and duty coverage > Agency contracts**. Each contract has its own name, active state, 1-168 response service hours, optional business calendar and monotonically increasing policy version. A reason is required; changed saves produce one membership audit record. Identical normalized PATCH requests, including concurrent retries, preserve the version and create no additional audit event. POST creates a distinct contract; clients must retain the returned ID and use PATCH for subsequent changes.
+
+`GET /ops/contracts?agencyId=...&search=...&page=...` returns at most 20 active contracts, stable name/ID ordering and `selectionRequired`. Customers and agency members can read only their persisted agency; suppliers are denied. Staff may read agency policies, but existing regional/customer case authorization still governs intake and case access. `includeInactive=1` is manager-only. Contract access follows existing agency membership; there are no additional per-contract user grants in this increment.
+
+Manager routes are `POST /ops/agencies/:id/contracts` and `PATCH /ops/agencies/:id/contracts/:contractId`. Both accept `{name, active, responseTargetHours, calendar, reason}`. Agency identity is immutable. There is no delete or ticket contract-reassignment endpoint. Retirement blocks new selection while retaining historical references. A composite foreign key prevents a case from referencing a contract in another agency and restricts deletion of referenced contracts.
+
+New cases accept an explicit `contractId`. An agency with any contract record requires selection of an active contract, even if all its contracts are retired; it never silently falls back. Agencies with no contracts retain the existing agency default. Existing cases remain unchanged and keep null contract references; migration never rewrites deadlines or snapshots. The UI resets contract selection when the booking agency changes, and the API independently verifies agency/customer/region and contract ownership.
+
+A selected contract saves its ID/name plus calendar, hours and version in each response-cycle snapshot. Editing/retiring a policy preserves active deadlines, paused budgets, supplier cycles and history. Reopening keeps the original contract (including a retired one) and starts a new cycle with that contract's current policy. Legacy cases continue to reopen under the agency default, even after contracts are added. Intake, reopen and policy writers share the existing capacity lock so snapshots cannot mix versions. Response pause/resume and travel deadline rules continue unchanged.
+
+Targeted checks: `node scripts/contracts-smoke.mjs` and `node scripts/contracts-browser.mjs`. Both are included in the standard test commands; browser engine selection works as for the existing suites. Richer escalation rotations and override policies remain next.
+
 ## Supplier response cycles
 
 The manager endpoint `PATCH /ops/suppliers/:id/calendar` accepts a calendar (or null), an integer responseTargetHours from 1 through 168 and a reason. Saving changed hours or a changed schedule increments the supplier's policy version and records the actor and reason. Submitting the same normalized policy preserves its version. Null selects elapsed hours. Weekly intervals, holidays and time zones use the same service-time calculator as agency calendars.
@@ -14,7 +28,7 @@ Agency response targets retain elapsed-hour behavior until a manager explicitly 
 
 Business budgets consume actual elapsed time only while the local calendar is open. A skipped DST minute contributes no time; both real occurrences of a repeated minute contribute time. Half-hour zones and local holiday dates across UTC midnight are covered. Budgets preserve millisecond precision. Calculations search at most 366 days; insufficient coverage is rejected rather than silently using an elapsed fallback. Configuration verifies coverage for the largest supported 168-hour target. This bounded minute-based calculator is suitable for this prototype; sparse-calendar CPU cost and a more efficient interval engine need separate load measurement.
 
-The migration adds nullable agency/profile calendars and ticket snapshot/pause/owner fields without rewriting existing deadlines. New and reopened cases save the full applied calendar, hours and policy version. Editing agency calendar/hours affects future cycles, not active snapshots. Reopening retains the existing case owner but starts a fresh current-policy response cycle. One agency-level calendar is supported; multiple independent contracts inside one agency and supplier-specific business calendars are not implemented.
+The migration adds nullable agency/profile calendars and ticket snapshot/pause/owner fields without rewriting existing deadlines. New and reopened cases save the full applied calendar, hours and policy version. Editing agency calendar/hours affects future cycles, not active snapshots. Reopening retains the existing case owner but starts a fresh current-policy response cycle. Agency defaults remain supported alongside independent agency contracts and supplier-specific business calendars; see the current sections above.
 
 ## Pause and travel behavior
 
@@ -24,7 +38,7 @@ Pausing never stops booking check-in, departure, cancellation or supplier-thread
 
 ## Coverage and ownership
 
-A manager may configure an agent or manager's shift using the same calendar format. No shift means continuous coverage, preserving prior behavior. Availability, active membership, regional/category eligibility and automatic capacity limits still apply. Automatic intake leaves a case unassigned when no eligible agent is on duty. A new manual assignment to an off-duty member is rejected. Existing assignments are preserved at shift end, during suspension, and on reopen; automatic agent workload handoff is not implemented.
+A manager may configure an agent or manager's shift using the same calendar format. No shift means continuous coverage, preserving prior behavior. Availability, active membership, regional/category eligibility and automatic capacity limits still apply. Automatic intake leaves a case unassigned when no eligible agent is on duty. A new manual assignment to an off-duty member is rejected. Existing assignments are preserved unless automatic workload handoff is explicitly enabled; reopening retains the current owner. See the workload-handoff section below.
 
 For an active case with an unacknowledged escalation or supplier-overdue alert, the sweep preserves an active, available, on-duty escalation manager. If that manager loses coverage, it selects another eligible manager in stable user-ID order. With no coverage it clears ownership, and the case displays an explicit unowned state for the manager queue. When coverage returns, the next sweep assigns an owner. Managers may explicitly change ownership with a reason; releasing ownership returns it to automatic coverage on the next sweep. Acknowledgment continues to preserve the original alert and audit history; no alert is acknowledged automatically by an ownership change.
 
@@ -51,7 +65,7 @@ Managers use **Needs attention > SLA calendars and duty coverage**. Case staff s
 
 `scripts/sla-browser.mjs` exercises calendar/holiday configuration, duty coverage, pause/resume and ownership through the actual manager UI. The combined browser command runs the original five-role, membership and SLA flows in the selected engine.
 
-Remaining feature work includes multi-contract calendars, supplier business calendars, automatically handing existing agent workload to another shift, richer escalation rotations, live email/outbox/inbound signatures, authorized/scanned attachments, provider-neutral booking integration and independent AI evaluation. Broader assistive-technology, skewed read/write load and failure-injection checks remain open. Hosting, staging/live-data policy work and deployment preparation remain paused.
+Remaining feature work includes richer escalation rotations, live email/outbox/inbound signatures, authorized/scanned attachments, provider-neutral booking integration and independent AI evaluation. Broader assistive-technology, skewed read/write load and failure-injection checks remain open. Hosting, staging/live-data policy work and deployment preparation remain paused.
 
 ## Reconstructed automatic workload handoff
 
