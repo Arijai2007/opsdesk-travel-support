@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { readBookingExport } from "./booking-export.mjs";
+import { planBookingExport } from "./reconcile-booking-export.mjs";
 
 const fixture = () =>
   JSON.parse(
@@ -78,4 +79,115 @@ test("rejects inconsistent schedules without putting source values in errors", (
   input.bookings[0].departureAt = null;
   input.bookings[0].cancellationCutoffAt = "2026-11-16T08:00:00Z";
   assert.throws(() => readBookingExport(input), /cannot follow check-in/);
+});
+
+const mappings = () => ({
+  version: 1,
+  source: "synthetic-demo",
+  agencies: [
+    { externalId: "agency-one", localId: "atlas" },
+    { externalId: "agency-two", localId: "horizon" },
+  ],
+  customers: [
+    {
+      agencyId: "agency-one",
+      externalId: "customer-001",
+      localId: "customer-0",
+    },
+    {
+      agencyId: "agency-two",
+      externalId: "customer-002",
+      localId: "customer-1",
+    },
+  ],
+  suppliers: [{ externalId: "supplier-001", localId: "supplier-0" }],
+});
+
+test("distinguishes create, explicit cancellation, update, and unchanged", () => {
+  const accepted = fixture();
+  const incoming = fixture();
+  incoming.bookings[0].status = "CANCELLED";
+  incoming.bookings[0].updatedAt = "2026-11-12T10:00:00Z";
+  incoming.bookings.push({
+    ...incoming.bookings[0],
+    id: "new-booking",
+    reference: "DEMO-11",
+    status: "ACTIVE",
+  });
+  assert.deepEqual(
+    planBookingExport(incoming, mappings(), accepted).map((r) => r.action),
+    ["CANCEL", "UNCHANGED", "CREATE"],
+  );
+  incoming.bookings[0].status = "ACTIVE";
+  assert.equal(
+    planBookingExport(incoming, mappings(), accepted)[0].action,
+    "UPDATE",
+  );
+});
+
+test("flags stale records and conflicting changes with an equal timestamp", () => {
+  const incoming = fixture();
+  incoming.bookings[0].updatedAt = "2026-11-09T09:00:00Z";
+  incoming.bookings[1].checkInAt = "2026-11-16T16:00:00Z";
+  assert.deepEqual(
+    planBookingExport(incoming, mappings(), fixture()).map((r) => r.action),
+    ["STALE", "REVIEW"],
+  );
+});
+
+test("does not infer customer ownership across agencies or reuse an accepted reference", () => {
+  const incoming = fixture();
+  incoming.bookings[0].customerId = "customer-002";
+  incoming.bookings[1].id = "renamed-external-id";
+  const plan = planBookingExport(incoming, mappings(), fixture());
+  assert.match(plan[0].reason, /Unmapped/);
+  assert.match(plan[1].reason, /another accepted booking/);
+});
+
+test("reviews ownership changes, unmapped cancellations, and reactivation", () => {
+  const incoming = fixture();
+  const trusted = mappings();
+  trusted.customers.push({
+    agencyId: "agency-one",
+    externalId: "replacement",
+    localId: "customer-9",
+  });
+  incoming.bookings[0].customerId = "replacement";
+  incoming.bookings[1].status = "ACTIVE";
+  incoming.bookings[1].updatedAt = "2026-11-12T10:00:00Z";
+  incoming.bookings.push({
+    ...incoming.bookings[0],
+    id: "unknown",
+    reference: "DEMO-11",
+    status: "CANCELLED",
+  });
+  const plan = planBookingExport(incoming, trusted, fixture());
+  assert.deepEqual(
+    plan.map((r) => r.action),
+    ["REVIEW", "REVIEW", "REVIEW"],
+  );
+  assert.match(plan[0].reason, /ownership changed/);
+  assert.match(plan[1].reason, /Reactivation/);
+  assert.match(plan[2].reason, /no accepted booking/);
+});
+
+test("rejects a different source and duplicate trusted local identities", () => {
+  const trusted = mappings();
+  trusted.source = "other-source";
+  assert.throws(
+    () => planBookingExport(fixture(), trusted, fixture()),
+    /same source/,
+  );
+  trusted.source = "synthetic-demo";
+  trusted.customers[1].localId = trusted.customers[0].localId;
+  assert.throws(
+    () => planBookingExport(fixture(), trusted, fixture()),
+    /Duplicate customer/,
+  );
+});
+
+test("does not treat omitted rows as cancellations", () => {
+  const incoming = fixture();
+  incoming.bookings = [];
+  assert.deepEqual(planBookingExport(incoming, mappings(), fixture()), []);
 });

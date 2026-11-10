@@ -13,4 +13,14 @@ Each batch has a `version` of 1, a stable `source` identifier, and a `bookings` 
 
 Use ISO UTC instants ending in `Z` for `updatedAt` and `checkInAt`, and provide an IANA display timezone. Optional `departureAt` and `cancellationCutoffAt` are UTC instants or null. A local time during a daylight saving transition cannot identify an instant. Keep the provider’s UTC value and use the timezone for display.
 
-Validation establishes the shape and internal consistency of a batch. A future importer must verify provider identities against trusted agency, customer and supplier mappings, reject stale updates by comparing the stored version, define cancellation handling, and decide how changes affect existing tickets. Import and live provider selection remain in [issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5).
+For a read-only reconciliation plan, pass the incoming export, a trusted identity mapping file, and the last accepted snapshot. This example compares the synthetic export with itself:
+
+```sh
+npm run ops:check-booking-export -- scripts/fixtures/booking-export-v1.json scripts/fixtures/booking-export-mappings-v1.json scripts/fixtures/booking-export-v1.json
+```
+
+The mapping file must use version 1 and the same source as both snapshots. Operators supply approved external-to-local IDs for agencies, customers and suppliers. Customer IDs are looked up within their external agency. The planner does not infer identity from names or references, and does not check that the declared local IDs exist in a live database.
+
+The planner emits `CREATE`, `UPDATE`, `CANCEL`, `UNCHANGED`, `STALE` or `REVIEW` per incoming row. Cancellation requires a newer explicit cancellation of an accepted booking. Missing rows are ignored. Ownership changes, reference collisions, unknown cancellations, reactivations and conflicting records with identical timestamps require review. An invalid input exits with code 1. A valid plan that contains a review row exits with code 2. The command only prints row numbers and decisions.
+
+A future importer must verify the mapping against database ownership, enforce stale-update checks inside the write transaction, and decide how a schedule change or cancellation affects existing cases. Import and live provider selection remain in [issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5).

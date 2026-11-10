@@ -135,7 +135,7 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 | #2 | Six demo scenarios mapped, server-side role/privacy checks, account deletion guard and single-use token rotation | Obtain owner acceptance, define account closure, retention and production tenant boundaries |
 | #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Select hosting, provision secrets and managed services, assign incident ownership, test staging restoration and operational retention |
 | #4 | Supplier and customer conversations persist with scoped visibility | Live mail provider, signatures, delivery outbox, retries, threading and secure attachments |
-| #5 | Seeded booking links, editable schedules and a validated offline export format | Provider-specific adapter, trusted identity mapping, cancellation reconciliation and stale-update handling |
+| #5 | Seeded booking links, editable schedules, export validation and read-only reconciliation against explicit mappings | Provider-specific adapter, database ownership verification, transactional updates and case handling on cancellation |
 | #6 | Agent specialties, capacities, response targets and versioned response policy | Contract calendars, shifts, manager membership administration and escalation acknowledgment |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
 | #8 | Deterministic record-based briefs and classification | Provider choice, redaction, structured grounded outputs and held-out evaluation |
