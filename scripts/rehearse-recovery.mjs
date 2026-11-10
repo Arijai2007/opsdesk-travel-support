@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { performance } from "node:perf_hooks";
 import pg from "pg";
+import { verifyWorkerRestart } from "./worker-restart.mjs";
 
 // A rehearsal, never a command for backing up or replacing operational databases.
 assert(
@@ -212,25 +213,32 @@ try {
   check("restored foreign key rejects orphan message");
   assert.deepEqual(await snapshot(targetPool), before);
   check("rejected writes leave restored contents unchanged");
+  await verifyWorkerRestart(targetPool, connection(target));
+  check(
+    "worker process termination rolls back the interrupted ticket and restart completes both exactly once",
+  );
   report.elapsedMs = Math.round(performance.now() - started);
   report.tables = Object.fromEntries(
     Object.entries(before.tables).map(([name, value]) => [name, value.count]),
   );
-  // No credentials, row contents or password hashes are written to the report.
-  writeFileSync(
-    resolve(directory, "latest-report.json"),
-    JSON.stringify(report, null, 2),
-  );
-  console.log(JSON.stringify(report));
 } finally {
   await Promise.all([sourcePool?.end(), targetPool?.end()]);
   try {
     for (const name of created) {
       assert(/^opsdesk_recovery_(source|target)_[a-f0-9]{32}$/.test(name));
-      await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);
+      // pg.Pool.end() can resolve while its idle sockets are still closing.
+      // Ordinary DROP waits for disconnects without sending FATAL to clients.
+      await admin.query(`DROP DATABASE "${name}"`);
     }
   } finally {
     await admin.end();
     if (archiveCreated) unlinkSync(archive);
   }
 }
+check("disposable databases and temporary archive cleaned up");
+// Publish success only after cleanup; the report contains no row contents.
+writeFileSync(
+  resolve(directory, "latest-report.json"),
+  JSON.stringify(report, null, 2),
+);
+console.log(JSON.stringify(report));

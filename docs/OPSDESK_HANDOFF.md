@@ -3,9 +3,9 @@
 Prepared 10 November 2026. This document is the entry point for the next developer. It describes the delivered localhost prototype, the implementation boundaries, and the work required to turn it into an operational travel-support product.
 
 
-## Start here for the current review
+## Current checkpoint on main
 
-PRs #15 and #16 are merged. The integration branch `codex/integrated-travel-validation` brings the following review branches together on top of `fcd75fa`. Its CI workflow exercises the changes together. Review and merge the integration PR into main once its checks and human review pass. Its commit history includes each listed head, so the individual PRs do not also need to be merged.
+PRs #15 through #23 are merged. The combined build and integration checks passed on Node 22.23.x with PostgreSQL 18. Clone `main` to pick up the complete changes. The [combined CI run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42774645178) covers logical recovery, 28 backend unit tests, 403 HTTP checks, 13 concurrency checks, both browser engines and the production dependency audit.
 
 | Review | Change |
 | --- | --- |
@@ -18,7 +18,7 @@ PRs #15 and #16 are merged. The integration branch `codex/integrated-travel-vali
 
 Use Node 22.23.x. Run the seeded preview, then `npm run ops:test` and `npm run ops:test:browser`. Repeat the browser command with `OPSDESK_BROWSER_ENGINE=firefox`. For recovery, follow the [isolated recovery runbook](OPSDESK_RECOVERY.md). The hosted workflow runs recovery, both builds, the API suites, multi-connection checks, both browsers and the production dependency audit.
 
-**Next owner actions.** Review the combined CI results and deployment notes before merging. For a live pilot, settle account provisioning and history retention (#2), deployment ownership, managed services, backup retention and monitoring (#3). The [backlog](OPSDESK_BACKLOG.md) also tracks email and attachments (#4), booking integrations (#5), SLA calendars and memberships (#6), performance and worker fault testing (#7), optional AI (#8) and accessibility/release qualification (#9). All demo data is synthetic.
+**Next owner actions.** Reproduce the demo from a clean clone and record the acceptance decision for each of the six scenarios in the validation guide. For a live pilot, settle account provisioning and history retention (#2), deployment ownership, managed services, backup retention and monitoring (#3). The [backlog](OPSDESK_BACKLOG.md) also tracks email and attachments (#4), booking integrations (#5), SLA calendars and memberships (#6), performance and worker fault testing (#7), optional AI (#8) and accessibility/release qualification (#9). All demo data is synthetic.
 
 ### Historical query-scaling baseline (10 November 2026)
 
@@ -287,14 +287,20 @@ These are not implemented promises. Start with product acceptance and production
 - [ ] Product owner provides full acceptance brief and chooses the next milestone.
 - [ ] Before live use, complete P0 items and review all external integrations and data-handling requirements.
 
-## 16. Messages to forward
+## 16. Message to pass to the next developer
 
-**Fully finished for the synthetic demo.** OpsDesk supports booking-linked intake and history, private supplier threads, routing, deadline escalation, resolution, scoped Insights and a searchable, paginated inbox. The case-read follow-up adds on-demand details and paginated messages, activity, related cases and supplier threads. Directory follow-up validation passed 9 unit tests, 400 HTTP checks, the five-role Chromium flow and directory selection across pages. Builds and changed-file lint passed; full backend lint has existing errors in inherited AI/role-guard files. See [validation details](OPSDESK_VALIDATION.md) for the prior merged baseline and follow-up checks.
+> Start on `main` in `DhruvKhanna7777/opsdesk-travel-support`. Use Node 22.23.x, run `npm ci` and `npm run ops:preview`, then open http://127.0.0.1:3000. Demonstrate the BK-1042 case across manager, agent, supplier, agency and customer accounts using sections 5 and 6 of this handoff. Review the saved case history, supplier privacy, routing, escalation and Insights. The demo uses synthetic data and requires no external API key.
+>
+> The merged work includes scoped ticket locks, restart-safe escalation, logical restore checks, production configuration checks, atomic token rotation, and Chromium and Firefox regression coverage. The recovery rehearsal now kills a worker mid-transaction and verifies the replacement completes the interrupted case with one durable escalation alert per case. See the validation and recovery guides for reproduction.
+>
+> Start the live-pilot work with #2 and #3. Get the owner's access and retention decisions, a staging target, monitored PostgreSQL and Redis, recovery objectives and a named incident owner. Exercise the six scenarios on staging with approved data. Then implement email and attachments (#4), booking and supplier adapters (#5), calendar and membership policies (#6), load targets and reporting (#7), optional grounded AI evaluation (#8), and remaining accessibility and release checks (#9). Record evidence in each issue before closing it. All changes belong in this repository.
 
-**Partially finished.** The browser uses compact metadata and loads case histories separately. Initial synthetic-volume profiling is complete; next extend skew/concurrency/load coverage, retire the compatibility workspace endpoint and reduce global lock contention. Agency response targets and capacity routing work; contract calendars, shifts and membership administration are open. Health probes work locally and still need deployment monitoring. [Remaining acceptance criteria](OPSDESK_BACKLOG.md)
+## Release and incident checks
 
-**Still to do.** Before live data, confirm production access rules and choose a staging target. Rehearse backup and restore, configure secrets and monitoring, then select providers for email, attachments and booking/supplier synchronization. External AI evaluation and broader accessibility, load and security reviews remain open. [Open issues](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues)
-
+1. The release owner records the deployed commit, last known healthy commit, migration versions, backup location, recovery objectives and rollback authority before staging deployment. Contact names and hosting details still need an owner.
+2. Poll `GET /health/ready` for database and counter-service readiness and `GET /health/worker` for a recent successful escalation sweep. Both return 200 when healthy and 503 when unavailable. Monitor each instance so a healthy peer cannot hide a stalled worker.
+3. If readiness fails, take the affected instance out of rotation and check its database connectivity, counter service and configuration. If only the worker fails, inspect sweep errors and PostgreSQL lock waits. Capture timestamps, affected ticket IDs and release SHA while excluding secrets and traveler messages.
+4. During recovery, drain incompatible worker versions before restarting. Verify one alert per deadline, supplier thread privacy, and both health probes. Use the recovery runbook on an isolated target. An operational cutover requires the deployment owner's verified backup and rollback plan.
 
 ## Ticket lock validation - 10 November 2026
 

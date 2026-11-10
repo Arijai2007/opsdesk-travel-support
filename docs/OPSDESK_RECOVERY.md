@@ -9,6 +9,8 @@ Use Node.js 22.23.x, installed project dependencies and a local PostgreSQL maint
 Set `OPSDESK_RECOVERY_DATABASE_URL` to a local `/postgres` maintenance connection. Keep credentials in your local shell or secret storage; do not paste them into tickets or commit them. Then run:
 
 ```text
+npm run prisma:generate --workspace=backend
+npm run build --workspace=backend
 node --test scripts/recovery-safety.test.mjs
 npm run ops:recovery
 ```
@@ -26,7 +28,8 @@ The script rejects non-local hosts, non-maintenance databases, non-PostgreSQL UR
 5. Restore into the separate empty target with pg_restore using one transaction and exit-on-error.
 6. Compare every public table's row count and canonical row-content checksum, plus index definitions and constraints.
 7. Confirm restored unique and foreign-key constraints reject invalid writes, and that the rejected writes leave the target contents unchanged.
-8. Close connections and drop only databases created by this invocation; delete its temporary archive.
+8. On the disposable restored target, interrupt a worker after one ticket commits and the next has an uncommitted event. Kill the process, verify rollback, then start a replacement and require one committed escalation per ticket.
+9. Close connections and drop only databases created by this invocation; delete its temporary archive.
 
 A summary without connection strings, row contents or password hashes is saved at `.opsdesk/recovery/latest-report.json` (ignored by Git). It includes table counts and timings. The temporary archive is private to the local filesystem and deleted after the test. It is not a retained operational backup. A forced process termination can leave generated databases or an archive: inspect the exact generated names before removing leftovers; never replace a real database with a rehearsal target.
 
