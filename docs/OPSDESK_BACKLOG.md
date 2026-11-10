@@ -69,7 +69,7 @@ Start: TravelBooking, TravelProfile, ticket create/update logic and seed-travel.
 Managers can edit booking schedules, agent specialties and capacity, and elapsed-hour agency response targets. Automatic routing considers category, region, availability, capacity and workload. New and reopened cases record the response policy applied.
 
 Acceptance:
-- Define per-contract SLA/business-hour/holiday calendars and escalation ownership/acknowledgment.
+- Define per-contract SLA/business-hour/holiday calendars and escalation ownership. Managers can already acknowledge alerts.
 - Add shifts and more detailed manual override policies.
 - Add manager administration for agencies, suppliers, agents, customers and travel memberships.
 - Specify reopen behavior and routing when coverage is unavailable.
@@ -98,7 +98,7 @@ Keep privacy filtering server-side. Case and conversation pages are capped at 20
 
 [GitHub issue #8](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/8)
 
-Current category suggestions are keyword rules and briefs use saved records. OpsDesk has no connected external LLM.
+Current category suggestions are keyword rules and briefs use saved records. The [offline classifier baseline](OPSDESK_CLASSIFIER_EVALUATION.md) measures those rules against synthetic complaints. OpsDesk has no connected external LLM.
 
 Acceptance:
 - Choose an explicit task/provider (Claude, Gemini or another API) and a provider-neutral adapter.
@@ -138,9 +138,9 @@ The merged checkpoint is `efbcb49`. Items identified as in review below are on t
 | #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Select hosting, provision secrets and managed services, assign incident ownership, test staging restoration and operational retention |
 | #4 | Supplier and customer conversations persist with scoped visibility | Live mail provider, signatures, delivery outbox, retries, threading and secure attachments |
 | #5 | Seeded booking links and editable schedules. [PR #27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) adds export preflight, PostgreSQL ownership verification and transactional apply for approved changes to existing synthetic bookings. | Provider-specific adapter, approved booking creation and production case handling for cancellations and schedule changes |
-| #6 | Agent specialties, capacities and versioned response targets. [PR #26](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/26) adds manager acknowledgment in review. | Contract calendars, shifts, manager membership administration and escalation ownership |
+| #6 | Agent specialties, capacities, versioned response targets and manager alert acknowledgment | Contract calendars, shifts, manager membership administration and escalation ownership |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
-| #8 | Deterministic record-based briefs and classification. [PR #25](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/25) adds synthetic evaluation, rule improvements and CI checks in review. | Provider choice, redaction, structured grounded outputs and independently labeled evaluation |
+| #8 | Deterministic record-based briefs and a reproducible synthetic classification baseline | Provider choice, redaction, structured grounded outputs and independent held-out evaluation |
 | #9 | End-to-end five-role Chromium and Firefox flows, dialog keyboard checks and release/incident procedure | Screen readers, full contrast audit, platform setup/release qualification, inherited dependency review and named owners |
 
 See the [handoff](OPSDESK_HANDOFF.md) for the developer transfer message and the [validation guide](OPSDESK_VALIDATION.md) for measurements and known limits.

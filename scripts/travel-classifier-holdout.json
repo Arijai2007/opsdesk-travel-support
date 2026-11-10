@@ -1,0 +1,20 @@
+[
+  ["REFUND", "I was billed twice for the same transfer. Please credit back the extra payment."],
+  ["REFUND", "I need a refund for the unused sleeper reservation."],
+  ["REFUND", "Can you reverse the payment for the car that never arrived?"],
+  ["CANCELLATION", "Do not refund anything yet. Please cancel just the outbound leg."],
+  ["CANCELLATION", "Please void my shuttle reservation for Tuesday."],
+  ["CANCELLATION", "What is the fee if I cancel my tour today?"],
+  ["BOOKING_CHANGE", "Please move my hotel check-in to the 18th."],
+  ["BOOKING_CHANGE", "I don't need to cancel; I only need to reschedule the pickup."],
+  ["BOOKING_CHANGE", "Please correct the name on my train ticket."],
+  ["CHECK_IN", "I'm at the airport, but my boarding pass won't scan."],
+  ["CHECK_IN", "Our hotel voucher isn't recognized by the front desk."],
+  ["CHECK_IN", "The check-in site says my reservation cannot be found."],
+  ["BAGGAGE", "The zipper on my suitcase was torn while it was checked."],
+  ["BAGGAGE", "How much can my checked bag weigh on this fare?"],
+  ["BAGGAGE", "My carry-on is still at the departure gate."],
+  ["OTHER", "What are the reception hours on Sunday?"],
+  ["OTHER", "Could you send an invoice to my company?"],
+  ["OTHER", "Is the hotel shuttle wheelchair accessible?"]
+]

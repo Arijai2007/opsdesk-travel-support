@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDownToLine,
@@ -46,6 +46,7 @@ import {
   RoutingSettings,
 } from "./reports";
 export function OpsDeskWorkspace() {
+  const noticesButton = useRef<HTMLButtonElement>(null);
   const [data, setData] = useState<Workspace | null>(null),
     [ready, setReady] = useState(false),
     [error, setError] = useState(""),
@@ -345,8 +346,10 @@ export function OpsDeskWorkspace() {
             <div className="od-notification-wrap">
               <button
                 className="od-icon"
+                ref={noticesButton}
                 onClick={() => setShowNotices(!showNotices)}
                 aria-label="Notifications"
+                aria-expanded={showNotices}
               >
                 <Bell size={19} />
                 {data.notifications.length > 0 && (
@@ -358,20 +361,42 @@ export function OpsDeskWorkspace() {
                   <h3>Needs your attention</h3>
                   {data.notifications.length ? (
                     data.notifications.slice(0, 8).map((n) => (
-                      <button
-                        key={n.id}
-                        onClick={() => {
-                          setSelected(n.ticketId);
-                          setView("inbox");
-                          setShowNotices(false);
-                        }}
-                      >
-                        <Clock3 size={15} />
-                        <span>
-                          {n.text}
-                          <small>{date(n.createdAt)}</small>
-                        </span>
-                      </button>
+                      <div className="od-notice-row" key={n.id}>
+                        <button
+                          onClick={() => {
+                            setSelected(n.ticketId);
+                            setView("inbox");
+                            setShowNotices(false);
+                          }}
+                        >
+                          <Clock3 size={15} />
+                          <span>
+                            {n.text}
+                            <small>{date(n.createdAt)}</small>
+                          </span>
+                        </button>
+                        {data.me.kind === "MANAGER" && (
+                          <button
+                            className="od-acknowledge-alert"
+                            aria-label={`Acknowledge: ${n.text}`}
+                            disabled={busy}
+                            onClick={() =>
+                              void mutate(
+                                `tickets/${n.ticketId}/alerts/${n.id}/acknowledge`,
+                                {},
+                                "Alert acknowledged.",
+                              )
+                                .then(() => {
+                                  setShowNotices(false);
+                                  noticesButton.current?.focus();
+                                })
+                                .catch(() => {})
+                            }
+                          >
+                            Acknowledge
+                          </button>
+                        )}
+                      </div>
                     ))
                   ) : (
                     <p>You’re all caught up.</p>

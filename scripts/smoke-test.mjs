@@ -260,9 +260,8 @@ try {
     "/ops/tickets",
     other,
     {
-      title: "Booking reference outside this agency",
-      description:
-        "Save the complaint without linking the other agency’s booking.",
+      title: "Flight date no longer works",
+      description: "Please change my outbound flight to Saturday.",
       bookingReference: "BK-1042",
       customerId: "customer-1",
     },
@@ -272,6 +271,7 @@ try {
   created.push(foreignReference.id);
   assert.equal(foreignReference.bookingId, null);
   assert.equal(foreignReference.agencyId, "horizon");
+  assert.equal(foreignReference.category, "BOOKING_CHANGE");
   const unmatched = await call(
     "/ops/tickets",
     customer,
@@ -300,9 +300,9 @@ try {
     "/ops/tickets",
     customer,
     {
-      title: "Smoke test recurring refund",
+      title: "Payment still outstanding",
       description:
-        "Our refund for booking BK-1042 is still pending after previous contacts.",
+        "Please reverse the charge for booking BK-1042 as previously agreed.",
       bookingReference: "BK-1042",
     },
     "POST",
@@ -586,6 +586,48 @@ try {
   assert.equal(
     alerts.filter((event) => event.kind === "SUPPLIER_OVERDUE").length,
     1,
+  );
+  const alert = alerts.find((event) => event.kind === "ESCALATED");
+  const acknowledgment = `/ops/tickets/${ticket.id}/alerts/${alert.id}/acknowledge`;
+  await call(acknowledgment, agent, {}, "POST", 403);
+  await call(acknowledgment, customer, {}, "POST", 403);
+  await call(
+    `/ops/tickets/${manual.id}/alerts/${alert.id}/acknowledge`,
+    manager,
+    {},
+    "POST",
+    404,
+  );
+  const [firstAck, retryAck] = await Promise.all([
+    call(acknowledgment, manager, {}, "POST", 201),
+    call(acknowledgment, manager, {}, "POST", 201),
+  ]);
+  assert(firstAck.acknowledgedAt);
+  assert.equal(retryAck.acknowledgedAt, firstAck.acknowledgedAt);
+  await call("/ops/clock/advance", manager, { minutes: 1 }, "POST", 201);
+  const afterAcknowledgment = await call("/ops/workspace?compact=1", manager);
+  assert(
+    !afterAcknowledgment.notifications.some((value) => value.id === alert.id),
+  );
+  assert(
+    afterAcknowledgment.notifications.some(
+      (value) =>
+        value.ticketId === ticket.id && value.kind === "SUPPLIER_OVERDUE",
+    ),
+  );
+  const history = await call(`/ops/tickets/${ticket.id}/events`, manager);
+  assert(history.items.some((value) => value.id === alert.id));
+  const audit = history.items.filter(
+    (value) => value.kind === "ALERT_ACKNOWLEDGED",
+  );
+  assert.equal(audit.length, 1);
+  assert.equal(audit[0].actorId, afterAcknowledgment.me.id);
+  const customerHistory = await call(
+    `/ops/tickets/${ticket.id}/events`,
+    customer,
+  );
+  assert(
+    !customerHistory.items.some((value) => value.kind === "ALERT_ACKNOWLEDGED"),
   );
   await pool.query(
     'UPDATE "TravelClock" SET "offsetMinutes"=$1 WHERE id=\'demo\'',
