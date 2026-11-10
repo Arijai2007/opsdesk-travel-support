@@ -23,8 +23,18 @@ The mapping file must use version 1 and the same source as both snapshots. Opera
 
 The planner emits `CREATE`, `UPDATE`, `CANCEL`, `UNCHANGED`, `STALE` or `REVIEW` per incoming row. Cancellation requires a newer explicit cancellation of an accepted booking. Missing rows are ignored. Ownership changes, reference collisions, unknown cancellations, reactivations and conflicting records with identical timestamps require review. An invalid input exits with code 1. A valid plan that contains a review row exits with code 2. The command only prints row numbers and decisions.
 
-To also verify against a local OpsDesk database, set `OPSDESK_BOOKING_VERIFY_DATABASE_URL` in the shell and add `--verify-db` before the input files. Use a read-only database role. This mode opens a read-only transaction and checks that mapped agencies and suppliers exist, that the customer profile belongs to the mapped agency, and that the local reference, ownership and accepted schedule agree. Reference collisions and local drift require review. A previously cancelled snapshot also requires review because the current booking schema cannot verify stored cancellation status.
+To also verify against a local OpsDesk database, set `OPSDESK_BOOKING_VERIFY_DATABASE_URL` in the shell and add `--verify-db` before the input files. Use a read-only database role. This mode opens a read-only transaction and checks that mapped agencies and suppliers exist, that the customer profile belongs to the mapped agency, and that the local reference, ownership, status and accepted schedule agree. Reference collisions and local drift require review. Bookings without import metadata are treated as active.
 
 `node scripts/booking-ownership.integration.mjs` checks this behavior against the isolated seeded PostgreSQL database. CI runs it after startup.
 
-A future importer must repeat ownership and stale-update checks inside its write transaction, persist a provider version and cancellation state, and decide how a schedule change or cancellation affects existing cases. Import and live provider selection remain in [issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5).
+## Apply approved updates to the synthetic database
+
+After running the migration and reviewing the plan, point `OPSDESK_BOOKING_APPLY_DATABASE_URL` at the local seeded database and run:
+
+```sh
+npm run ops:check-booking-export -- --apply-db incoming.json trusted-mappings.json accepted-snapshot.json
+```
+
+Apply accepts up to 500 rows. It repeats identity and version checks under PostgreSQL locks, updates existing schedules, and stores the provider identity, update timestamp, payload fingerprint and cancellation state in a separate import table. A replay of the same applied version writes nothing. Older versions are skipped. If any row requires review, the entire batch is rolled back and the command exits with code 2.
+
+New bookings, reactivation, and schedule changes or cancellations that affect active cases require review. A persisted cancellation does not close tickets or send messages. The command is for an isolated synthetic database. Live provider adapters, creation, and booking cancellation behavior in the case workflow remain in [issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5).

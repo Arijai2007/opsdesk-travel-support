@@ -17,8 +17,8 @@ export function bookingOwnershipReview(candidate, matches) {
   )
     return "Accepted booking is missing or its local ownership differs";
   const prior = candidate.prior;
-  if (prior.status !== "ACTIVE")
-    return "Local booking cancellation status cannot be verified";
+  if ((first.providerStatus ?? "ACTIVE") !== prior.status)
+    return "Local cancellation status differs from the accepted snapshot";
   if (
     first.timezone !== prior.timezone ||
     first.checkInAt?.toISOString() !== prior.checkInAt ||
@@ -30,17 +30,12 @@ export function bookingOwnershipReview(candidate, matches) {
   return null;
 }
 
-export async function verifyBookingOwnership(
-  { plan, candidates },
-  connectionString,
-) {
+export function localBookingClient(connectionString, variableName) {
   let url;
   try {
     url = new URL(connectionString);
   } catch {
-    throw new Error(
-      "Set OPSDESK_BOOKING_VERIFY_DATABASE_URL to a local PostgreSQL database.",
-    );
+    throw new Error(`Set ${variableName} to a local PostgreSQL database.`);
   }
   if (
     !["postgres:", "postgresql:"].includes(url.protocol) ||
@@ -52,23 +47,18 @@ export async function verifyBookingOwnership(
     throw new Error(
       "Database verification requires a local PostgreSQL URL with a database name and no options.",
     );
-  const reviewable = candidates.filter(
-    ({ row }) => plan[row - 1].action !== "REVIEW",
-  );
-  if (!reviewable.length) return plan;
-  const client = new Client({
-    connectionString,
-    connectionTimeoutMillis: 5000,
-  });
-  let rows;
-  try {
-    await client.connect();
-    await client.query("BEGIN READ ONLY");
-    await client.query("SET LOCAL statement_timeout = '10s'");
-    ({ rows } = await client.query(
-      `SELECT i."rowNumber" AS "row", a.id IS NOT NULL AS "knownAgency", p."userId" IS NOT NULL AS "ownedCustomer",
+  return new Client({ connectionString, connectionTimeoutMillis: 5000 });
+}
+
+export async function readBookingOwnership(client, candidates) {
+  const { rows } = await client.query(
+    `SELECT i."rowNumber" AS "row", a.id IS NOT NULL AS "knownAgency", p."userId" IS NOT NULL AS "ownedCustomer",
               s.id IS NOT NULL AS "knownSupplier", b.id AS "bookingId",
               b."customerId" AS "bookingCustomerId", b."supplierId" AS "bookingSupplierId",
+              v."providerSource", v."providerBookingId", v."providerStatus", v."providerPayloadHash",
+              v."providerUpdatedAt" AT TIME ZONE 'UTC' AS "providerUpdatedAt",
+              EXISTS (SELECT 1 FROM "TravelTicket" t WHERE t."bookingId" = b.id
+                      AND t.status NOT IN ('RESOLVED', 'CLOSED')) AS "hasActiveCases",
               b.timezone, b."checkInAt" AT TIME ZONE 'UTC' AS "checkInAt",
               b."departureAt" AT TIME ZONE 'UTC' AS "departureAt",
               b."cancellationCutoffAt" AT TIME ZONE 'UTC' AS "cancellationCutoffAt"
@@ -82,21 +72,48 @@ export async function verifyBookingOwnership(
          SELECT * FROM "TravelBooking" b
          WHERE b."agencyId" = i."agencyId" AND upper(btrim(b.reference)) = i.reference
          LIMIT 2
-       ) b ON true`,
-      [
-        JSON.stringify(
-          reviewable.map(
-            ({ row, agencyId, customerId, supplierId, reference }) => ({
-              rowNumber: row,
-              agencyId,
-              customerId,
-              supplierId,
-              reference,
-            }),
-          ),
+       ) b ON true
+       LEFT JOIN "TravelBookingImport" v ON v."bookingId" = b.id`,
+    [
+      JSON.stringify(
+        candidates.map(
+          ({ row, agencyId, customerId, supplierId, reference }) => ({
+            rowNumber: row,
+            agencyId,
+            customerId,
+            supplierId,
+            reference,
+          }),
         ),
-      ],
-    ));
+      ),
+    ],
+  );
+  const byRow = new Map();
+  for (const match of rows) {
+    if (!byRow.has(match.row)) byRow.set(match.row, []);
+    byRow.get(match.row).push(match);
+  }
+  return byRow;
+}
+
+export async function verifyBookingOwnership(
+  { plan, candidates },
+  connectionString,
+) {
+  const client = localBookingClient(
+    connectionString,
+    "OPSDESK_BOOKING_VERIFY_DATABASE_URL",
+  );
+  const reviewable = candidates.filter(
+    ({ row }) => plan[row - 1].action !== "REVIEW",
+  );
+  if (!reviewable.length) return plan;
+  let byRow;
+  try {
+    await client.connect();
+    await client.query("BEGIN READ ONLY");
+    await client.query("SET LOCAL statement_timeout = '10s'");
+    byRow = await readBookingOwnership(client, reviewable);
     await client.query("COMMIT");
   } catch {
     throw new Error(
@@ -104,11 +121,6 @@ export async function verifyBookingOwnership(
     );
   } finally {
     await client.end().catch(() => {});
-  }
-  const byRow = new Map();
-  for (const match of rows) {
-    if (!byRow.has(match.row)) byRow.set(match.row, []);
-    byRow.get(match.row).push(match);
   }
   const verified = new Map(
     reviewable.map((row) => [

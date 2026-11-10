@@ -152,9 +152,21 @@ model TravelBooking {
   departureAt DateTime?
   cancellationCutoffAt DateTime?
   timezone String
+  providerImport TravelBookingImport?
   tickets TravelTicket[]
   @@unique([agencyId, reference])
   @@index([customerId])
+}
+
+model TravelBookingImport {
+  bookingId String @id
+  booking TravelBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  providerSource String
+  providerBookingId String
+  providerUpdatedAt DateTime
+  providerStatus String
+  providerPayloadHash String
+  @@unique([providerSource, providerBookingId])
 }
 
 model TravelTicket {

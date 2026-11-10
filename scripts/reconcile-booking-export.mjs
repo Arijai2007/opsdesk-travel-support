@@ -68,6 +68,7 @@ export function prepareBookingReconciliation(
       customerId,
       supplierId,
       reference: row.reference,
+      incoming: row,
       prior,
     });
     const referenceOwner = references.get(key(row.agencyId, row.reference));
@@ -100,7 +101,7 @@ export function prepareBookingReconciliation(
       return decision("CANCEL", "Newer explicit cancellation");
     return decision("UPDATE", "Newer record with unchanged ownership");
   });
-  return { plan, candidates };
+  return { source: next.source, plan, candidates };
 }
 
 export function planBookingExport(incoming, trustedMappings, previous) {

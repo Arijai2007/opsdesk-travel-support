@@ -2,6 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { readBookingExport } from "./booking-export.mjs";
 import { prepareBookingReconciliation } from "./reconcile-booking-export.mjs";
 import { verifyBookingOwnership } from "./verify-booking-ownership.mjs";
+import { applyBookingExport } from "./apply-booking-export.mjs";
 
 async function readJson(file) {
   const info = await stat(file).catch(() => null);
@@ -20,17 +21,17 @@ async function readJson(file) {
 try {
   const args = process.argv.slice(2);
   const verifyDatabase = args[0] === "--verify-db";
-  const [file, mappingFile, snapshotFile, ...extra] = verifyDatabase
-    ? args.slice(1)
-    : args;
+  const applyDatabase = args[0] === "--apply-db";
+  const [file, mappingFile, snapshotFile, ...extra] =
+    verifyDatabase || applyDatabase ? args.slice(1) : args;
   if (
     !file ||
     Boolean(mappingFile) !== Boolean(snapshotFile) ||
     extra.length ||
-    (verifyDatabase && !mappingFile)
+    ((verifyDatabase || applyDatabase) && !mappingFile)
   )
     throw new Error(
-      "Usage: npm run ops:check-booking-export -- [--verify-db] <export.json> [<trusted-mappings.json> <accepted-snapshot.json>]",
+      "Usage: npm run ops:check-booking-export -- [--verify-db|--apply-db] <export.json> [<trusted-mappings.json> <accepted-snapshot.json>]",
     );
   const json = await readJson(file);
   if (mappingFile) {
@@ -41,16 +42,26 @@ try {
       mappings,
       snapshot,
     );
-    const plan = verifyDatabase
-      ? await verifyBookingOwnership(
+    const applied = applyDatabase
+      ? await applyBookingExport(
           reconciliation,
-          process.env.OPSDESK_BOOKING_VERIFY_DATABASE_URL,
+          process.env.OPSDESK_BOOKING_APPLY_DATABASE_URL,
         )
-      : reconciliation.plan;
+      : null;
+    const plan =
+      applied?.decisions ??
+      (verifyDatabase
+        ? await verifyBookingOwnership(
+            reconciliation,
+            process.env.OPSDESK_BOOKING_VERIFY_DATABASE_URL,
+          )
+        : reconciliation.plan);
     for (const { row, action, reason } of plan)
       console.log(`Booking row ${row}: ${action} (${reason})`);
     console.log(
-      `Planned ${plan.length} booking records. No records were written.`,
+      applied
+        ? `Applied ${applied.applied} of ${plan.length} booking records.`
+        : `Planned ${plan.length} booking records. No records were written.`,
     );
     if (plan.some(({ action }) => action === "REVIEW")) process.exitCode = 2;
   } else {
