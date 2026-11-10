@@ -38,6 +38,7 @@ jobs:
           node-version: '22.23.x'
           cache: npm
       - run: npm ci
+      - run: node --test scripts/booking-export.test.mjs
       - name: Check offline classifier regressions
         run: |
           npm run ops:evaluate-classifier -- --check
@@ -68,6 +69,7 @@ jobs:
           OPSDESK_RECOVERY_CONTAINER: ${{ job.services.postgres.id }}
         run: npm run ops:recovery
       - run: npm run ops:test
+      - run: node scripts/booking-ownership.integration.mjs
       - run: npx playwright install --with-deps chromium firefox
       - name: Chromium workspace smoke
         run: npm run ops:test:browser

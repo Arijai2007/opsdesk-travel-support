@@ -50,7 +50,7 @@ Provider credentials become necessary only when this integration is selected. St
 
 [GitHub issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5)
 
-All booking and supplier operational records are synthetic seed data.
+All booking and supplier operational records are synthetic seed data. In PR #27, the [booking export tooling](OPSDESK_BOOKING_EXPORT.md) validates versioned batches, verifies local ownership and can apply approved updates to existing synthetic bookings. Creation and changes affecting active cases require review.
 
 Acceptance:
 - Add a provider interface and a read-only adapter for the chosen booking API or export.
@@ -130,12 +130,14 @@ Start: .github/workflows/opsdesk-ci.yml, docs/OPSDESK_VALIDATION.md and scripts/
 
 ## Current issue status after integration
 
+The merged checkpoint is `efbcb49`. Items identified as in review below are on their PR branches.
+
 | Issue | Completed and verified | Remaining acceptance work |
 | --- | --- | --- |
 | #2 | Six demo scenarios mapped, server-side role/privacy checks, account deletion guard and single-use token rotation | Obtain owner acceptance, define account closure, retention and production tenant boundaries |
 | #3 | Startup configuration checks, dependency and worker health probes, synthetic logical restore and integrity checks | Select hosting, provision secrets and managed services, assign incident ownership, test staging restoration and operational retention |
 | #4 | Supplier and customer conversations persist with scoped visibility | Live mail provider, signatures, delivery outbox, retries, threading and secure attachments |
-| #5 | Seeded booking links and editable schedules | Real read adapter or agreed export, identity mapping, cancellation and stale-update handling |
+| #5 | Seeded booking links and editable schedules. [PR #27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) adds export preflight, PostgreSQL ownership verification and transactional apply for approved changes to existing synthetic bookings. | Provider-specific adapter, approved booking creation and production case handling for cancellations and schedule changes |
 | #6 | Agent specialties, capacities, versioned response targets and manager alert acknowledgment | Contract calendars, shifts, manager membership administration and escalation ownership |
 | #7 | Paged queries, query-plan measurements, per-ticket locking, multi-connection and process termination/restart checks | Skewed load benchmarks, service targets, reporting timezone and incremental updates, production worker monitoring |
 | #8 | Deterministic record-based briefs and a reproducible synthetic classification baseline | Provider choice, redaction, structured grounded outputs and independent held-out evaluation |

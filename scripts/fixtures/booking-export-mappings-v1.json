@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "source": "synthetic-demo",
+  "agencies": [
+    { "externalId": "agency-one", "localId": "atlas" },
+    { "externalId": "agency-two", "localId": "horizon" }
+  ],
+  "customers": [
+    {
+      "agencyId": "agency-one",
+      "externalId": "customer-001",
+      "localId": "customer-0"
+    },
+    {
+      "agencyId": "agency-two",
+      "externalId": "customer-002",
+      "localId": "customer-1"
+    }
+  ],
+  "suppliers": [{ "externalId": "supplier-001", "localId": "supplier-0" }]
+}
