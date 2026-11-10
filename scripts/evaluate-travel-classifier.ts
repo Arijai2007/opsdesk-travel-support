@@ -1,10 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { CATEGORIES, classify } from '../backend/src/travel/travel.rules';
 
-const fixture =
-  process.argv[2] === '--holdout'
-    ? './travel-classifier-holdout.json'
-    : './travel-classifier-cases.json';
+const flags = process.argv.slice(2);
+if (flags.some((flag) => flag !== '--holdout' && flag !== '--check'))
+  throw new Error(
+    'Usage: npm run ops:evaluate-classifier -- [--holdout] [--check]',
+  );
+const holdout = flags.includes('--holdout');
+const fixture = holdout
+  ? './travel-classifier-holdout.json'
+  : './travel-classifier-cases.json';
 const input: unknown = JSON.parse(
   readFileSync(new URL(fixture, import.meta.url), 'utf8'),
 );
@@ -53,3 +58,14 @@ console.log(
 );
 for (const { example, expected, predicted } of errors)
   console.log(`Row ${example}: expected ${expected}, predicted ${predicted}`);
+
+if (flags.includes('--check')) {
+  const expectedSize = holdout ? 18 : 30;
+  const minimumCorrect = holdout ? 17 : 27;
+  if (input.length !== expectedSize || correct < minimumCorrect) {
+    console.error(
+      `Expected at least ${minimumCorrect} correct on the fixed ${expectedSize}-case fixture.`,
+    );
+    process.exitCode = 1;
+  }
+}

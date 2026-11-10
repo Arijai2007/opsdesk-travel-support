@@ -38,6 +38,10 @@ jobs:
           node-version: '22.23.x'
           cache: npm
       - run: npm ci
+      - name: Check offline classifier regressions
+        run: |
+          npm run ops:evaluate-classifier -- --check
+          npm run ops:evaluate-classifier -- --holdout --check
       - name: Configure isolated database
         run: |
           npm run ops:setup
