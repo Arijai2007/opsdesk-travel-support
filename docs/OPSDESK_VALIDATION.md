@@ -1,8 +1,12 @@
+# Accessibility contrast follow-up
+
+Seven foreground colors in `frontend/app/globals.css` were darkened without changing the palette or disabling rules. Both application builds passed on the isolated Node 22.23.0 preview. `npm run ops:test:a11y` passed all ten Chromium states with axe WCAG A/AA tags. The scan is now included in `ops:test:browser`, so hosted browser runs exercise it. Manual keyboard/screen-reader/zoom acceptance and latest hosted validation remain open.
+
 # Attachment increment validation
 
 ## Booking approval follow-up
 
-On Node 22.23.0, both builds and changed-file lint passed. Two booking migrations applied to the isolated PostgreSQL 18 database (28 migrations total). The full `ops:test` suite passed, and all six standard Chromium flows passed sequentially, including the new manager booking-review flow. The final focused booking harness passed 31 checks, including request/review retries, three concurrent approvals, exactly one audit record, cross-agency rejection, changed-booking rejection, database decision constraints, cancelled directory state, and preservation of linked case status/deadlines with one cancellation event. Synthetic classifier checks passed at 27/30 development and 17/18 holdout examples; those are not independent evaluation. Exploratory mixed-load results and production limits are recorded in [booking approval guide](OPSDESK_BOOKING_APPROVALS.md). Hosted validation for this follow-up is pending.
+On Node 22.23.0, both builds and changed-file lint passed. Two booking migrations applied to the isolated PostgreSQL 18 database (28 migrations total). The full `ops:test` suite passed, and all six standard Chromium flows passed sequentially, including the new manager booking-review flow. The final focused booking harness passed 31 checks, including request/review retries, three concurrent approvals, exactly one audit record, cross-agency rejection, changed-booking rejection, database decision constraints, cancelled directory state, and preservation of linked case status/deadlines with one cancellation event. Synthetic classifier checks passed at 27/30 development and 17/18 holdout examples; those are not independent evaluation. Exploratory mixed-load results and production limits are recorded in [booking approval guide](OPSDESK_BOOKING_APPROVALS.md). [Hosted validation for booking PR #41 passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42892893653).
 
 Attachment PR #40 separately passed [hosted validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42889371405), including Firefox; the Windows launch limitation below remains a local runtime issue.
 

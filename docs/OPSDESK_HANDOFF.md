@@ -1,5 +1,9 @@
 # OpsDesk developer handoff
 
+## Latest continuation checkpoint
+
+Read [the complete next-teammate handoff](OPSDESK_NEXT_TEAMMATE.md) first. It records the published PR stack, exact completed behavior, validation evidence, accessibility failures, remaining work and copy-ready continuation message. It supersedes older checkpoint status below. Deployment remains paused.
+
 ## Booking approvals increment
 
 `codex/opsdesk-booking-approvals` is stacked on the attachment branch. It adds manager-reviewed synthetic booking creation and cancellation, stale-booking detection, scoped paged requests, request/review idempotency, transactionally saved audit and cancellation case events, and manager browser controls. [Policy, endpoints and limits](OPSDESK_BOOKING_APPROVALS.md). No live booking provider is selected; manager review is required before consequential changes. Live provider commands, fees/refunds and agency/customer browser forms remain open. Support cases and saved deadlines survive cancellation.
