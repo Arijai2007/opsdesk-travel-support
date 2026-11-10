@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { date, human, Modal, request } from "./ui";
 
 type Outbox = {
-  mode: "PAUSED" | "SYNTHETIC";
+  mode: "PAUSED" | "SYNTHETIC" | "RESEND";
   jobs: {
     id: string;
     status: string;
     attempts: number;
+    retryable: boolean;
+    receipts: { id: string; kind: string; occurredAt: string }[];
     message: { ticket: { reference: string } };
     history: { id: string; outcome: string; createdAt: string }[];
   }[];
@@ -69,10 +71,11 @@ function MailJobs({ onClose }: { onClose: () => void }) {
       {data ? (
         <>
           <p role="status">
-            {data.mode === "PAUSED"
-              ? "Delivery paused"
-              : "Synthetic delivery enabled"}
-            . No external email is sent.
+            {data.mode === "RESEND"
+              ? "Resend pilot delivery enabled for configured recipients."
+              : data.mode === "PAUSED"
+                ? "Delivery paused. No external email is sent."
+                : "Synthetic delivery enabled. No external email is sent."}
           </p>
           <button
             className="od-secondary"
@@ -94,7 +97,12 @@ function MailJobs({ onClose }: { onClose: () => void }) {
                     {human(attempt.outcome)} · {date(attempt.createdAt)}{" "}
                   </small>
                 ))}
-                {job.status === "FAILED" && (
+                {job.receipts.map((receipt) => (
+                  <small key={receipt.id}>
+                    {human(receipt.kind)} · {date(receipt.occurredAt)}{" "}
+                  </small>
+                ))}
+                {job.retryable && (
                   <button
                     className="od-secondary"
                     disabled={busy}

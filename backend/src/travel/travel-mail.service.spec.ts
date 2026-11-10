@@ -1,5 +1,6 @@
 import type { PrismaService } from '../../prisma/prisma.service';
 import { TravelMailService } from './travel-mail.service';
+import type { ResendTravelMailTransport } from './resend-mail.transport';
 
 jest.mock('../../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -26,11 +27,20 @@ describe('synthetic mail processing', () => {
     recipient = 'traveler@opsdesk.demo',
     expired = false,
     stale = false,
+    age = 0,
+    resend,
+  }: {
+    recipient?: string;
+    expired?: boolean;
+    stale?: boolean;
+    age?: number;
+    resend?: ResendTravelMailTransport;
   } = {}) {
     const job = {
       id: 'job',
       messageId: 'message',
-      recipient: 'traveler@opsdesk.demo',
+      recipient: resend ? 'traveler@example.com' : 'traveler@opsdesk.demo',
+      createdAt: new Date(Date.now() - age),
       attempts: expired ? 1 : 0,
       leaseToken: expired ? 'old-lease' : null,
     };
@@ -39,7 +49,7 @@ describe('synthetic mail processing', () => {
         Promise<{ count: number }>,
         [
           {
-            data: { status: string; nextAttemptAt: Date };
+            data: { status: string; nextAttemptAt: Date; providerId?: string };
             where: { leaseToken: string };
           },
         ]
@@ -91,9 +101,13 @@ describe('synthetic mail processing', () => {
       },
     };
     const deliver = jest.fn().mockResolvedValue(undefined);
-    const worker = new TravelMailService(db as unknown as PrismaService, {
-      deliver,
-    });
+    const worker = new TravelMailService(
+      db as unknown as PrismaService,
+      {
+        deliver,
+      },
+      resend,
+    );
     return { worker, deliver, finish, history, transaction };
   }
 
@@ -154,5 +168,44 @@ describe('synthetic mail processing', () => {
     });
     expect(finish.mock.calls[0][0].where.leaseToken).not.toBe('old-lease');
     expect(history.update).not.toHaveBeenCalled();
+  });
+
+  it('records provider acceptance and stops old jobs before the provider retry window closes', async () => {
+    const config = {
+      OPSDESK_DEMO: 'false',
+      OPSDESK_MAIL_RESEND: 'true',
+      RESEND_API_KEY: 'fixture-key',
+      OPSDESK_MAIL_FROM: 'support@example.com',
+      OPSDESK_MAIL_ALLOWLIST: 'traveler@example.com',
+    };
+    const original = { ...process.env };
+    Object.assign(process.env, config);
+    try {
+      const providerId = '56761188-7520-42d8-8898-ff6fc54ce618';
+      const resend = { deliver: jest.fn().mockResolvedValue(providerId) };
+      const fresh = fixture({ resend, recipient: 'traveler@example.com' });
+      await fresh.worker.processOne();
+      expect(fresh.finish.mock.calls[0][0].data.status).toBe(
+        'PROVIDER_ACCEPTED',
+      );
+      expect(fresh.finish.mock.calls[0][0].data.providerId).toBe(providerId);
+      expect(fresh.deliver).not.toHaveBeenCalled();
+
+      const old = fixture({
+        resend,
+        recipient: 'traveler@example.com',
+        age: 24 * 60 * 60 * 1000,
+      });
+      await old.worker.processOne();
+      expect(old.finish.mock.calls[0][0].data.status).toBe('FAILED');
+      expect(old.history.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { outcome: 'RECONCILIATION_REQUIRED' },
+        }),
+      );
+      expect(resend.deliver).toHaveBeenCalledTimes(1);
+    } finally {
+      for (const key of Object.keys(config)) restore(key, original[key]);
+    }
   });
 });

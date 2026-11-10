@@ -5,7 +5,7 @@ import type { Express } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // This backend only ever serves JSON, never HTML, so Helmet's
   // Content-Security-Policy default (designed to constrain a page's own
