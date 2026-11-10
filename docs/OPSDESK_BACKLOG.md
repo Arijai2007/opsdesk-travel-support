@@ -50,7 +50,7 @@ Provider credentials become necessary only when this integration is selected. St
 
 [GitHub issue #5](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/5)
 
-All booking and supplier operational records are synthetic seed data. The [booking export preflight](OPSDESK_BOOKING_EXPORT.md) validates versioned batches before a future importer maps or applies them.
+All booking and supplier operational records are synthetic seed data. In PR #27, the [booking export tooling](OPSDESK_BOOKING_EXPORT.md) validates versioned batches, verifies local ownership and can apply approved updates to existing synthetic bookings. Creation and changes affecting active cases require review.
 
 Acceptance:
 - Add a provider interface and a read-only adapter for the chosen booking API or export.

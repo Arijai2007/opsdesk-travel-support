@@ -25,7 +25,7 @@ These checkpoints are on GitHub in open PRs. They were outside the merged `main`
 | --- | --- | --- |
 | [#25](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/25) | Offline classifier evaluation, revised keyword rules and CI regression checks. [CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42796372823). | Independently labeled evaluation, redaction and any external AI provider |
 | [#26](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/26) | Manager acknowledgment clears the notification while preserving the original escalation and audit event. [CI passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42798095400). | Escalation ownership, external delivery, SLA calendars and membership administration |
-| [#27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) | [Booking export preflight](OPSDESK_BOOKING_EXPORT.md), PostgreSQL ownership verification, and opt-in transactional apply for approved updates to existing synthetic bookings | Choose a provider adapter, approve a creation flow, and define production case behavior on cancellation |
+| [#27](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/27) | [Booking export preflight](OPSDESK_BOOKING_EXPORT.md), PostgreSQL ownership verification and opt-in transactional apply for existing synthetic bookings. Local validation passed 12 offline tests and a fresh PostgreSQL rehearsal. | Choose a provider adapter, approve a creation flow and define production case behavior on cancellation |
 
 Use Node 22.23.x. Run the seeded preview, then `npm run ops:test` and `npm run ops:test:browser`. Repeat the browser command with `OPSDESK_BROWSER_ENGINE=firefox`. For recovery, follow the [isolated recovery runbook](OPSDESK_RECOVERY.md). The hosted workflow runs recovery, both builds, the API suites, multi-connection checks, both browsers and the production dependency audit.
 
@@ -298,15 +298,13 @@ These are not implemented promises. Start with product acceptance and production
 - [ ] Product owner provides full acceptance brief and chooses the next milestone.
 - [ ] Before live use, complete P0 items and review all external integrations and data-handling requirements.
 
-## 16. Message to pass to the next developer
+## 16. Messages to forward
 
-> Start on `main` in `DhruvKhanna7777/opsdesk-travel-support`. Use Node 22.23.x, run `npm ci` and `npm run ops:preview`, then open http://127.0.0.1:3000. Demonstrate the BK-1042 case across manager, agent, supplier, agency and customer accounts using sections 5 and 6 of this handoff. Review the saved case history, supplier privacy, routing, escalation and Insights. The demo uses synthetic data and requires no external API key.
->
-> The merged work includes scoped ticket locks, restart-safe escalation, logical restore checks, production configuration checks, atomic token rotation, and Chromium and Firefox regression coverage. The recovery rehearsal now kills a worker mid-transaction and verifies the replacement completes the interrupted case with one durable escalation alert per case. See the validation and recovery guides for reproduction.
->
-> Review PRs #25–#27 before relying on the classifier follow-up, escalation acknowledgment or booking import tooling in `main`. The booking preflight is read-only by default. Explicit apply supports approved updates to existing synthetic bookings and sends changes affecting active cases to review. Define the live case and cancellation policy before connecting a provider.
->
-> Start the live-pilot work with #2 and #3. Get the owner's access and retention decisions, a staging target, monitored PostgreSQL and Redis, recovery objectives and a named incident owner. Exercise the six scenarios on staging with approved data. Then follow the backlog for provider integrations, operations, performance and release qualification. Record evidence in each issue before closing it.
+> **Fully finished for the synthetic demo.** Start from `main` at `efbcb49`. Use Node 22.23.x, run `npm ci` and `npm run ops:preview`, then follow the BK-1042 scenario in this handoff. Booking-linked intake, private supplier threads, routing, escalation, resolution, paged case history and scoped Insights are merged. The demo also has worker restart, database restore, and five-role Chromium and Firefox checks.
+
+> **Partially finished and in review.** PR #25 improves the rules-based classifier and adds CI regression checks. PR #26 adds audited manager acknowledgment for alerts. PR #27 validates booking exports, verifies mapped ownership in PostgreSQL, and can transactionally apply approved updates to existing synthetic bookings. It skips stale versions, handles retries and rolls back a batch with a review item. Changes affecting active cases still require review.
+
+> **Still to do.** Before using live data, get product-owner acceptance, agree on access and retention policies, and provision monitored staging PostgreSQL and Redis with a tested recovery plan. For booking integration, choose a real provider, approve new-booking creation and decide what cancelled bookings should do to active cases. The backlog also tracks email and attachments, contract SLA calendars, membership administration, independent AI evaluation, load targets and accessibility.
 
 ## Release and incident checks
 
