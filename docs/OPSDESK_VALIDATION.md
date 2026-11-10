@@ -36,7 +36,7 @@ Full archive/restore and OS worker-termination rehearsals were not repeated loca
 
 The following sections retain historical checkpoint evidence.
 
-Publication attempt: Git push to the requested repository returned HTTP 403. Both the CLI and connected GitHub account are `mehakgupta0406`; repository metadata confirms `push: false`. The tested increment is committed locally, but no branch or PR could be published and no hosted run exists for this increment. Resume publication after repository write access is granted or an authorized account is connected. No fork or alternate repository was used.
+Publication resolved: direct upstream push returned HTTP 403 for `mehakgupta0406`. After the user supplied the earlier PR #14 publishing workflow, used the same existing project fork, `mehakgupta0406/opsdesk-travel-support`. GitHub initially rejected inherited workflow commits because the CLI lacked `workflow` scope; the user completed authorization and the branch push succeeded. [PR #33](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/33) is open against the requested repository's `main`, with collaborator edits enabled. The validated code commit is `acac059e8c6761a33147f9228ad8a57597bc7178`; this follow-up updates publication evidence only. Hosted checks have not yet reported a result. The PR was not merged and deployment remains paused.
 
 # Workload handoff validation - 10 November 2026
 
