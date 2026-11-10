@@ -1,3 +1,7 @@
+# Accessibility contrast follow-up
+
+Seven foreground colors in `frontend/app/globals.css` were darkened without changing the palette or disabling rules. Both application builds passed on the isolated Node 22.23.0 preview. `npm run ops:test:a11y` passed all ten Chromium states with axe WCAG A/AA tags. The scan is now included in `ops:test:browser`, so hosted browser runs exercise it. Manual keyboard/screen-reader/zoom acceptance and latest hosted validation remain open.
+
 # Attachment increment validation
 
 ## Booking approval follow-up

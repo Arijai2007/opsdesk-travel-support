@@ -24,7 +24,7 @@
     "ops:db": "node scripts/local-db.mjs",
     "ops:seed": "npm exec --workspace=backend -- tsx prisma/seed-travel.ts",
     "ops:test": "npm run test --workspace=backend -- --runInBand && node scripts/smoke-test.mjs && node scripts/pagination-smoke.mjs && node scripts/directory-smoke.mjs && node scripts/lock-concurrency.mjs && node scripts/membership-smoke.mjs && node scripts/sla-smoke.mjs && node scripts/workload-handoff-smoke.mjs && node scripts/supplier-calendar-smoke.mjs && node scripts/contracts-smoke.mjs && node scripts/rotation-smoke.mjs && node scripts/resend-inbound-smoke.mjs && node scripts/attachments-smoke.mjs && node scripts/booking-requests-smoke.mjs",
-    "ops:test:browser": "node scripts/browser-smoke.mjs && node scripts/membership-browser.mjs && node scripts/sla-browser.mjs && node scripts/contracts-browser.mjs && node scripts/rotation-browser.mjs && node scripts/booking-requests-browser.mjs",
+    "ops:test:browser": "node scripts/browser-smoke.mjs && node scripts/membership-browser.mjs && node scripts/sla-browser.mjs && node scripts/contracts-browser.mjs && node scripts/rotation-browser.mjs && node scripts/booking-requests-browser.mjs && node scripts/accessibility-smoke.mjs",
     "ops:test:membership": "node scripts/membership-smoke.mjs",
     "ops:test:attachments": "node scripts/attachments-smoke.mjs",
     "ops:test:booking-requests": "node scripts/booking-requests-smoke.mjs",

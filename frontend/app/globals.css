@@ -201,7 +201,7 @@ select:focus {
   font-size: 11px;
   text-align: center;
   padding: 0 4px;
-  color: #597466;
+  color: #496052;
 }
 .od-sidebar-note {
   margin: 40px 7px 22px;
@@ -216,7 +216,7 @@ select:focus {
   display: flex;
   gap: 6px;
   align-items: center;
-  color: #62806c;
+  color: #506b58;
 }
 .od-connection i,
 .od-updated i,
@@ -301,7 +301,7 @@ select:focus {
   height: 29px;
   font-size: 10px;
   background: #eee8f0;
-  color: #85698a;
+  color: #705575;
 }
 .od-avatar.empty {
   background: #f3f5f3;
@@ -634,7 +634,7 @@ select:focus {
 }
 .od-tabs button.active > span {
   background: #e7f0e7;
-  color: #53775a;
+  color: #44654b;
 }
 .od-updated {
   margin-left: auto;
@@ -821,7 +821,7 @@ select:focus {
 }
 .od-badge.urgent {
   background: #fbedeb;
-  color: #98625a;
+  color: #85534c;
   border-color: #f5e0db;
 }
 .od-badge.high {
@@ -843,7 +843,7 @@ select:focus {
 }
 .od-badge.in_progress {
   background: #f0eef9;
-  color: #756982;
+  color: #655870;
 }
 .od-badge.waiting_supplier,
 .od-badge.awaiting_reply {
@@ -1383,7 +1383,7 @@ select:focus {
   padding: 28px;
   background: #fff;
   box-shadow: 0 25px 100px #21382035;
-  color: #698257;
+  color: #566c46;
   font-size: 13px;
   overflow: auto;
 }
