@@ -1221,6 +1221,93 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       return message;
     });
   }
+  async receiveCustomerMail(
+    jobId: string,
+    sender: string,
+    inboundMailId: string,
+    loadText: () => Promise<string | null>,
+  ) {
+    const jobFilter = {
+      id: jobId,
+      recipient: sender,
+      transport: 'RESEND',
+      status: 'PROVIDER_ACCEPTED',
+      providerId: { not: null },
+      replyEnabled: true,
+      createdAt: { gt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+      message: {
+        visibility: 'CUSTOMER',
+        conversationId: null,
+        ticket: { status: { notIn: ['CLOSED', 'RESOLVED'] } },
+      },
+    };
+    const job = await this.db.travelMailJob.findFirst({
+      where: jobFilter,
+      select: { message: { select: { ticketId: true } } },
+    });
+    if (
+      !job ||
+      (await this.db.travelInboundMail.findUnique({
+        where: { id: inboundMailId },
+        select: { id: true },
+      }))
+    )
+      return;
+
+    const text = await loadText();
+    if (!text) return;
+    const ticketId = job.message.ticketId;
+    await this.ticketLocked(ticketId, async (tx) => {
+      const target = await tx.travelMailJob.findFirst({
+        where: { ...jobFilter, message: { ...jobFilter.message, ticketId } },
+        select: {
+          message: {
+            select: {
+              ticket: {
+                select: {
+                  customerId: true,
+                  agencyId: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      const ticket = target?.message.ticket;
+      if (!ticket) return;
+      const [customer] = await tx.$queryRaw<{ userId: string }[]>`
+        SELECT p."userId"
+        FROM "TravelProfile" p
+        JOIN "User" u ON u.id = p."userId"
+        WHERE p."userId" = ${ticket.customerId}
+          AND p."agencyId" = ${ticket.agencyId}
+          AND p.kind = 'CUSTOMER' AND p.status = 'ACTIVE'
+          AND u.email = ${sender}
+        FOR SHARE OF p, u
+      `;
+      if (!customer) return;
+      const inserted = await tx.travelInboundMail.createMany({
+        data: [{ id: inboundMailId, ticketId }],
+        skipDuplicates: true,
+      });
+      if (!inserted.count) return;
+      const now = await this.now(tx);
+      await tx.travelMessage.create({
+        data: {
+          ticketId,
+          senderId: customer.userId,
+          visibility: 'CUSTOMER',
+          content: text,
+          createdAt: now,
+        },
+      });
+      await tx.travelTicket.update({
+        where: { id: ticketId },
+        data: { updatedAt: now },
+      });
+    });
+  }
+
   async conversation(userId: string, id: string, dto: NewConversationDto) {
     return this.ticketLocked(id, async (tx) => {
       const p = await this.profile(userId, tx);

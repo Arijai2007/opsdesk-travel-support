@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-const address = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i;
+export const resendMailbox =
+  /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i;
 export const syntheticAddress =
   /^[^\s@]+@(?:opsdesk\.demo|supplier\.example)$/i;
 export const resendId = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -23,10 +24,10 @@ export function resendConfig() {
     OPSDESK_DEMO !== 'false' ||
     !RESEND_API_KEY?.trim() ||
     !from ||
-    !address.test(from) ||
+    !resendMailbox.test(from) ||
     syntheticAddress.test(from) ||
     recipients.some(
-      (email) => !address.test(email) || syntheticAddress.test(email),
+      (email) => !resendMailbox.test(email) || syntheticAddress.test(email),
     )
   )
     return null;
@@ -39,6 +40,7 @@ export class ResendTravelMailTransport {
     idempotencyKey: string;
     recipient: string;
     text: string;
+    replyTo?: string;
   }) {
     const config = resendConfig();
     if (!config?.recipients.includes(envelope.recipient)) {
@@ -58,6 +60,7 @@ export class ResendTravelMailTransport {
         to: [envelope.recipient],
         subject: 'OpsDesk support reply',
         text: envelope.text,
+        reply_to: envelope.replyTo,
         tags: [{ name: 'opsdesk_job', value: envelope.idempotencyKey }],
       }),
     });
