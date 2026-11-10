@@ -57,6 +57,12 @@ jobs:
             sleep 1
           done
           if [ "$ready" != true ]; then cat opsdesk-ci.log; exit 1; fi
+      - run: node --test scripts/recovery-safety.test.mjs
+      - name: Rehearse isolated logical recovery
+        env:
+          OPSDESK_RECOVERY_DATABASE_URL: postgresql://opsdesk:opsdesk-ci-only@127.0.0.1:55432/postgres
+          OPSDESK_RECOVERY_CONTAINER: ${{ job.services.postgres.id }}
+        run: npm run ops:recovery
       - run: npm run ops:test
       - run: npx playwright install --with-deps chromium
       - run: npm run ops:test:browser
