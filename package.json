@@ -30,6 +30,7 @@
     "ops:test:booking-requests": "node scripts/booking-requests-smoke.mjs",
     "ops:test:booking-requests:browser": "node scripts/booking-requests-browser.mjs",
     "ops:load": "node scripts/load-smoke.mjs",
+    "ops:test:a11y": "node scripts/accessibility-smoke.mjs",
     "ops:test:membership:browser": "node scripts/membership-browser.mjs",
     "ops:recovery": "node scripts/rehearse-recovery.mjs",
     "ops:profile": "node scripts/profile-queries.mjs",
@@ -58,6 +59,7 @@
     "node": "22.23.x"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
     "concurrently": "^10.0.4",
