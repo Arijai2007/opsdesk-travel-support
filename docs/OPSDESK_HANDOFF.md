@@ -1,20 +1,22 @@
 # OpsDesk developer handoff
 
-## Supplier email replies
+## Current checkpoint — 11 November 2026
 
-Based on merged PRs #36 and #37. The [supplier reply guide](OPSDESK_MAIL_OUTBOX.md#supplier-replies) covers separate opt-in, the active supplier mailbox requirement, private threads, and existing case and SLA behavior. Next build secure attachments and complete credentialed send and receive acceptance. Deployment remains paused.
+Start from [main at `4e17f7c`](https://github.com/DhruvKhanna7777/opsdesk-travel-support/commit/4e17f7ca8d1d38e5347f8801f8ec0a7be97209ef). PRs #35–#38 are merged, covering the synthetic outbox, the opt-in Resend adapter and signed delivery receipts, and customer and supplier email replies. [PR #38 hosted validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42882257980). Deployment remains paused.
 
-## Customer email replies
+| Status | Work |
+| --- | --- |
+| Finished and merged | Booking-linked cases and history, private supplier threads, scoped access and membership/session safeguards, routing and capacity limits, Insights, agency and supplier SLA calendars, contract snapshots, workload handoff, and escalation rotations and holds. The mail implementation includes transactional jobs, retries, leases, manager controls, signed receipts, and opt-in plaintext replies that deduplicate by provider ID and stay in the existing case or private thread. |
+| Partially complete | Email works with synthetic data and provider fixtures. A verified sending and receiving domain, credentialed send/receive rehearsal, and real delivery acceptance are pending. Booking export validation and approved updates to existing synthetic bookings are available. A live provider adapter, new-booking approval, and cancellation handling are still open. Synthetic recovery and worker restart exercises have passed. |
+| Yet to complete | Secure attachments with per-thread authorization, size/type limits, scanning, expiring downloads, and retention. Independent AI evaluation, manual accessibility acceptance, representative concurrent load testing, and operational recovery acceptance are also open. |
 
-Built on PR #36. The [customer reply guide](OPSDESK_MAIL_OUTBOX.md#customer-replies) covers opt-in private Reply-To addresses, active customer checks, plaintext limits and provider-ID deduplication. The synthetic demo remains credential-free. Next validate a verified receiving domain with provider credentials, then design scoped supplier replies and secure attachments. Deployment stays paused.
+Start with secure attachments. Read the [mail guide](OPSDESK_MAIL_OUTBOX.md), [backlog](OPSDESK_BACKLOG.md), [validation record](OPSDESK_VALIDATION.md), [SLA policy](OPSDESK_SLA_CALENDARS.md), and [README](../README.md). Keep authorization, membership/session safeguards, historical references, capacity limits, saved SLA deadlines, and duplicate-free audit events intact. Leave unrelated worktrees untouched.
 
-## Resend pilot adapter
+Use Node.js 22.23.x, `npm ci`, and `npm run ops:preview` for the isolated credential-free demo. Run `npm run ops:test` and `npm run ops:test:browser` with Chromium and Firefox. PR #38 passed both builds, 86 unit tests, 693 HTTP checks, concurrency and signed-reply PostgreSQL fixtures, and all five standard flows in each browser. Live email stays disabled until credentials and the receiving domain are ready for an approved rehearsal.
 
-Based on merged PR #35. The [mail outbox guide](OPSDESK_MAIL_OUTBOX.md#resend-pilot) covers the disabled-by-default Resend adapter, pilot allowlist, retry cutoff and signed delivery receipts. Credentialed pilot acceptance, authorized incoming email replies, thread correlation and secure attachments remain open. Deployment stays paused.
+## Earlier checkpoints
 
-## Synthetic mail outbox follow-up
-
-This branch reconstructs the outbox on merged main `cb00be2` (PR #34). The unpublished checkout described in the earlier handoff was unavailable in this environment. The [outbox guide](OPSDESK_MAIL_OUTBOX.md) covers synthetic delivery, manager controls, leases, retries and validation. The standard test commands exercise the new API and browser behavior. Next choose a live provider, then implement signed inbound webhooks and secure attachments. Deployment remains paused.
+The sections below record earlier increments. Use the current checkpoint above for status and priorities.
 
 ## Escalation-rotation increment - 10 November 2026
 
