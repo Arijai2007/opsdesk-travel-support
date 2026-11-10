@@ -1,3 +1,4 @@
+import { validateEnvironment } from './production-environment';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -14,7 +15,7 @@ import { TravelModule } from './travel/travel.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
     PrismaModule,
     RedisModule,
     CommonModule,

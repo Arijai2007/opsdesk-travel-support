@@ -83,6 +83,28 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
       { maxWait: 15000, timeout: 20000 },
     );
   }
+  // Lock order: routing capacity (when needed), then ticket rows in ID order.
+  // Ticket-only operations must never acquire the routing lock.
+  private ticketLocked<T>(id: string, fn: (tx: Tx) => Promise<T>) {
+    return this.db.$transaction(
+      async (tx) => {
+        await this.lockTicket(tx, id);
+        return fn(tx);
+      },
+      { maxWait: 15000, timeout: 20000 },
+    );
+  }
+  private async lockTicket(tx: Tx, id: string) {
+    await tx.$queryRaw`SELECT id FROM "TravelTicket" WHERE id = ${id} FOR UPDATE`;
+  }
+  private async conversationLocked<T>(id: string, fn: (tx: Tx) => Promise<T>) {
+    const conversation = await this.db.travelConversation.findUnique({
+      where: { id },
+      select: { ticketId: true },
+    });
+    if (!conversation) throw new NotFoundException('Conversation not found.');
+    return this.ticketLocked(conversation.ticketId, fn);
+  }
   private async profile(userId: string, tx: Tx = this.db): Promise<Profile> {
     const profile = await tx.travelProfile.findUnique({
       where: { userId },
@@ -905,6 +927,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   }
   async update(userId: string, id: string, dto: UpdateTravelTicketDto) {
     return this.locked(async (tx) => {
+      await this.lockTicket(tx, id);
       const p = await this.profile(userId, tx),
         t = await this.ticket(p, id, tx),
         now = await this.now(tx);
@@ -1030,7 +1053,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     });
   }
   async message(userId: string, id: string, dto: TravelMessageDto) {
-    return this.locked(async (tx) => {
+    return this.ticketLocked(id, async (tx) => {
       const p = await this.profile(userId, tx);
       await this.ticket(p, id, tx);
       if (dto.visibility === 'INTERNAL') this.staff(p);
@@ -1051,7 +1074,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     });
   }
   async conversation(userId: string, id: string, dto: NewConversationDto) {
-    return this.locked(async (tx) => {
+    return this.ticketLocked(id, async (tx) => {
       const p = await this.profile(userId, tx);
       this.staff(p);
       const t = await this.ticket(p, id, tx);
@@ -1106,7 +1129,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     });
   }
   async reply(userId: string, id: string, dto: SupplierReplyDto) {
-    return this.locked(async (tx) => {
+    return this.conversationLocked(id, async (tx) => {
       const p = await this.profile(userId, tx);
       const c = await tx.travelConversation.findUnique({ where: { id } });
       if (!c) throw new NotFoundException('Conversation not found.');
@@ -1185,7 +1208,7 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   async conversationStatus(userId: string, id: string, status: string) {
-    return this.locked(async (tx) => {
+    return this.conversationLocked(id, async (tx) => {
       const p = await this.profile(userId, tx);
       this.staff(p);
       const conversation = await tx.travelConversation.findUnique({
@@ -1234,11 +1257,13 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     return this.sweep();
   }
   async availability(userId: string, available: boolean) {
-    const p = await this.profile(userId);
-    this.staff(p);
-    return this.db.travelProfile.update({
-      where: { userId },
-      data: { available },
+    return this.locked(async (tx) => {
+      const p = await this.profile(userId, tx);
+      this.staff(p);
+      return tx.travelProfile.update({
+        where: { userId },
+        data: { available },
+      });
     });
   }
   private responseCycleStart(ticket: Case) {
@@ -1300,6 +1325,8 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
           Number(previous.cancellationCutoffAt)
       )
         return previous;
+      // Acquire affected rows before reading ticket state or changing the booking.
+      await tx.$queryRaw`SELECT id FROM "TravelTicket" WHERE "bookingId" = ${id} ORDER BY id FOR UPDATE`;
       const booking = await tx.travelBooking.update({
         where: { id },
         data: schedule,
@@ -1371,87 +1398,118 @@ export class TravelService implements OnApplicationBootstrap, OnModuleDestroy {
     });
   }
   async sweep() {
-    const result = await this.locked(async (tx) => {
-      const now = await this.now(tx);
-      const pendingSupplier = { status: 'AWAITING_REPLY', dueAt: { lte: now } };
-      const highPriorityWindow = new Date(
-        now.getTime() + CHECK_IN_HIGH_HOURS * 3600000,
-      );
-      const tickets = await tx.travelTicket.findMany({
+    // Keyset batches bound memory and transaction duration; every candidate is
+    // reread after its row lock, including status, booking and supplier state.
+    let cursor: string | undefined;
+    let checked = 0;
+    for (;;) {
+      const selectionTime = await this.now();
+      const candidates = await this.db.travelTicket.findMany({
         where: {
           status: { notIn: ['RESOLVED', 'CLOSED'] },
           OR: [
-            { deadline: { lte: now } },
+            { deadline: { lte: selectionTime } },
             {
               category: { not: 'REFUND' },
               booking: {
-                is: { checkInAt: { gt: now, lte: highPriorityWindow } },
+                is: {
+                  checkInAt: {
+                    gt: selectionTime,
+                    lte: new Date(
+                      +selectionTime + CHECK_IN_HIGH_HOURS * 3600000,
+                    ),
+                  },
+                },
               },
             },
-            { conversations: { some: pendingSupplier } },
+            {
+              conversations: {
+                some: {
+                  status: 'AWAITING_REPLY',
+                  dueAt: { lte: selectionTime },
+                },
+              },
+            },
           ],
+          ...(cursor ? { id: { gt: cursor } } : {}),
         },
-        include: {
-          booking: { select: { checkInAt: true } },
-          conversations: {
-            where: pendingSupplier,
-            select: { id: true, dueAt: true, subject: true },
-          },
-        },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: 100,
       });
-      for (const t of tickets) {
-        const rule = urgency(
-          t.category,
-          t.deadline,
-          t.booking?.checkInAt,
-          now,
-          t.responseDeadline,
-        );
-        if (rule) {
-          const key = `${t.id}:${rule.reason}:${t.deadline.toISOString()}`;
-          const exists = await tx.travelEvent.findUnique({
-            where: { uniqueKey: key },
+      if (!candidates.length) break;
+      for (const candidate of candidates) {
+        await this.ticketLocked(candidate.id, async (tx) => {
+          const now = await this.now(tx);
+          const t = await tx.travelTicket.findUnique({
+            where: { id: candidate.id },
+            include: {
+              booking: { select: { checkInAt: true } },
+              conversations: {
+                where: { status: 'AWAITING_REPLY', dueAt: { lte: now } },
+                select: { id: true, dueAt: true, subject: true },
+              },
+            },
           });
-          if (!exists) {
-            await tx.travelEvent.create({
-              data: {
+          if (!t || !active(t.status)) return;
+
+          const rule = urgency(
+            t.category,
+            t.deadline,
+            t.booking?.checkInAt,
+            now,
+            t.responseDeadline,
+          );
+          if (!rule && t.conversations.length === 0) return;
+          checked++;
+          if (rule) {
+            const key = `${t.id}:${rule.reason}:${t.deadline.toISOString()}`;
+            const exists = await tx.travelEvent.findUnique({
+              where: { uniqueKey: key },
+            });
+            if (!exists) {
+              await tx.travelEvent.create({
+                data: {
+                  ticketId: t.id,
+                  kind:
+                    rule.priority === 'URGENT'
+                      ? 'ESCALATED'
+                      : 'PRIORITY_CHANGED',
+                  text: rule.reason,
+                  actorId: 'system',
+                  uniqueKey: key,
+                  createdAt: now,
+                },
+              });
+            }
+            if (
+              PRIORITIES.indexOf(rule.priority) > PRIORITIES.indexOf(t.priority)
+            )
+              await tx.travelTicket.update({
+                where: { id: t.id },
+                data: { priority: rule.priority, updatedAt: now },
+              });
+          }
+          for (const c of t.conversations) {
+            const key = `${c.id}:overdue:${c.dueAt.toISOString()}`;
+            await tx.travelEvent.upsert({
+              where: { uniqueKey: key },
+              create: {
                 ticketId: t.id,
-                kind:
-                  rule.priority === 'URGENT' ? 'ESCALATED' : 'PRIORITY_CHANGED',
-                text: rule.reason,
+                kind: 'SUPPLIER_OVERDUE',
+                text: `Supplier response target missed: ${c.subject}`,
                 actorId: 'system',
                 uniqueKey: key,
                 createdAt: now,
               },
+              update: {},
             });
           }
-          if (
-            PRIORITIES.indexOf(rule.priority) > PRIORITIES.indexOf(t.priority)
-          )
-            await tx.travelTicket.update({
-              where: { id: t.id },
-              data: { priority: rule.priority, updatedAt: now },
-            });
-        }
-        for (const c of t.conversations) {
-          const key = `${c.id}:overdue:${c.dueAt.toISOString()}`;
-          await tx.travelEvent.upsert({
-            where: { uniqueKey: key },
-            create: {
-              ticketId: t.id,
-              kind: 'SUPPLIER_OVERDUE',
-              text: `Supplier response target missed: ${c.subject}`,
-              actorId: 'system',
-              uniqueKey: key,
-              createdAt: now,
-            },
-            update: {},
-          });
-        }
+        });
       }
-      return { now: now.toISOString(), checked: tickets.length };
-    });
+      cursor = candidates[candidates.length - 1].id;
+    }
     this.lastSweepCompletedAt = Date.now();
-    return result;
+    return { now: (await this.now()).toISOString(), checked };
   }
 }

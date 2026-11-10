@@ -1,5 +1,5 @@
 import "server-only";
-import { setAuthCookies, clearAuthCookies, type TokenPair } from "./auth-cookies";
+import { setAuthCookies, type TokenPair } from "./auth-cookies";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL ?? "http://localhost:3001";
 
@@ -63,14 +63,9 @@ export async function refreshTokens(refreshToken: string): Promise<string | null
   });
 
   if (!res.ok) {
-    // Only clear cookies for a real rejection (expired/revoked/invalid
-    // token) — a 503 here is backendFetch's own unreachable-backend
-    // fallback, not the backend saying the token is bad. The same refresh
-    // token may still be good once the backend comes back, so don't log
-    // the user out over a transient network blip.
-    if (res.status !== 503) {
-      await clearAuthCookies();
-    }
+    // A concurrent request may already have installed the replacement pair.
+    // A Set-Cookie deletion from this response would erase that newer session.
+    // Explicit logout clears cookies; failed refreshes still deny access.
     return null;
   }
 

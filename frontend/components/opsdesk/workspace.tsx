@@ -132,7 +132,11 @@ export function OpsDeskWorkspace() {
   if (!data)
     return (
       <>
-        {error && <div className="od-global-error">{error}</div>}
+        {error && (
+          <div className="od-global-error" role="alert">
+            {error}
+          </div>
+        )}
         <OpsLogin onLogin={load} />
       </>
     );

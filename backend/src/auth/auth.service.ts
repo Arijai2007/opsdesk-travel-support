@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'node:crypto';
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { hashToken, requireEnv } from './token.util';
 import { PwnedPasswordService } from '../common/services/pwned-password.service';
@@ -85,7 +86,11 @@ export class AuthService {
     }
   }
 
-  async issueTokens(userId: string, role: string) {
+  private async issueTokens(
+    userId: string,
+    role: string,
+    db: Prisma.TransactionClient = this.prisma,
+  ) {
     // Sign the refresh token first — its own payload doesn't need the row id
     const refreshToken = this.jwt.sign(
       { sub: userId, jti: randomUUID() },
@@ -97,7 +102,7 @@ export class AuthService {
 
     // Create the RefreshToken row BEFORE signing the access token,
     // so we have a row id to embed in the access token payload
-    const refreshTokenRow = await this.prisma.refreshToken.create({
+    const refreshTokenRow = await db.refreshToken.create({
       data: {
         tokenHash: hashToken(refreshToken),
         userId,
@@ -124,32 +129,33 @@ export class AuthService {
     }
 
     const tokenHash = hashToken(refreshToken);
-    const stored = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash },
+    const { previousId, tokens } = await this.prisma.$transaction(async (tx) => {
+      const [claimed] = await tx.refreshToken.updateManyAndReturn({
+        where: {
+          tokenHash,
+          userId: payload.sub,
+          revoked: false,
+          expiresAt: { gt: new Date() },
+        },
+        data: { revoked: true },
+        select: { id: true },
+      });
+      if (!claimed) {
+        throw new UnauthorizedException(
+          AUTH_ERRORS.REFRESH_TOKEN_EXPIRED_OR_REVOKED,
+        );
+      }
+      const user = await tx.user.findUniqueOrThrow({
+        where: { id: payload.sub },
+        select: { id: true, role: true },
+      });
+      return {
+        previousId: claimed.id,
+        tokens: await this.issueTokens(user.id, user.role, tx),
+      };
     });
-    if (!stored || stored.revoked || stored.expiresAt < new Date()) {
-      throw new UnauthorizedException(
-        AUTH_ERRORS.REFRESH_TOKEN_EXPIRED_OR_REVOKED,
-      );
-    }
-
-    // rotate: revoke old, issue new
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revoked: true },
-    });
-    // The old access token paired with this refresh token is usually near
-    // its own expiry already (that's typically why refresh was called),
-    // but rotation can also be triggered early (e.g. proactively by the
-    // frontend proxy) — so still close the same live-revocation gap as
-    // logout/password-change/account-deletion rather than leaving a
-    // narrower but still-real window.
-    await this.sessionRevocation.revoke(stored.id);
-
-    const user = await this.prisma.user.findUniqueOrThrow({
-      where: { id: payload.sub },
-    });
-    return this.issueTokens(user.id, user.role);
+    await this.sessionRevocation.revoke(previousId);
+    return tokens;
   }
 
   async logout(refreshToken: string) {
