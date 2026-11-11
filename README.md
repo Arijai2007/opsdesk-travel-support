@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+The classifier evaluator now accepts a reviewer-labelled local dataset with provenance/hashes, per-category metrics and a confusion matrix. A blank synthetic review pack and spoken screen-reader checklist are in the [acceptance review guide](docs/OPSDESK_ACCEPTANCE_REVIEW.md). Independent evaluation and spoken-output acceptance remain open. Base main CI ended cancelled at browser installation; hosted browsers and its final audit were skipped. [Current validation evidence](docs/OPSDESK_VALIDATION.md#validation-continuation---11-november-2026). Deployment remains paused.
+
 Customers can view their case summary and browse their authenticated bookings as cards. Each card opens the existing scoped case history. New tickets and booking cancellation requests remain available through their existing controls. [Customer portal validation](docs/OPSDESK_VALIDATION.md)
 
 Case detail now shows a four-step journey from saved case state; Insights shows isometric issue columns from authorized category counts. These extend the supplied reference design without importing its fictional flight, provider, voucher or financial data. The existing conversation, supplier, audit and report controls remain available. [Current validation and remaining accessibility acceptance](docs/OPSDESK_VALIDATION.md#case-detail-and-insights-reference-follow-up--11-november-2026). Deployment remains paused.
