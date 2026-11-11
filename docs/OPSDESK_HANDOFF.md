@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## API process-start continuation
+
+Main `8c1d546` includes merged PR #56, with both PR and post-merge CI passing. The new synthetic startup profiler uses a separate template/clone per probe and a fresh owned API process. It reports readiness, login, first GET and repeat reads without changing existing application data. Ten five-role/two-round process starts, 110 workload GETs and normal/interruption cleanup passed locally. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md) · [Recorded evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)
+
+This is process-start evidence, not database/OS cold-cache or target acceptance. Human labels and spoken-output review remain pending, alongside representative/live/operational acceptance. Check latest hosted CI and leave merge decisions to collaborators. Deployment remains paused. Older sections below are historical where superseded.
+
 ## Blind review form continuation
 
 Started from main `9503315` after PR #55 merged with passing PR CI. The existing blind classifier pack now has a local browser form: `npm run ops:review-classifier`. It imports/downloads drafts and exports validated reviewer labels/rationales with explicit provenance. No predictions or scoring run in the form, and imported files stay in the browser. [Reviewer instructions](OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form) · [Verification and acceptance limits](OPSDESK_VALIDATION.md#blind-review-form---11-november-2026)

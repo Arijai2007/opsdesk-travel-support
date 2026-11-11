@@ -1,5 +1,11 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## API process-start continuation
+
+PR #56 is merged in main `8c1d546`; PR and post-merge validation both passed. This follow-up adds `npm run ops:startup-profile` to compare the first scoped workload GET after a fresh API starts with repeat reads, using migrated/seeded disposable database copies and generated runtime secrets. A local two-round/five-role run completed ten fresh API starts and 110 workload GETs; cleanup and interruption cleanup passed. [Run procedure](OPSDESK_STARTUP_PROFILE.md) · [Exact evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)
+
+Database/OS caches remain uncontrolled and login/readiness precede workload timing, so full cold-cache acceptance remains open. The seeded supplier scenario is an empty list. Check this PR's hosted smoke, then continue human labels in the local blind review form and observable screen-reader review. Representative booking/identity populations, approved traffic/targets, live services and operational acceptance still require decisions/evidence. Keep deployment paused and leave merging to collaborators. Older checkpoints below are historical where superseded.
+
 ## Blind review form continuation
 
 PR #55 is merged in main `9503315`; its hosted validation passed with dynamic PostgreSQL ports, five-role load, Chromium and Firefox. This follow-up adds `npm run ops:review-classifier`, a loopback-only form for the existing blind pack. Reviewers can import/download drafts, enter categories/rationales and export validated JSON without seeing generated predictions. [Use the review form and evaluation procedure](OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form) · [Exact checks and limits](OPSDESK_VALIDATION.md#blind-review-form---11-november-2026)

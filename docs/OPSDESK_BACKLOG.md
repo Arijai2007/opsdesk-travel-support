@@ -1,5 +1,9 @@
 # OpsDesk — prioritized remaining work
 
+## API process-start continuation
+
+PR #56 and its post-merge CI passed. Fresh-API process profiling is now reproducible with isolated synthetic database copies, per-role first/repeat timings and verified cleanup. [Run and interpret it](OPSDESK_STARTUP_PROFILE.md). True database/OS cold-cache procedures, populated/representative booking and identity workloads and owner-approved performance targets remain open; a process restart does not satisfy them. Human classifier labels and observable spoken-output review remain pending. Check this follow-up's hosted result; deployment stays paused. Earlier priorities below are historical where superseded.
+
 ## Blind review form continuation
 
 PR #55 merged with passing PR validation. A local-only review form now makes the merged blind pack usable without editing JSON by hand; draft import/export, per-example reasoning and reviewed-schema validation are implemented and tested in Chromium/Firefox. [Run the reviewer form](OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form). Actual human labels/adjudication and independently reviewed evaluation remain open, as does observable spoken screen-reader acceptance. Check current PR and post-merge main CI before claiming their results. Representative/cold-cache performance, live integrations and operational acceptance remain open; deployment stays paused. Earlier priorities below are historical where superseded.
