@@ -1,5 +1,11 @@
 # OpsDesk — prioritized remaining work
 
+## Supplied load-target follow-up — 12 November 2026
+
+Latest fetched main is `e699fd3` through merged PR #63; no PRs were open at the initial check. PRs #60–#62 and combined main CI were still queued, not passed. The user confirmed there are no agreed performance targets and requested configurable checks. The load harness now supports supplied aggregate/per-role latency and sample limits, aggregate duration/throughput checks, explicit `not-configured` status and nonzero failure after verified cleanup. [Procedure](OPSDESK_LOAD_TARGETS.md).
+
+Next agree representative traffic, datasets and named approval of targets before any acceptance claim. Human classifier labelling/adjudication and spoken screen-reader output remain pending. Live booking/mail, scanner monitoring, retention and approved staging recovery remain open. Deployment remains paused. Earlier checkpoints below are historical.
+
 ## Supplier history startup rehearsal
 
 The synthetic profiler covers page 12 of a populated supplier history and verifies that another supplier thread is denied. Representative traffic, controlled-cache runs, agreed thresholds, human classifier labels and spoken screen-reader evidence remain open. [Validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)

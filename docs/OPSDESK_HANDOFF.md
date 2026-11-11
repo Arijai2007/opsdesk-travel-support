@@ -1,5 +1,13 @@
 # OpsDesk developer handoff
 
+## Supplied load targets — 12 November 2026
+
+Started from main `e699fd33ef1d29e815f6b664e7f37fb7ab554da9`, after PRs #58–#63 merged. No PRs were open at the initial check. Latest combined [main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43098403977) and the recorded #60–#62 runs were still queued, not passed. The previous status tables below are historical snapshots.
+
+The user confirmed there are no approved performance targets and requested configurable checks. `OPSDESK_LOAD_TARGETS` now supplies versioned named aggregate/per-role sample and latency limits plus optional throughput/duration limits. Reports distinguish `not-configured`, `passed` and `failed`; retain each comparison and configuration digest; and appear only after cleanup succeeds. Target failure exits nonzero after exactly-once write verification and cleanup. No application authorization, session, routing, deadline, audit or provider policy changes are included. [Target procedure](OPSDESK_LOAD_TARGETS.md) · [Exact validation](OPSDESK_VALIDATION.md#supplied-load-targets--12-november-2026).
+
+Next obtain owner-approved targets and representative workloads before performance acceptance. Human classifier labels/adjudication, actual spoken screen-reader evidence, live booking/mail, production scanner monitoring, retention and staging recovery remain unfinished. Deployment remains paused. Leave merges to collaborators.
+
 ## Current merged checkpoint
 
 **Finished and merged.** The application baseline for this handoff is main `b1b97ab`, with PRs #58–#62 merged. It includes the scoped customer portal, synthetic five-role load, classifier evaluator and blind review form, fresh API-process profiling and the follow-ups below. Main validation passed at the earlier PR #57 checkpoint. The combined application run through #62 was queued when this handoff was prepared. [PR #57 main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463) · [PR #62 main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43098229155)

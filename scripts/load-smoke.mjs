@@ -5,6 +5,7 @@ import { performance } from "node:perf_hooks";
 import dotenv from "dotenv";
 import pg from "pg";
 import { loadAccounts, readRoleProfile } from "./load-profile.mjs";
+import { readLoadTargets, evaluateLoadTargets } from "./load-targets.mjs";
 
 const env = dotenv.parse(
   readFileSync(new URL("../backend/.env", import.meta.url)),
@@ -36,6 +37,7 @@ const historyLength = integer("OPSDESK_LOAD_HISTORY", 0, 0, 5_000);
 const readProfile = readRoleProfile(process.env.OPSDESK_LOAD_ROLE_WEIGHTS);
 const identityMode = process.env.OPSDESK_LOAD_IDENTITIES ?? "single";
 const accounts = loadAccounts(identityMode);
+const targets = readLoadTargets(process.env.OPSDESK_LOAD_TARGETS);
 const prefix = "LOAD-" + randomUUID() + "-";
 const ids = Array.from({ length: concurrency }, (_, index) => prefix + index);
 const hot = ids[0];
@@ -48,6 +50,7 @@ let createdCases = 0;
 let next = 0;
 let nextRead = 0;
 let token;
+let report;
 
 async function request(path, expectedStatus, body, authToken = token) {
   const response = await fetch(new URL(path, api), {
@@ -76,10 +79,12 @@ async function rowCounts() {
   ).rows[0];
 }
 
-function summarize(values) {
+function summarize(values, round = true) {
   const sorted = values.toSorted((a, b) => a - b);
   const percentile = (p) =>
-    Math.round(sorted[Math.ceil(sorted.length * p) - 1]);
+    round
+      ? Math.round(sorted[Math.ceil(sorted.length * p) - 1])
+      : sorted[Math.ceil(sorted.length * p) - 1];
   return {
     requests: sorted.length,
     latencyMs: {
@@ -371,41 +376,44 @@ try {
   }
   const all = summarize([...stats.values()].flat());
   if (!duration) assert.equal(all.requests, total);
-  console.log(
-    JSON.stringify(
-      {
-        scenario: "isolated synthetic mixed read/write",
-        node: process.version,
-        cacheState: "not controlled; preflight reads excluded from timings",
-        readRoleWeights: readProfile.weights,
-        identityMode,
-        requestsByIdentity: Object.fromEntries(
-          [...actors.values()].flatMap(({ accounts }) =>
-            accounts.map(({ account, requests }) => [account, requests]),
-          ),
-        ),
-        writeRole: "manager",
-        baseline,
-        loaded,
-        concurrency,
-        durationSeconds: duration || undefined,
-        queuePage: deepQueue,
-        historyPage: deepHistory,
-        writes: stored.length,
-        elapsedMs: Math.round(elapsedMs),
-        requestsPerSecond: +((all.requests / elapsedMs) * 1000).toFixed(1),
-        ...all,
-        byRole: Object.fromEntries(
-          [...roleStats].map(([role, times]) => [role, summarize(times)]),
-        ),
-        byOperation: Object.fromEntries(
-          [...stats].map(([name, times]) => [name, summarize(times)]),
-        ),
-      },
-      null,
-      2,
+  const targetAssessment = evaluateLoadTargets(targets, {
+    ...summarize([...stats.values()].flat(), false),
+    elapsedMs,
+    requestsPerSecond: (all.requests / elapsedMs) * 1000,
+    byRole: Object.fromEntries(
+      [...roleStats].map(([role, times]) => [role, summarize(times, false)]),
     ),
-  );
+  });
+  report = {
+    scenario: "isolated synthetic mixed read/write",
+    node: process.version,
+    cacheState: "not controlled; preflight reads excluded from timings",
+    targetAssessment,
+    readRoleWeights: readProfile.weights,
+    identityMode,
+    requestsByIdentity: Object.fromEntries(
+      [...actors.values()].flatMap(({ accounts }) =>
+        accounts.map(({ account, requests }) => [account, requests]),
+      ),
+    ),
+    writeRole: "manager",
+    baseline,
+    loaded,
+    concurrency,
+    durationSeconds: duration || undefined,
+    queuePage: deepQueue,
+    historyPage: deepHistory,
+    writes: stored.length,
+    elapsedMs: Math.round(elapsedMs),
+    requestsPerSecond: +((all.requests / elapsedMs) * 1000).toFixed(1),
+    ...all,
+    byRole: Object.fromEntries(
+      [...roleStats].map(([role, times]) => [role, summarize(times)]),
+    ),
+    byOperation: Object.fromEntries(
+      [...stats].map(([name, times]) => [name, summarize(times)]),
+    ),
+  };
 } finally {
   try {
     if (createdCases) {
@@ -423,3 +431,9 @@ try {
     await pool.end();
   }
 }
+console.log(JSON.stringify(report, null, 2));
+assert.notEqual(
+  report.targetAssessment.status,
+  "failed",
+  "Supplied synthetic load targets failed; see targetAssessment.",
+);

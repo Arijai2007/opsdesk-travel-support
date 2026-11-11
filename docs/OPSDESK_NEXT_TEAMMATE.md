@@ -1,4 +1,10 @@
-# OpsDesk continuation checkpoint — 11 November 2026
+# OpsDesk continuation checkpoint — 12 November 2026
+
+## Current continuation — 12 November 2026
+
+> Continue OpsDesk in DhruvKhanna7777/opsdesk-travel-support. Fetch latest main, inspect open PRs and actual CI (including Firefox), then read this file, handoff, backlog, validation, acceptance review and supplied load-target guides. This increment starts from main e699fd3 with PRs #58–#63 merged and zero open PRs at the initial check. Latest main CI and recorded #60–#62 runs were queued, not passed. Review the codex/opsdesk-acceptance-followup PR and its actual checks before depending on it. The user confirmed no approved performance targets exist and requested configurable checks; OPSDESK_LOAD_TARGETS now compares supplied aggregate/per-role sample and latency limits, optional throughput/duration limits, and fails after verified cleanup. No configuration means not-configured, not a target pass. Read the exact validation results and do not treat synthetic tooling thresholds as approved targets. Next agree representative traffic and performance targets, have humans label/adjudicate/freeze the classifier export, and obtain actual spoken screen-reader evidence. No booking provider is selected; live booking/mail acceptance, scanner monitoring, retention approval and an authorized staging restore with named owners/targets remain open. Use Node 22.23.x, npm ci and isolated synthetic ops:preview. Run mutating API, browser and load suites sequentially; preserve unrelated work, authorization, agency isolation, sessions, saved deadlines, idempotency and audit history. Commit verified work and publish a PR targeting main, leaving merge to collaborators. Deployment remains paused.
+
+Earlier continuation messages below are historical. Use this section and its [validation record](OPSDESK_VALIDATION.md#supplied-load-targets--12-november-2026) for current status.
 
 ## Current continuation message
 

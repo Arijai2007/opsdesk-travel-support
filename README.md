@@ -1,12 +1,14 @@
 # OpsDesk - connected travel support
 
+The load rehearsal can check supplied latency, throughput, duration and per-role sample targets using `OPSDESK_LOAD_TARGETS`. No targets are enabled or approved by default. [Configuration, failure behavior and acceptance limits](docs/OPSDESK_LOAD_TARGETS.md).
+
 Use `npm run ops:startup-profile` for isolated fresh-API process experiments with first/repeat read timings, a populated supplier conversation list, a deep supplier-history probe and verified cleanup. [Setup, observations and cache limits](docs/OPSDESK_STARTUP_PROFILE.md). Database/OS cold-cache acceptance and performance targets remain open.
 
 Use `npm run ops:review-classifier` to review the blind classifier pack in a local browser form, save drafts and export reviewer-labelled JSON. It runs without the application/database or model credentials and shows no classifier predictions. [Reviewer instructions](docs/OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form). Human acceptance remains pending.
 
 The synthetic load rehearsal now supports five-role read weights, opt-in rotation across seeded identities, manager writes and per-role latency reports. [Run options and scope](docs/OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Expanded-load evidence](docs/OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal). Representative traffic, cold-cache acceptance and agreed performance targets remain open.
 
-The classifier evaluator now accepts a reviewer-labelled local dataset with provenance/hashes, per-category metrics and a confusion matrix. A blank synthetic review pack and spoken screen-reader checklist are in the [acceptance review guide](docs/OPSDESK_ACCEPTANCE_REVIEW.md). Independent evaluation and spoken-output acceptance remain open. Base main CI ended cancelled at browser installation; hosted browsers and its final audit were skipped. [Current validation evidence](docs/OPSDESK_VALIDATION.md#validation-continuation---11-november-2026). Deployment remains paused.
+The classifier evaluator now accepts a reviewer-labelled local dataset with provenance/hashes, per-category metrics and a confusion matrix. A blank synthetic review pack and spoken screen-reader checklist are in the [acceptance review guide](docs/OPSDESK_ACCEPTANCE_REVIEW.md). Independent evaluation and spoken-output acceptance remain open. An earlier main run was cancelled at browser installation; that historical run skipped hosted browsers and its final audit. [Current validation evidence](docs/OPSDESK_VALIDATION.md#validation-continuation---11-november-2026). Deployment remains paused.
 
 Customers can view their case summary and browse their authenticated bookings as cards. Each card opens the existing scoped case history. New tickets and booking cancellation requests remain available through their existing controls. [Customer portal validation](docs/OPSDESK_VALIDATION.md)
 

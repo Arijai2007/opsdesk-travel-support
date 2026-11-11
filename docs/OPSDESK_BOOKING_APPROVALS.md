@@ -30,6 +30,8 @@ Run `npm run ops:test:booking-requests` against the isolated preview. The harnes
 
 ## Synthetic load rehearsal
 
+Optional supplied-target checks are available through `OPSDESK_LOAD_TARGETS`: [schema, examples and limitations](OPSDESK_LOAD_TARGETS.md). Without configuration, reports explicitly say `not-configured`. A configured target failure exits nonzero after write verification and cleanup; no owner-approved targets or production acceptance are implied.
+
 Run `npm run ops:load` against the isolated synthetic preview. The default sends 200 mixed queue, booking, history and Insights reads and internal-note writes with eight concurrent workers. Each run creates uniquely named cases and verifies that every acknowledged note is stored exactly once on its intended case. The fixtures are removed on completion.
 
 To run a sustained rehearsal with a larger dataset and a shared, long message thread, set the following variables before running the same command.

@@ -1,3 +1,42 @@
+# Supplied load targets — 12 November 2026
+
+Started from fetched main `e699fd33ef1d29e815f6b664e7f37fb7ab554da9`, with PRs #58–#63 merged and no open PRs. PR #58 run `43088904262` and #59 run `43088962237` passed historically. The recorded #60 (`43090996154`), #61 (`43095738307`), #62 (`43096512227`) and combined main (`43098403977`) workflows were still **queued**, not passed, at this continuation's checks. The latest combined main run exposed no jobs yet. No cause for that queue state was established. Hosted Firefox acceptance for this combined checkpoint remains unverified.
+
+The user confirmed **“No targets yet; add configurable checks.”** This increment adds strict version-1 `OPSDESK_LOAD_TARGETS` parsing and aggregate/per-role sample and latency checks, optional throughput/duration checks, a named configuration digest and explicit unconfigured/pass/fail states. Thresholds use unrounded measurements. Missing samples or metrics fail their configured checks. The harness reports only after cleanup; an unmet target then exits nonzero. HTTP/persistence/scope/cleanup failures remain fatal independently. No application policy, UI, database migration, provider integration or deployment behavior changed. [Procedure and schema](OPSDESK_LOAD_TARGETS.md).
+
+## Completed local checks
+
+Windows, Node **22.23.0**, isolated PostgreSQL **18.6**, API **3153**, frontend **3152**, database **55451**. Fresh ignored configuration and a separate worktree preserved unrelated branches and local data.
+
+| Check | Result |
+| --- | --- |
+| `npm ci` | Passed: 1,166 packages added / 1,170 audited. Existing audit output: 28 vulnerabilities (5 low, 23 moderate); no dependency changes were made. |
+| `npm run ops:preview` | Shared, backend and frontend builds passed. All 28 migrations applied to the new synthetic database; seed and readiness passed. |
+| Load-profile/target unit tests | **10 passed**: 4 existing schedule/identity tests and 6 new target tests. Covers boundary equality, unrounded rejection, missing/undersampled roles, duration/throughput, absent metrics, strict config and no default pass. |
+| Startup / classifier tooling tests | **3 / 6 passed** respectively. |
+| Backend Jest | **91 tests in 10 suites passed**. |
+| Core / pagination / directory HTTP checks | **121 / 124 / 177 passed**. |
+| Lock concurrency | **13 checks passed**; 154ms controlled shared-lock wait and 15ms independent-message observation, not a throughput target. |
+| Membership / SLA | **80 membership HTTP checks**; **56 SLA HTTP + 6 concurrency/reconnect checks** passed. |
+| Workload / supplier calendars | **33 workload policy/multi-worker/pause checks**; **20 supplier-calendar HTTP checks plus policy assertions** passed. |
+| Contracts / rotations | **52 contract HTTP checks plus policy/concurrency/snapshot/FK assertions**; **63 rotation HTTP + 54 policy/concurrency/state assertions** passed. |
+| Signed inbound mail | Customer and supplier fixture summaries passed; harness reports scenarios without a numeric count. No live mail acceptance. |
+| Attachments / booking requests | **23 synthetic attachment / 40 booking HTTP checks passed**. No fresh real scanner or live booking acceptance. |
+| New real-HTTP target integration | **3 scenarios passed**: `not-configured` (child exit 0), broad test targets satisfied (exit 0), and deliberate `minRequests=201` against 200 operations (expected exit 1). Each exercised **200 measured requests, 40 exactly-once verified writes and 12 identities**, and restored original case/message/conversation counts. Total: **600 measured requests / 120 verified writes**. The failed-target child was the expected assertion, not a product failure. Test limits are wiring fixtures, not approved targets. |
+| Formatting / syntax / whitespace | Prettier passed for all four changed/new load scripts and package.json. Node syntax and `git diff --check` passed. |
+| Standard Chromium browser command | All **6 workflow scripts**, **26 axe states**, five viewport reflow widths, keyboard dialog/notification checks across all five roles and **2 blind-review-form tests** passed. |
+| Standard Firefox browser command | The same **6 workflow scripts**, **26 axe states**, five reflow widths, five-role keyboard checks and **2 blind-review-form tests** passed. Both browser commands exited **0**, sequentially after the API/load tests. |
+
+The full `npm run ops:test` command, now including the three target integration scenarios at the end, exited **0**. Mutating tests ran sequentially.
+
+Local preview API, frontend and database services were stopped after the completed verification. No local check was interrupted or counted as passed before completion. Hosted CI remains separate and must be checked on the actual PR head before merging.
+
+## Failures, corrections and unfinished acceptance
+
+The first pre-implementation target-test run failed as expected because the new module did not exist (one test-file failure); after implementation all six new cases and four existing cases passed. The first package formatting check failed; Prettier corrected it and the final check passed. An early readiness probe received connection refused while the API was still booting; a later probe returned 200, and all API/load workflows completed successfully. These attempts are not described as passing checks.
+
+No approved performance targets, representative dataset/traffic, controlled cold caches, human classifier labels/adjudication or new screen-reader speech were produced. The frozen reviewer export still needs human input. Live booking/provider selection, mail delivery, production scanner monitoring, retention and an authorized staging restore with owners/recovery targets remain unfinished. Deployment remains paused. Do not infer any of these acceptances from synthetic target passes or a valid report.
+
 # Supplier message-history startup
 
 The local manager, supplier-list and supplier-history run used Node 22.23.4 and loopback PostgreSQL 18.6 with one round, two repeats and a 150-second readiness limit. Three new processes completed nine timed GETs. Page 12 returned 20 of 240 messages, all in the selected supplier thread. A separate request after timing returned HTTP 404 for the other supplier thread. The first history read took 54.53 ms, with repeats of 21.81 and 27.83 ms.
