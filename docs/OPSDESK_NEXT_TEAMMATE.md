@@ -1,5 +1,11 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Blind review form continuation
+
+PR #55 is merged in main `9503315`; its hosted validation passed with dynamic PostgreSQL ports, five-role load, Chromium and Firefox. This follow-up adds `npm run ops:review-classifier`, a loopback-only form for the existing blind pack. Reviewers can import/download drafts, enter categories/rationales and export validated JSON without seeing generated predictions. [Use the review form and evaluation procedure](OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form) · [Exact checks and limits](OPSDESK_VALIDATION.md#blind-review-form---11-november-2026)
+
+Local Chromium and Firefox form tests and axe/reflow checks passed. No independent human labels, classifier acceptance or spoken-output acceptance were produced. Next check this PR and post-merge main CI, have a reviewer complete/adjudicate the pack and freeze it before scoring, and obtain observable screen-reader speech. Representative booking/identity distributions, cold-cache procedures and performance targets, live integrations and operational acceptance remain open. Keep deployment paused and merging with collaborators. Older checkpoints below are historical where superseded.
+
 ## Five-role load continuation
 
 PR #54 is merged in main `64c5245`; its PR workflow passed. Post-merge CI failed before tests because fixed PostgreSQL host port 55432 was occupied. This follow-up uses a dynamically assigned service port and adds a short five-role load rehearsal to CI. Check its hosted result separately.

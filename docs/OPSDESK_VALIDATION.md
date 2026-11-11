@@ -1,3 +1,20 @@
+# Blind review form - 11 November 2026
+
+Rebased onto main `9503315d239c3f41d8cb327a56b7f717c84110f9` after PR #55 merged. [PR #55 validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43069170073), including dynamic database-port setup, API/recovery, the five-role load smoke, both browsers and audit. Its [post-merge run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43070421350) was still active when this checkpoint was checked; inspect its final result separately.
+
+The new `npm run ops:review-classifier` command serves a local-only browser form for the already merged blind pack. It preserves partial labels/rationales in downloadable drafts, imports JSON locally, displays text without HTML interpretation, and exports a schema-validated labelled dataset only after required fields/category coverage and the reviewer declaration are complete. It never imports classifier rules or generates predictions. Export timestamps and reviewer notes are provenance declarations, not independent acceptance.
+
+Local verification on Node **22.23.0** passed in **Chromium and Firefox** through `npm run ops:test:review-form` (two tests per engine):
+
+- The server serves only its fixed GET assets with no-store/CSP headers, returns 404 for environment/rules paths, and rejects POST with 405. The starter still has 18 examples with blank labels/rationales.
+- Browser tests exercised category/rationale persistence, Previous/Next heading-focus return, draft download/re-import, rejected malformed import without data loss, cancellation of an unsaved-work replacement, required metadata/declaration/category-coverage gating, and reviewed JSON accepted by the shared evaluator validator. Artificial automated-test labels were used only on separate synthetic test strings; no human labels or independent scores were produced.
+- An imported HTML-looking string remained literal text and created no image element. Observed browser requests were exclusively same-origin GETs; imported content was not submitted and no external host was contacted.
+- Axe WCAG A/AA checks passed at the initial desktop state and narrow review state in both engines. The 375-pixel state had no document-level horizontal overflow. Rendered 1280-pixel desktop and 375-pixel mobile screenshots were visually inspected. These scans/focus checks do not establish spoken screen-reader acceptance.
+
+The first axe test used Playwright's implicit page context and failed with an explicit-context requirement. It was corrected to create a browser context, after which both engines passed. Prettier, script syntax and whitespace checks are recorded with the final local checks. No application/API code, database, runtime credentials or classifier rules changed; full application/API/browser suites were not rerun locally for this standalone tool. The new tests are appended to the standard browser command so hosted Chromium and Firefox exercise the form too. Check this PR's hosted result separately.
+
+Human labels/adjudication and spoken screen-reader output remain pending. Representative/cold-cache performance, live integrations and operational acceptance remain open. Deployment remains paused.
+
 # Five-role load and CI port isolation - 11 November 2026
 
 Started from main `64c5245223cab2913f5e07ab6c8f6b4543da72d6` after PR #54 merged. Its [PR workflow passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43064821827), including the pinned-runtime browser steps. The [post-merge run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43065054837) failed before checkout at PostgreSQL container startup: `failed to bind host port 0.0.0.0:55432/tcp: address already in use`. That run supplies no application test result. This follow-up requests a dynamic PostgreSQL host port and passes the assigned port to both the preview database URL and recovery maintenance URL. Browser host networking and all loopback guards remain intact.

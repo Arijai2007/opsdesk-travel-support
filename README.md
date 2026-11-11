@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+Use `npm run ops:review-classifier` to review the blind classifier pack in a local browser form, save drafts and export reviewer-labelled JSON. It runs without the application/database or model credentials and shows no classifier predictions. [Reviewer instructions](docs/OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form). Human acceptance remains pending.
+
 The synthetic load rehearsal now supports five-role read weights, manager writes and per-role latency reports. [Run options and scope](docs/OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [New validation evidence](docs/OPSDESK_VALIDATION.md#five-role-load-and-ci-port-isolation---11-november-2026). Representative traffic, cold-cache acceptance and agreed performance targets remain open.
 
 The classifier evaluator now accepts a reviewer-labelled local dataset with provenance/hashes, per-category metrics and a confusion matrix. A blank synthetic review pack and spoken screen-reader checklist are in the [acceptance review guide](docs/OPSDESK_ACCEPTANCE_REVIEW.md). Independent evaluation and spoken-output acceptance remain open. Base main CI ended cancelled at browser installation; hosted browsers and its final audit were skipped. [Current validation evidence](docs/OPSDESK_VALIDATION.md#validation-continuation---11-november-2026). Deployment remains paused.

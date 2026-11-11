@@ -1,5 +1,9 @@
 # OpsDesk — prioritized remaining work
 
+## Blind review form continuation
+
+PR #55 merged with passing PR validation. A local-only review form now makes the merged blind pack usable without editing JSON by hand; draft import/export, per-example reasoning and reviewed-schema validation are implemented and tested in Chromium/Firefox. [Run the reviewer form](OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form). Actual human labels/adjudication and independently reviewed evaluation remain open, as does observable spoken screen-reader acceptance. Check current PR and post-merge main CI before claiming their results. Representative/cold-cache performance, live integrations and operational acceptance remain open; deployment stays paused. Earlier priorities below are historical where superseded.
+
 ## Five-role load continuation
 
 PR #54's pinned-browser workflow passed before merge. Its post-merge run failed before checkout due to PostgreSQL host port 55432 being occupied; this follow-up assigns the port dynamically. Check the new hosted run before reporting combined main validation.
