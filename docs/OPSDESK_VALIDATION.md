@@ -1,3 +1,13 @@
+# Expanded load identity rehearsal
+
+Based on merged PR #57 at `0310cd5`. The existing startup PRs passed hosted Chromium and Firefox. [PR #58 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088904262) · [PR #59 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088962237)
+
+Local Windows and Node.js 22.23.4. The isolated synthetic preview built both applications. Four load profile guard tests, syntax, formatting, workflow YAML and Git whitespace checks passed. The default run completed 200 manager requests and verified 40 writes. The expanded 200-request smoke ran all 12 identities and verified 40 writes. Both supplier accounts successfully read their own temporary histories and received HTTP 404 for each other's histories before timing.
+
+The 60-second expanded rehearsal used 12 workers, 3,074 total cases and 1,394 starting messages. It completed 4,605 requests in 60.194 seconds at 76.5 requests/second, with p50/p95/p99 of 105/500/681 ms. The manager handled 1,658 requests including 921 writes. Each write persisted exactly once on its intended case. Agency, customer and agent each handled 737 reads, and supplier handled 736. Every identity received traffic. A separate database query confirmed restoration of the baseline 60 cases, 192 messages and 12 conversations. After adding the per-role rotation assertion, the expanded 200-request smoke passed again.
+
+These are local synthetic observations. Real booking and account distributions, traffic targets and controlled-cache performance remain open. Human classifier labels and spoken screen-reader acceptance remain pending. Deployment remains paused.
+
 # API process-start profile - 11 November 2026
 
 Started from main `8c1d546925ff67400f59d1c946ab57ff1ab96d1f` after PR #56 merged. Both its [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071338763) and [post-merge main run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071756560) passed, including Chromium, Firefox, the reviewer form, API/recovery/load and audit.

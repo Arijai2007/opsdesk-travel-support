@@ -1,5 +1,11 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Expanded load continuation
+
+PR #57 is merged at `0310cd5` with passing PR and post-merge validation. PRs #58 and #59 passed hosted Chromium and Firefox and remain available for collaborator review. This independent follow-up extends `npm run ops:load` to 12 seeded identities across five roles with per-identity counts. [Run options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)
+
+> Fetch latest main and check open PRs and CI. Continue with a human-labelled and adjudicated classifier export and observable spoken screen-reader review. Use Node 22.23.x and the isolated synthetic preview. Run mutating fixtures sequentially. Representative booking/identity populations, controlled caches, performance targets, live provider acceptance and operational recovery remain open. Keep deployment paused and leave merging to collaborators.
+
 ## API process-start continuation
 
 PR #56 is merged in main `8c1d546`; PR and post-merge validation both passed. This follow-up adds `npm run ops:startup-profile` to compare the first scoped workload GET after a fresh API starts with repeat reads, using migrated/seeded disposable database copies and generated runtime secrets. A local two-round/five-role run completed ten fresh API starts and 110 workload GETs; cleanup and interruption cleanup passed. [Run procedure](OPSDESK_STARTUP_PROFILE.md) · [Exact evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)

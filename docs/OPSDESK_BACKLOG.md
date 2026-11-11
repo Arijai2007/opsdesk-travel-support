@@ -1,5 +1,9 @@
 # OpsDesk — prioritized remaining work
 
+## Expanded load coverage
+
+The synthetic load harness now supports multiple seeded accounts per role. Representative booking and account distributions, controlled-cache runs and performance targets remain open. Independent classifier evaluation and spoken screen-reader acceptance still require human input. [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)
+
 ## API process-start continuation
 
 PR #56 and its post-merge CI passed. Fresh-API process profiling is now reproducible with isolated synthetic database copies, per-role first/repeat timings and verified cleanup. [Run and interpret it](OPSDESK_STARTUP_PROFILE.md). True database/OS cold-cache procedures, populated/representative booking and identity workloads and owner-approved performance targets remain open; a process restart does not satisfy them. Human classifier labels and observable spoken-output review remain pending. Check this follow-up's hosted result; deployment stays paused. Earlier priorities below are historical where superseded.
