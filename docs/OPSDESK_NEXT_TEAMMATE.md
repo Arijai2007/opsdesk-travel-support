@@ -1,5 +1,11 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## CI browser runtime follow-up
+
+PR #53 is merged in main `b7bfa3a`. Its CI timed out while Ubuntu package hosts repeatedly failed DNS resolution during Playwright OS-dependency installation. The follow-up workflow uses the official version/digest-pinned Playwright container for sequential Chromium/Firefox fixtures, retaining the existing loopback guards and Node 22.23.x. Check its hosted result before claiming browser acceptance. [Diagnosis, implementation and verification limits](OPSDESK_VALIDATION.md#ci-browser-runtime-follow-up---11-november-2026)
+
+The requested blind labelling pack and evaluator are now merged. Obtain human labels and observable spoken screen-reader evidence using the [review guide](OPSDESK_ACCEPTANCE_REVIEW.md); neither acceptance is complete. No deployment is authorized. Earlier descriptions of PR #53 as awaiting merge are historical.
+
 ## Validation continuation - 11 November 2026
 
 This continuation starts from main `f29ce705d4cb1ced1a3d9440b43e872336994d60` (PR #52). There were no open PRs at the initial check. The combined application workflow and the documentation commit's validation both ended **cancelled during Playwright installation**. On `f29ce70`, recovery, API and booking ownership checks passed; hosted Chromium/Firefox and the final dependency audit were skipped. The integration rejected a retry with HTTP 403 (Actions write permission unavailable). Do not describe either cancelled run as passing. [Exact evidence](OPSDESK_VALIDATION.md#validation-continuation---11-november-2026)
