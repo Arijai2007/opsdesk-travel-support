@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Current Stitch workspace increment — 11 November 2026
+
+Main was fetched at `bc5f696` after PR #47 merged, with no open PRs and [successful post-merge CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42995341740). The user supplied a Stitch design ZIP and requested its visual language, 3D element and light/dark toggle. The workspace now uses a cobalt/navy palette, a decorative manager route globe, a queue-first manager layout and a saved theme choice. The mockup's invented figures and unavailable provider actions were not brought into the product. [Exact checks and limits](OPSDESK_VALIDATION.md#stitch-workspace-and-cross-role-accessibility-follow-up--11-november-2026).
+
+The five-role keyboard regression and dark-theme axe coverage extend accessibility checks. Actual spoken announcements and 200%/400% browser zoom still require observable acceptance. Local Firefox failed to launch; use hosted CI for engine coverage. No backend policy, deployment or live integration changed. Older status paragraphs below are historical.
+
 ## Current accessibility increment — 11 November 2026
 
 Started from main `84aa88e` after PRs #45 and #46 merged. Their combined [post-merge validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42989735456). The current branch fixes narrow header actions, off-screen Notifications, Escape dismissal/focus return, and pagination overflow inside intake dialogs. No backend, authorization, session, audit or deadline policy changes are included. See the [current checkpoint](OPSDESK_NEXT_TEAMMATE.md) and [exact validation](OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026).

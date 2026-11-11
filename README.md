@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+The workspace now adopts the supplied travel-operations design's cobalt palette and manager dashboard hierarchy. A decorative 3D route globe appears on the manager view, and the header offers a persistent Light/Dark switch. The design uses real role-scoped records; reference-screen figures and unsupported actions are not live features. Cross-role keyboard and dark-theme axe checks are documented in the [current validation record](docs/OPSDESK_VALIDATION.md#stitch-workspace-and-cross-role-accessibility-follow-up--11-november-2026). Actual screen-reader speech and 200%/400% browser zoom remain unverified. Deployment remains paused.
+
 The workspace header and Notifications panel now reflow on narrow screens, Notifications supports Escape with focus return, and paginated form controls wrap inside dialogs. [Accessibility checks and remaining manual acceptance](docs/OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026). Screen-reader announcements and actual browser zoom still require acceptance; automated scans do not establish full accessibility compliance. Deployment remains paused.
 
 Agency users can open **Booking requests** to propose a booking or request a cancellation. Customers can request cancellation for their own bookings. Managers decide in **Booking reviews**. [Booking workflow](docs/OPSDESK_BOOKING_APPROVALS.md)
