@@ -1,5 +1,11 @@
 # OpsDesk — prioritized remaining work
 
+## Current checkpoint — 11 November 2026
+
+PRs #45 (requester booking forms) and #46 (configured real ClamAV preview) are merged into main `84aa88e`; combined post-merge CI passed. The current accessibility increment fixes header/notification reflow, notification Escape/focus return and wrapped pagination. Keyboard checks and viewport regressions are recorded in [validation](OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026).
+
+Next obtain actual screen-reader announcements and browser zoom acceptance, then broaden manual role/workflow acceptance. These checks remain unfinished; the user authorized proceeding with announcements unverified. Real ClamAV acceptance is recorded from PR #46, while production scanner monitoring and file/backup retention approval remain open. No booking provider is selected. Live booking and email acceptance, independent AI evaluation, representative sustained load and operational recovery remain open. Deployment is paused. The implementation checkpoints below are historical and do not reopen features already merged.
+
 The requester forms follow-up adds agency and customer booking requests to the existing manager-reviewed synthetic workflow. Remaining booking work includes selecting a provider, live reconciliation, provider commands, fees and refunds.
 
 The [synthetic mail outbox](OPSDESK_MAIL_OUTBOX.md) now queues staff replies transactionally and supports manager retry and cancellation. The disabled-by-default Resend pilot adds outbound sending and signed delivery receipts. Verified sender setup, credentialed acceptance, secure attachments remain open under #4. Opt-in customer and supplier replies use private per-job addresses and the existing scoped conversations.

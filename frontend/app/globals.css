@@ -337,6 +337,9 @@ select:focus {
   align-items: center;
   gap: 20px;
 }
+.od-pagination {
+  flex-wrap: wrap;
+}
 .od-demo-badge {
   display: flex;
   gap: 6px;
@@ -1726,6 +1729,26 @@ select:focus {
   }
 }
 @media (max-width: 900px) {
+  .od-topbar {
+    position: relative;
+    height: auto;
+    min-height: 76px;
+    flex-wrap: wrap;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+  .od-topbar-actions {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .od-notification-wrap {
+    position: static;
+  }
+  .od-topbar .od-notices {
+    top: 100%;
+    right: 14px;
+    width: min(320px, calc(100% - 28px));
+  }
   .od-sidebar {
     width: 72px;
     padding: 20px 9px;
@@ -1842,8 +1865,8 @@ select:focus {
     padding: 23px 14px;
   }
   .od-topbar {
-    height: 62px;
-    padding: 0 14px;
+    min-height: 62px;
+    padding: 14px;
   }
   .od-breadcrumb {
     font-size: 10px;
@@ -1986,10 +2009,6 @@ select:focus {
   }
   .od-login-form h2 {
     font-size: 27px;
-  }
-  .od-notices {
-    right: -40px;
-    width: 280px;
   }
   .od-toast {
     width: calc(100% - 35px);

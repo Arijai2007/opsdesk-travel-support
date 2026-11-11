@@ -1,3 +1,49 @@
+# Manual accessibility follow-up — 11 November 2026
+
+Base: main `84aa88e037ad1f1310b1d40d83ff5cb7cc5f620a`, after PRs #45/#46 merged. No open PRs existed at start. Their combined [post-merge run completed successfully](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42989735456). Work used a separate clean worktree, Node **22.23.0**, isolated PostgreSQL 18, API `127.0.0.1:3143` and frontend `127.0.0.1:3142`. Other branches and uncommitted work were preserved. No deployment changes or migration were added.
+
+## Implemented and directed manual checks
+
+- Header actions wrap at narrow widths, and Notifications is anchored inside the available workspace rather than outside the viewport or over navigation.
+- Escape in the notification controls/panel dismisses it and returns focus to Notifications. Pagination controls wrap rather than widening intake dialogs.
+- In connected Edge, keyboard login traversed Email, Password and Sign in. Manager navigation reached New ticket and Booking reviews. Both dialogs opened with Close dialog focused; Shift+Tab wrapped to the last enabled form control. The ticket dialog's forward Tab wrapped back to Close dialog, and Escape restored New ticket. Booking reviews Escape restored its launcher.
+- At a **320 CSS-pixel viewport**, the corrected ticket dialog had `clientWidth = scrollWidth = 256` in the observed Edge window. Its pagination wrapped visibly. Notifications stayed within the workspace (observed bounds approximately x=69 to x=291); Escape restored its button. Temporary viewport overrides were reset. This was viewport reflow testing, **not browser zoom acceptance**.
+
+## Completed automated checks
+
+| Check | Exact result |
+| --- | --- |
+| `npm ci` | Passed; 1,166 packages added / 1,170 audited. Existing audit report: 28 vulnerabilities (5 low, 23 moderate); no dependency upgrade was applied in this UI increment. |
+| `npm run ops:preview` | Shared package, backend and frontend production builds passed; all 28 migrations applied/checked on the synthetic database, seed and local services started. |
+| Backend Jest | **91 tests in 10 suites passed**, 0 failed. |
+| Main HTTP / pagination / directories | **121 / 124 / 177 checks passed** respectively. |
+| Lock concurrency | **13 checks passed**; controlled lock wait 160ms, independent message under held routing lock 18ms. Synthetic evidence, not a throughput claim. |
+| Membership / SLA | **80 membership HTTP checks**; **56 SLA HTTP checks + 6 concurrency/reconnect checks** passed. |
+| Workload / supplier calendars | **33 workload policy, multi-worker and pause checks**; **20 supplier-calendar HTTP checks plus deadline/snapshot/idempotency assertions** passed. |
+| Agency contracts / rotations | **52 contract HTTP checks plus policy/concurrency/snapshot/FK assertions**; **63 rotation HTTP checks + 54 policy/concurrency/state assertions** passed. |
+| Signed inbound mail | Customer and supplier signature/address/scope/replay/expiry/privacy/deadline/audit scenarios passed; harness prints scenario summaries without a numeric count. No live delivery was tested. |
+| Attachments / booking approvals | **23 synthetic-scanner checks / 40 booking HTTP checks passed**. This increment did not rerun real ClamAV acceptance; see PR #46 evidence below. |
+| Standard Chromium browser suite | All **six workflow scripts passed**: five-role core, membership, SLA, agency contracts, rotations and booking requests. Then all **10 axe states passed**, 0 violations under configured WCAG A/AA tags. |
+| Standard Firefox browser suite | The same **six workflow scripts**, all **five reflow/keyboard widths** and **10 axe states passed** sequentially after Chromium. |
+| Added reflow/keyboard regression | Passed at **320, 375, 640, 900 and 1024px**: header button bounds, notification bounds/Escape/focus return, booking-review focus return and intake pagination width. Included in the standard accessibility/browser command. |
+| Changed-file lint / script syntax / whitespace | Both changed TSX files passed ESLint from the frontend directory. `node --check scripts/accessibility-smoke.mjs` and `git diff --check` passed. |
+
+The complete API command finished successfully before the standard browser command began. API and browser fixtures were not run concurrently. Browser suites also run sequentially.
+
+## Observed failures and fixes
+
+Failing regressions were added before each fix: Mail outbox extended to x≈347 at 320px; the notification panel started at x≈−7; Escape left the notification panel open; intake needed 325px of scroll width with only 286px available in the Chromium dialog. Header wrapping, workspace-relative panel placement, Escape/focus handling and wrapped pagination fixed these failures. The final Chromium run passed all of them.
+
+An intermediate harness timed out looking for Notifications on its second width because Escape had left the first panel open and the next click toggled it closed. The Escape fix and explicit hidden-state wait resolved that sequence. One focused run started during a preview rebuild and failed with connection refused; the completed rerun waited for readiness. An initial lint invocation used an incorrect path, then passed after running from the frontend directory; an earlier root-directory lint invocation exited 0 with the existing missing-pages-directory warning. These setup/harness failures are not recorded as product passes.
+
+## Unverified and not run
+
+Actual screen-reader announcements are **unverified**. Automatic approval blocked portable NVDA setup, the built-in Narrator launch timed out, and an earlier native browser inspection stopped when it could not identify the browser URL. Browser-specific controls subsequently worked. The user explicitly instructed: **“Continue; record announcements as unverified.”** Accessibility-tree/DOM inspection and axe do not prove spoken announcements.
+
+Actual 200%/400% browser zoom is **unverified**: browser-control shortcuts produced no observable viewport/scale change. The five viewport sizes above establish only the stated layout regression checks. Complete zoom, screen-reader announcements and broader manual role/workflow acceptance using an observable setup. No check interrupted during this increment is claimed as passed; failed attempts above remain recorded. The much earlier PR #28 user-stopped combined browser run remains historical and is not reclassified.
+
+Live email delivery, live booking-provider acceptance (none selected), fresh real ClamAV testing, retention/deletion approval, scanner operations/monitoring, independent AI evaluation, representative sustained load, production policy and recovery acceptance were not run in this UI increment. Deployment remains paused.
+
 # ClamAV preview validation
 
 On Windows with Node 22.23.0 and isolated PostgreSQL 18, both builds, all 91 backend unit tests and changed-file lint passed. The verified ClamAV 1.5.4 Windows archive ran with a loopback TCP listener and a private EICAR test signature. All 23 attachment HTTP checks passed through the real daemon, including detection, clean upload and byte-for-byte download. The daemon log recorded `OpsDesk.Acceptance.Eicar.UNOFFICIAL FOUND`. With the daemon stopped, the same API returned 503 and stored no file. All 23 attachment checks also passed on a separate local API using the default synthetic scanner.

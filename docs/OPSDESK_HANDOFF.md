@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Current accessibility increment — 11 November 2026
+
+Started from main `84aa88e` after PRs #45 and #46 merged. Their combined [post-merge validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42989735456). The current branch fixes narrow header actions, off-screen Notifications, Escape dismissal/focus return, and pagination overflow inside intake dialogs. No backend, authorization, session, audit or deadline policy changes are included. See the [current checkpoint](OPSDESK_NEXT_TEAMMATE.md) and [exact validation](OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026).
+
+Actual screen-reader announcements remain unverified by the user's explicit choice. Browser zoom shortcuts did not change the observed scale, so actual zoom acceptance also remains unverified. Directed keyboard and viewport reflow checks cover the manager workspace and its dialogs; wider manual role/workflow acceptance remains open. Deployment is paused. Earlier checkpoint paragraphs below are historical.
+
 The requester forms follow-up starts from merged PR #44 at `66b43b8`. Agency users can propose bookings or cancellations and customers can request cancellation of their own bookings from the browser. See the [current continuation checkpoint](OPSDESK_NEXT_TEAMMATE.md) and [booking workflow](OPSDESK_BOOKING_APPROVALS.md).
 
 ## Latest continuation checkpoint

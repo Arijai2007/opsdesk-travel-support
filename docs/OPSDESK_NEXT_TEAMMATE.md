@@ -1,6 +1,16 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
-This checkpoint supersedes older remaining-work statements in the historical handoff. Deployment is paused. PRs #43 and #44 are merged. The requester forms follow-up starts from main `66b43b8`. Leave merge decisions to collaborators.
+This checkpoint supersedes older remaining-work statements below and in the historical handoff. Deployment is paused. PRs #45 and #46 are merged into main `84aa88e037ad1f1310b1d40d83ff5cb7cc5f620a`; their combined [post-merge validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42989735456). Leave merge decisions to collaborators.
+
+## Current accessibility follow-up
+
+Branch `codex/manual-accessibility-acceptance` fixes four observed defects: narrow header actions falling off-screen, Notifications extending outside the workspace, missing notification Escape dismissal, and intake pagination forcing horizontal dialog scrolling. Header actions wrap, the panel stays within the narrow workspace, Escape restores notification-button focus, and pagination wraps. Server access boundaries, session safeguards, audit history and saved deadlines are unchanged. [Exact checks, failures and remaining acceptance](OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026).
+
+Local verification passed: `npm ci`, both application builds, 91 backend unit tests, the full API command, six workflow scripts in each of Chromium and Firefox, ten axe states in each engine, five reflow/keyboard widths in each engine, changed-file lint, script syntax and whitespace checks. The full API breakdown is in validation; live services and production readiness are not established by these results.
+
+Actual screen-reader announcements remain unverified: portable NVDA setup was blocked by automatic approval, Narrator launch timed out, and the user explicitly directed continuation with announcements unverified. Browser zoom shortcuts did not produce an observable scale change; viewport resizing is not actual zoom acceptance. Finish those checks with a usable assistive-technology/browser setup and broaden manual role/workflow coverage. No hosting or deployment work is authorized.
+
+## Earlier checkpoint (historical)
 
 ## Published work and merge state
 
@@ -65,4 +75,4 @@ The preview generates a temporary attachment signing key if none is set; restart
 
 ## Copy-ready next-teammate message
 
-> Continue OpsDesk from current main. PRs #43 and #44 are merged and main at `66b43b8` passed CI. Review the requester forms PR and its hosted checks. Agency users can propose bookings and cancellations, customers can request cancellation of their own bookings, and managers decide in Booking reviews. The follow-up passed both builds, 90 unit tests, 40 booking HTTP checks, Chromium and Firefox booking flows, and ten Chromium axe states. Read docs/OPSDESK_NEXT_TEAMMATE.md and the linked feature and validation guides. Next complete manual accessibility and real ClamAV acceptance. Provider selection, live booking and email acceptance, independent AI evaluation, representative load and operational recovery remain open. Use Node 22.23.x and an isolated synthetic preview. Preserve scope checks, session safeguards, deadlines and audit history. Leave merge decisions to collaborators. Deployment remains paused.
+> Continue OpsDesk in DhruvKhanna7777/opsdesk-travel-support. Fetch main and check open PRs and CI first. This accessibility increment starts from main 84aa88e with PRs #45/#46 merged and combined post-merge CI passing. Review the PR from codex/manual-accessibility-acceptance before basing further work on it. It fixes header/notification reflow, notification Escape/focus return and intake pagination overflow. Read docs/OPSDESK_NEXT_TEAMMATE.md first, then the handoff, backlog, validation, booking and attachment guides and README. Use the exact new results in the validation record; do not treat historical counts as new runs. Next verify actual screen-reader announcements and browser zoom, then broaden manual acceptance across roles. Announcements were explicitly left unverified at the user's request; viewport checks do not prove actual zoom. Real ClamAV acceptance passed in PR #46; production monitoring and retention approval remain open. No booking provider is selected. Live booking/email acceptance, independent AI evaluation, representative load and operational recovery remain open. Use Node 22.23.x, npm ci and the isolated synthetic preview, and run API/browser fixtures sequentially. Preserve unrelated work, authorization, agency isolation, sessions, saved deadlines and audit history. Commit verified changes and open a PR targeting main for collaborators to merge. Deployment remains paused.

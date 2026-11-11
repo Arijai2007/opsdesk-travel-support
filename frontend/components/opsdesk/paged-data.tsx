@@ -78,7 +78,7 @@ export function PageControls<T>({
   if (!resource.data) return <p role="status">Loading {label}…</p>;
   const { page, totalPages, total } = resource.data;
   return (
-    <nav className="od-flex od-space" aria-label={`${label} pagination`}>
+    <nav className="od-flex od-space od-pagination" aria-label={`${label} pagination`}>
       <span>
         {total} {label} · Page {page} of {totalPages}
       </span>
