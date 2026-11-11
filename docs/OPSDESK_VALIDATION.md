@@ -490,3 +490,19 @@ On Node 22.23.0 both builds, 9 backend unit tests, HTTP suites (102, 124 and 177
 On Windows, a compiled worker completed the first ticket and blocked on the second ticket inside its PostgreSQL transaction. Terminating the worker rolled back that ticket. A fresh process completed the sweep with exactly one escalation event per ticket. CI runs the same check in the disposable restored database after snapshot comparisons. Database server crash recovery and multi-host failover remain separate operational tests.
 
 The first post-merge main run restored the fixture successfully, then failed during forced database deletion while a pooled socket was closing. The checkpoint uses ordinary DROP DATABASE after ending the pools and writes the success report only after database and archive cleanup.
+## Sustained synthetic load
+
+Ran `npm run ops:load`'s script on Windows with Node.js 22.23.4 against the isolated preview on loopback. The backend and optimized frontend built successfully. Both scenarios started from 60 cases and 192 messages. The default finished 200 requests with eight workers in 3.624 seconds, including 40 verified writes. Its p50/p95/p99 were 112/348/440 ms.
+
+The sustained scenario used 12 workers, 3,000 background cases and 1,200 existing messages in a shared thread. It loaded 3,072 total cases and 1,392 total messages before measurement. It verified queue page 150 and thread page 60, then completed 3,904 requests in 60.167 seconds at 64.9 requests per second. All 781 acknowledged notes were persisted exactly once on the intended case. Both runs removed their fixtures. An out-of-range duration was rejected before connecting.
+
+| Operation | Requests | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| All | 3,904 | 120 | 625 | 913 | 1,542 |
+| Booking directory | 781 | 86 | 136 | 165 | 206 |
+| Internal note | 781 | 468 | 913 | 1,247 | 1,542 |
+| Shared case history | 781 | 93 | 139 | 175 | 223 |
+| Deep queue | 780 | 127 | 193 | 223 | 263 |
+| Insights | 781 | 137 | 204 | 225 | 293 |
+
+These figures come from a single local host, a synthetic manager session and duplicated case fixtures. The harness made initial queue and history reads before measurement. Cold-cache performance, representative booking and role distributions, sustained production traffic and owner-approved latency and throughput targets remain open. Reproduce the run with the [load rehearsal options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal).

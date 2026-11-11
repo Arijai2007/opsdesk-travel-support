@@ -91,6 +91,8 @@ The [full demo guide](OPSDESK_README.md#show-the-main-scenario) also covers dead
 
 ## Validation and query profiling
 
+Run the local sustained-load rehearsal with `npm run ops:load`. [Options and fixture scope](docs/OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal)
+
 Run checks in a second terminal against the isolated seeded demo:
 
 ```sh
