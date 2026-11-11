@@ -1,5 +1,11 @@
 # OpsDesk — prioritized remaining work
 
+## Stitch UI continuation — 11 November 2026
+
+After PR #47 merged, the supplied Stitch reference was adapted to the functional manager workspace with a cobalt/navy style, a decorative 3D route globe, a queue-first layout and a persistent light/dark switch. Cross-role keyboard and dark-theme axe checks were added. The reference's fabricated operational figures and unsupported controls were excluded. See the [current validation record](OPSDESK_VALIDATION.md#stitch-workspace-and-cross-role-accessibility-follow-up--11-november-2026).
+
+Still open: observable 200%/400% browser zoom and spoken screen-reader announcements, broader human workflow review, production scanner monitoring and retention approval, live booking-provider selection/acceptance, live email acceptance, independent AI evaluation, representative sustained load and operational recovery. Deployment remains paused. The older checkpoints below are historical.
+
 ## Current checkpoint — 11 November 2026
 
 PRs #45 (requester booking forms) and #46 (configured real ClamAV preview) are merged into main `84aa88e`; combined post-merge CI passed. The current accessibility increment fixes header/notification reflow, notification Escape/focus return and wrapped pagination. Keyboard checks and viewport regressions are recorded in [validation](OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026).

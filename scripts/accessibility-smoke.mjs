@@ -24,6 +24,37 @@ async function signIn(name) {
   await page.getByRole('button', {name: 'Notifications', exact: true}).waitFor();
   return page;
 }
+async function checkRoleKeyboard(page, role) {
+  const launchers = ['Workspace guide', 'New ticket', 'Booking requests', 'Booking reviews'];
+  for (const name of launchers) {
+    const launcher = page.getByRole('button', {name, exact: true});
+    if (!await launcher.count()) continue;
+    await launcher.focus();
+    await page.keyboard.press('Enter');
+    const dialog = page.getByRole('dialog');
+    await dialog.waitFor();
+    const close = dialog.getByRole('button', {name: 'Close dialog'});
+    assert(await close.evaluate((button) => button === document.activeElement), `${role}: ${name} initial focus`);
+    await page.keyboard.press('Shift+Tab');
+    assert(await dialog.evaluate((element) => element.contains(document.activeElement)),
+      `${role}: ${name} reverse Tab stays in dialog`);
+    await page.keyboard.press('Tab');
+    assert(await close.evaluate((button) => button === document.activeElement),
+      `${role}: ${name} Tab returns to close button`);
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({state: 'hidden'});
+    assert(await launcher.evaluate((button) => button === document.activeElement),
+      `${role}: ${name} Escape restores launcher focus`);
+  }
+  const notifications = page.getByRole('button', {name: 'Notifications', exact: true});
+  await notifications.focus();
+  await page.keyboard.press('Enter');
+  await page.locator('.od-notices').waitFor();
+  await page.keyboard.press('Escape');
+  await page.locator('.od-notices').waitFor({state: 'hidden'});
+  assert(await notifications.evaluate((button) => button === document.activeElement),
+    `${role}: Notifications Escape restores launcher focus`);
+}
 try {
   const loginContext = await browser.newContext();
   const login = await loginContext.newPage();
@@ -33,6 +64,20 @@ try {
   await login.close();
   const manager = await signIn('manager');
   await scan(manager, 'manager inbox');
+  await manager.getByRole('button', {name: 'Switch to dark theme'}).click();
+  assert.equal(await manager.locator('.od-app').getAttribute('data-theme'), 'dark');
+  await scan(manager, 'manager inbox dark theme');
+  await manager.getByRole('button', {name: 'Booking reviews', exact: true}).click();
+  await scan(manager, 'booking review dark theme');
+  await manager.keyboard.press('Escape');
+  await manager.getByRole('button', {name: 'New ticket', exact: true}).click();
+  await scan(manager, 'new case intake dark theme');
+  await manager.keyboard.press('Escape');
+  await manager.reload();
+  await manager.getByRole('button', {name: 'Switch to light theme'}).waitFor();
+  assert.equal(await manager.locator('.od-app').getAttribute('data-theme'), 'dark', 'Theme persists after reload');
+  await manager.getByRole('button', {name: 'Switch to light theme'}).click();
+  assert.equal(await manager.locator('.od-app').getAttribute('data-theme'), 'light');
   // Catch controls pushed outside the page at the WCAG reflow width. Tables
   // may scroll within their own container; the workspace header must not.
   for (const width of [320, 375, 640, 900, 1024]) {
@@ -98,12 +143,20 @@ try {
   await manager.getByRole('button', {name: 'Insights', exact: true}).click();
   await manager.getByText('Median first response', {exact: true}).waitFor();
   await scan(manager, 'manager insights');
+  await checkRoleKeyboard(manager, 'manager');
   await manager.close();
   for (const role of ['maya', 'agency', 'asia', 'supplier']) {
     const page = await signIn(role);
     await scan(page, `${role} workspace`);
+    await checkRoleKeyboard(page, role);
+    await page.getByRole('button', {name: 'Switch to dark theme'}).click();
+    await scan(page, `${role} workspace dark theme`);
+    await page.getByRole('button', {name: 'Workspace guide', exact: true}).click();
+    await scan(page, `${role} guide dark theme`);
+    await page.keyboard.press('Escape');
     await page.close();
   }
   assert.equal(failures.length, 0, JSON.stringify(failures, null, 2));
   console.log(`Accessibility ${engine}: ${scans} states passed axe WCAG A/AA checks. Manual assistive-technology acceptance remains required.`);
+  console.log(`Accessibility ${engine}: keyboard dialog/notification focus checks passed across manager, traveler, agency, agent and supplier roles.`);
 } finally { await browser.close(); }

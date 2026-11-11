@@ -1,4 +1,22 @@
-# Manual accessibility follow-up — 11 November 2026
+# Stitch workspace and cross-role accessibility follow-up — 11 November 2026
+
+Base: clean main `bc5f69630b7ddf78685e58d7de248c1d8ddbbae2`. PR #47 was merged, no PRs were open, and its [post-merge run succeeded](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42995341740). Work used an isolated clone and synthetic PostgreSQL preview on Node 22.23.0. The user-provided Stitch ZIP was treated as design reference. Its invented case counts, provider status, automated rebooking and unsupported controls were not imported. No backend, migration, live integration or deployment changes were made.
+
+## Implementation and verification
+
+- Cobalt/navy workspace treatment, manager queue before administrative settings, a decorative CSS 3D route globe, and a Light/Dark switch that saves the choice in browser storage. The globe does not claim live flight telemetry.
+- `npm ci` succeeded: 1,166 packages installed, 1,170 audited; npm reported 28 existing advisories (5 low, 23 moderate). Preview rebuilt shared, backend and frontend apps and used only seeded synthetic records.
+- `npm run ops:test` completed before browser fixtures: **91/91 backend tests**, then **121 main HTTP**, **124 pagination**, **177 directory**, **13 lock**, **80 membership**, **56 SLA plus 6 concurrency/reconnect**, **33 workload**, **20 supplier-calendar**, **52 contract**, **63 rotation plus 54 policy/state**, **23 synthetic attachment**, and **40 booking approval** checks passed. Signed inbound mail scenarios also passed; that harness prints no numeric count. This was not a new real ClamAV run.
+- Final `npm run ops:test:browser` in Chromium passed all **six workflow scripts**, five reflow/keyboard widths (**320, 375, 640, 900, 1024 CSS pixels**), five-role dialog/notification keyboard checks, theme persistence after reload, and **21 axe WCAG A/AA states** across light/dark workspaces and dialogs. A focused 21-state run also passed. Frontend production build and `git diff --check` passed. Hosted Firefox validation for this branch must be checked separately.
+- Visual inspection used 1440×900 Chromium screenshots of the manager view in both themes; the displayed figures came from the synthetic preview. Manager admin controls remain below the live queue and remain available.
+
+## Failing regressions and unresolved acceptance
+
+The dark-theme axe regression failed first on numerous inherited green text colors against navy surfaces. After targeted text fixes, it failed on the linked-case chip's light background, then a broadened supplier-guide scan found the `.od-info` contrast defect. Each defect was fixed and the final 21-state scan passed. The first lint invocation ran from the repository root without the frontend ESLint config. The correctly scoped run then caught synchronous state restoration in an effect; it was changed to a scheduled restoration and changed-file lint passed. A page-level Chromium `Control++` probe and a native Edge-window key attempt both left measured `innerWidth`, `devicePixelRatio` and `visualViewport.width` unchanged; **actual 200%/400% browser zoom is unverified**. The computer-use bridge failed to initialize, so it could not provide an observable browser zoom path. Viewport reflow is not zoom acceptance.
+
+Local Playwright Firefox again failed before tests with `browserType.launch: spawn UNKNOWN`; no local Firefox pass is claimed. Actual spoken screen-reader announcements remain **unverified** because no observable setup was available, consistent with the earlier user direction. Neither axe nor DOM focus checks establish spoken output. No live booking provider is selected. Live booking/email, independent AI evaluation, sustained representative load, operational recovery, production scanner monitoring and retention approval remain open. Deployment remains paused.
+
+# Historical manual accessibility follow-up — 11 November 2026
 
 Base: main `84aa88e037ad1f1310b1d40d83ff5cb7cc5f620a`, after PRs #45/#46 merged. No open PRs existed at start. Their combined [post-merge run completed successfully](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42989735456). Work used a separate clean worktree, Node **22.23.0**, isolated PostgreSQL 18, API `127.0.0.1:3143` and frontend `127.0.0.1:3142`. Other branches and uncommitted work were preserved. No deployment changes or migration were added.
 

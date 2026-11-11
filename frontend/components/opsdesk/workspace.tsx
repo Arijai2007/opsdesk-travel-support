@@ -18,9 +18,11 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  Moon,
   Plus,
   Search,
   ShieldCheck,
+  Sun,
   TicketCheck,
   X,
 } from "lucide-react";
@@ -69,6 +71,20 @@ export function OpsDeskWorkspace() {
     [showNotices, setShowNotices] = useState(false),
     [showClock, setShowClock] = useState(false),
     [showHelp, setShowHelp] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      if (window.localStorage.getItem("opsdesk-theme") === "dark") setTheme("dark");
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const toggleTheme = () => {
+    setTheme((current) => {
+      const next = current === "light" ? "dark" : "light";
+      window.localStorage.setItem("opsdesk-theme", next);
+      return next;
+    });
+  };
   const queue = useTravelQueue(
     data?.me.id,
     Boolean(
@@ -245,7 +261,7 @@ export function OpsDeskWorkspace() {
     URL.revokeObjectURL(url);
   }
   return (
-    <div className="od-app">
+    <div className="od-app" data-theme={theme}>
       <aside className="od-sidebar">
         <Link href="/" className="od-brand">
           <span className="od-brandmark">
@@ -334,6 +350,12 @@ export function OpsDeskWorkspace() {
             </b>
           </div>
           <div className="od-topbar-actions">
+            <button className="od-theme-toggle" onClick={toggleTheme}
+              aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+              aria-pressed={theme === "dark"}>
+              {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+              <span>{theme === "light" ? "Dark" : "Light"}</span>
+            </button>
             <span className="od-demo-badge">
               <i />
               Demo workspace
@@ -495,6 +517,24 @@ export function OpsDeskWorkspace() {
                   </button>
                 </div>
               </div>
+              {view === "manager" && data.me.kind === "MANAGER" && (
+                <div className="od-corridor" aria-hidden="true">
+                  <div className="od-corridor-copy">
+                    <span>TRAVEL OPERATIONS</span>
+                    <strong>Every route. One clear view.</strong>
+                  </div>
+                  <div className="od-globe">
+                    <div className="od-globe-core" />
+                    <div className="od-globe-orbit orbit-one" />
+                    <div className="od-globe-orbit orbit-two" />
+                    <div className="od-globe-route route-one" />
+                    <div className="od-globe-route route-two" />
+                    <i className="od-globe-point point-one" />
+                    <i className="od-globe-point point-two" />
+                    <i className="od-globe-point point-three" />
+                  </div>
+                </div>
+              )}
               {view === "bookings" ? (
                 <Bookings
                   data={data}
@@ -506,22 +546,6 @@ export function OpsDeskWorkspace() {
                 <Insights />
               ) : (
                 <>
-                  {view === "manager" && data.me.kind === "MANAGER" && (
-                    <>
-                      <Membership actorId={data.me.id} />
-                      <RoutingSettings
-                        data={data}
-                        busy={busy}
-                        mutate={mutate}
-                      />
-                      <SlaSettings data={data} busy={busy} mutate={mutate} />
-                      <AgencyResponseSettings
-                        data={data}
-                        busy={busy}
-                        mutate={mutate}
-                      />
-                    </>
-                  )}
                   <div className="od-stats">
                     {[
                       {
@@ -855,6 +879,14 @@ export function OpsDeskWorkspace() {
                       </span>
                     </div>
                   </section>
+                  {view === "manager" && data.me.kind === "MANAGER" && (
+                    <div className="od-manager-settings">
+                      <Membership actorId={data.me.id} />
+                      <RoutingSettings data={data} busy={busy} mutate={mutate} />
+                      <SlaSettings data={data} busy={busy} mutate={mutate} />
+                      <AgencyResponseSettings data={data} busy={busy} mutate={mutate} />
+                    </div>
+                  )}
                   <div className="od-bottom-note">
                     <ShieldCheck size={15} />
                     <span>
