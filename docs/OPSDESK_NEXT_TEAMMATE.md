@@ -1,11 +1,5 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
-## Expanded load continuation
-
-PR #57 is merged at `0310cd5` with passing PR and post-merge validation. PRs #58 and #59 passed hosted Chromium and Firefox and remain available for collaborator review. This independent follow-up extends `npm run ops:load` to 12 seeded identities across five roles with per-identity counts. [Run options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)
-
-> Fetch latest main and check open PRs and CI. Continue with a human-labelled and adjudicated classifier export and observable spoken screen-reader review. Use Node 22.23.x and the isolated synthetic preview. Run mutating fixtures sequentially. Representative booking/identity populations, controlled caches, performance targets, live provider acceptance and operational recovery remain open. Keep deployment paused and leave merging to collaborators.
-
 ## API process-start continuation
 
 PR #56 is merged in main `8c1d546`; PR and post-merge validation both passed. This follow-up adds `npm run ops:startup-profile` to compare the first scoped workload GET after a fresh API starts with repeat reads, using migrated/seeded disposable database copies and generated runtime secrets. A local two-round/five-role run completed ten fresh API starts and 110 workload GETs; cleanup and interruption cleanup passed. [Run procedure](OPSDESK_STARTUP_PROFILE.md) · [Exact evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)
@@ -166,3 +160,9 @@ The preview generates a temporary attachment signing key if none is set; restart
 ## Copy-ready next-teammate message
 
 > Continue OpsDesk in DhruvKhanna7777/opsdesk-travel-support. Fetch main and check open PRs and CI first. This accessibility increment starts from main 84aa88e with PRs #45/#46 merged and combined post-merge CI passing. Review PR #47 (https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/47; implementation commit 50b83b6) and its latest CI before basing further work on it. Local preview services were stopped after verification. It fixes header/notification reflow, notification Escape/focus return and intake pagination overflow. Read docs/OPSDESK_NEXT_TEAMMATE.md first, then the handoff, backlog, validation, booking and attachment guides and README. Use the exact new results in the validation record; do not treat historical counts as new runs. Next verify actual screen-reader announcements and browser zoom, then broaden manual acceptance across roles. Announcements were explicitly left unverified at the user's request; viewport checks do not prove actual zoom. Real ClamAV acceptance passed in PR #46; production monitoring and retention approval remain open. No booking provider is selected. Live booking/email acceptance, independent AI evaluation, representative load and operational recovery remain open. Use Node 22.23.x, npm ci and the isolated synthetic preview, and run API/browser fixtures sequentially. Preserve unrelated work, authorization, agency isolation, sessions, saved deadlines and audit history. Commit verified changes and open a PR targeting main for collaborators to merge. Deployment remains paused.
+
+## Expanded load continuation
+
+PR #57 is merged at `0310cd5` with passing PR and post-merge validation. PRs #58 and #59 passed hosted Chromium and Firefox and remain available for collaborator review. This independent follow-up extends `npm run ops:load` to 12 seeded identities across five roles with per-identity counts. [Run options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)
+
+> Fetch latest main and check open PRs and CI. Continue with a human-labelled and adjudicated classifier export and observable spoken screen-reader review. Use Node 22.23.x and the isolated synthetic preview. Run mutating fixtures sequentially. Representative booking/identity populations, controlled caches, performance targets, live provider acceptance and operational recovery remain open. Keep deployment paused and leave merging to collaborators.

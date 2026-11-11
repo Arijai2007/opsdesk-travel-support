@@ -1,13 +1,3 @@
-# Expanded load identity rehearsal
-
-Based on merged PR #57 at `0310cd5`. The existing startup PRs passed hosted Chromium and Firefox. [PR #58 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088904262) · [PR #59 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088962237)
-
-Local Windows and Node.js 22.23.4. The isolated synthetic preview built both applications. Four load profile guard tests, syntax, formatting, workflow YAML and Git whitespace checks passed. The default run completed 200 manager requests and verified 40 writes. The expanded 200-request smoke ran all 12 identities and verified 40 writes. Both supplier accounts successfully read their own temporary histories and received HTTP 404 for each other's histories before timing.
-
-The 60-second expanded rehearsal used 12 workers, 3,074 total cases and 1,394 starting messages. It completed 4,605 requests in 60.194 seconds at 76.5 requests/second, with p50/p95/p99 of 105/500/681 ms. The manager handled 1,658 requests including 921 writes. Each write persisted exactly once on its intended case. Agency, customer and agent each handled 737 reads, and supplier handled 736. Every identity received traffic. A separate database query confirmed restoration of the baseline 60 cases, 192 messages and 12 conversations. After adding the per-role rotation assertion, the expanded 200-request smoke passed again.
-
-These are local synthetic observations. Real booking and account distributions, traffic targets and controlled-cache performance remain open. Human classifier labels and spoken screen-reader acceptance remain pending. Deployment remains paused.
-
 # API process-start profile - 11 November 2026
 
 Started from main `8c1d546925ff67400f59d1c946ab57ff1ab96d1f` after PR #56 merged. Both its [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071338763) and [post-merge main run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071756560) passed, including Chromium, Firefox, the reviewer form, API/recovery/load and audit.
@@ -136,6 +126,16 @@ Chromium and Firefox each passed all six browser workflows, 26 axe WCAG A/AA sta
 Actual browser zoom passed at **200% and 400%** in Chrome for Testing 151.0.7922.34. A temporary local extension set and read tab zoom with `chrome.tabs.setZoom` and `chrome.tabs.getZoom`. At 200%, the tab reported factor 2, DPR 2 and a 631 CSS-pixel viewport. At 400%, it reported factor 3.9999999999999996, DPR 4 and 315 CSS pixels. The support view and the bookings view with expanded history had no horizontal document or main-content overflow. Both zoom levels passed heading focus on booking navigation, keyboard expansion of case history, and opening and dismissing Booking requests and New ticket with focus return. The first full-browser launch failed with `spawn UNKNOWN`, and a fresh separate browser installation resolved it. A strict floating-point comparison and a reused signed-in profile interrupted two attempts. The final run used a fresh profile and a tolerance for the reported factor.
 
 Windows Narrator started, but its window ran at a higher integrity level than the computer-use helper. The helper could not inspect the window or observe spoken output. Spoken acceptance remains open. Live provider acceptance, production scanner monitoring, retention approval, independent AI evaluation, sustained representative load and operational recovery remain open. Deployment remains paused.
+
+# Expanded load identity rehearsal
+
+Based on merged PR #57 at `0310cd5`. The existing startup PRs passed hosted Chromium and Firefox. [PR #58 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088904262) · [PR #59 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088962237)
+
+Local Windows and Node.js 22.23.4. The isolated synthetic preview built both applications. Four load profile guard tests, syntax, formatting, workflow YAML and Git whitespace checks passed. The default run completed 200 manager requests and verified 40 writes. The expanded 200-request smoke ran all 12 identities and verified 40 writes. Both supplier accounts successfully read their own temporary histories and received HTTP 404 for each other's histories before timing.
+
+The 60-second expanded rehearsal used 12 workers, 3,074 total cases and 1,394 starting messages. It completed 4,605 requests in 60.194 seconds at 76.5 requests/second, with p50/p95/p99 of 105/500/681 ms. The manager handled 1,658 requests including 921 writes. Each write persisted exactly once on its intended case. Agency, customer and agent each handled 737 reads, and supplier handled 736. Every identity received traffic. A separate database query confirmed restoration of the baseline 60 cases, 192 messages and 12 conversations. After adding the per-role rotation assertion, the expanded 200-request smoke passed again.
+
+These are local synthetic observations. Real booking and account distributions, traffic targets and controlled-cache performance remain open. Human classifier labels and spoken screen-reader acceptance remain pending. Deployment remains paused.
 
 # Case detail and Insights reference follow-up — 11 November 2026
 

@@ -1,9 +1,5 @@
 # OpsDesk developer handoff
 
-## Expanded load identity rehearsal
-
-The load harness can rotate reads among seeded identities within a role while preserving role weights and the existing manager-only write mix. The expanded synthetic run exercises two supplier scopes and records per-identity traffic. [Procedure](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)
-
 ## API process-start continuation
 
 Main `8c1d546` includes merged PR #56, with both PR and post-merge CI passing. The new synthetic startup profiler uses a separate template/clone per probe and a fresh owned API process. It reports readiness, login, first GET and repeat reads without changing existing application data. Ten five-role/two-round process starts, 110 workload GETs and normal/interruption cleanup passed locally. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md) · [Recorded evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)
@@ -487,3 +483,7 @@ Each candidate runs under the shared capacity lock followed by the parent ticket
 ## Synthetic load follow-up
 
 The isolated HTTP harness now supports duration, background case volume and long-thread controls. It measures latency by operation, verifies each acknowledged write on its intended case, and removes its fixtures. Use the [rehearsal instructions](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) and [observed results](OPSDESK_VALIDATION.md#sustained-synthetic-load). Next agree representative booking and traffic distributions, cold-cache procedures and owner-approved thresholds. Deployment remains paused.
+
+## Expanded load identity rehearsal
+
+The load harness can rotate reads among seeded identities within a role while preserving role weights and the existing manager-only write mix. The expanded synthetic run exercises two supplier scopes and records per-identity traffic. [Procedure](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)
