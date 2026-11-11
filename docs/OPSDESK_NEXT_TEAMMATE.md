@@ -165,6 +165,10 @@ A development setup can avoid new service subscription costs by using local tool
 
 PR #46 enables the real scanner when the local preview has a ClamAV host configured. Local Windows validation passed with ClamAV 1.5.4 and both a private test signature and official databases verified and installed by FreshClam. Clean files uploaded and downloaded byte-for-byte, EICAR was rejected, and stopping the daemon caused uploads to fail with HTTP 503 without storing files. The default synthetic attachment suite also passed. See the [attachment guide](OPSDESK_ATTACHMENTS.md) and [validation record](OPSDESK_VALIDATION.md). Production scanner operation, recurring signature monitoring and retention approval remain open.
 
+## Synthetic recovery follow-up
+
+The logical recovery rehearsal now checks that a truncated synthetic archive fails after table creation begins, leaves the disposable target empty, and allows an intact retry in that same database. Hosted CI runs the rehearsal through the existing recovery step. Review the exact validation before merging. Approved staging restore, backup storage and retention, recovery targets and on-call ownership remain pending. Continue the independent classifier and spoken accessibility reviews with human evidence. Deployment remains paused. [Recovery guide](OPSDESK_RECOVERY.md)
+
 ## Reproduce locally
 
 Use Node.js **22.23.x**, `npm ci`, and `npm run ops:preview`. Keep the demo isolated and credential-free. This checkout used PostgreSQL port **55439**, API **3141**, and frontend **3140** because default ports were occupied. Local env files are ignored and were not committed. `LOCAL_POSTGRES_PORT` now supports an isolated database port; the preview derives the web port from `FRONTEND_URL`.
