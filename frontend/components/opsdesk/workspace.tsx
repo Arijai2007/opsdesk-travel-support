@@ -351,7 +351,16 @@ export function OpsDeskWorkspace() {
             {(manager || data.me.kind === "AGENCY" || data.me.kind === "CUSTOMER") && (
               <BookingRequests data={data} />
             )}
-            <div className="od-notification-wrap">
+            <div
+              className="od-notification-wrap"
+              onKeyDown={(event) => {
+                if (event.key === "Escape" && showNotices) {
+                  event.preventDefault();
+                  setShowNotices(false);
+                  noticesButton.current?.focus();
+                }
+              }}
+            >
               <button
                 className="od-icon"
                 ref={noticesButton}

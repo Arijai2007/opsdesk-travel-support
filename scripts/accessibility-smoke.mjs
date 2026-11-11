@@ -33,6 +33,56 @@ try {
   await login.close();
   const manager = await signIn('manager');
   await scan(manager, 'manager inbox');
+  // Catch controls pushed outside the page at the WCAG reflow width. Tables
+  // may scroll within their own container; the workspace header must not.
+  for (const width of [320, 375, 640, 900, 1024]) {
+    await manager.setViewportSize({width, height: 800});
+    const layout = await manager.locator('.od-topbar').evaluate((header) => ({
+      viewport: window.innerWidth,
+      right: header.getBoundingClientRect().right,
+      controls: [...header.querySelectorAll('button')].map((button) => ({
+        name: button.textContent || button.getAttribute('aria-label'),
+        left: button.getBoundingClientRect().left,
+        right: button.getBoundingClientRect().right,
+      })),
+    }));
+    assert(layout.right <= layout.viewport + 1, `Header overflows at ${width}px`);
+    for (const control of layout.controls) {
+      assert(control.left >= 0 && control.right <= width + 1,
+        `${control.name} falls outside the ${width}px viewport: ${JSON.stringify(control)}`);
+    }
+    await manager.getByRole('button', {name: 'Notifications', exact: true}).click();
+    const notices = await manager.locator('.od-notices').evaluate((panel) => ({
+      left: panel.getBoundingClientRect().left,
+      right: panel.getBoundingClientRect().right,
+    }));
+    assert(notices.left >= 55 && notices.right <= width,
+      `Notifications overlap navigation or leave the ${width}px viewport: ${JSON.stringify(notices)}`);
+    await manager.keyboard.press('Escape');
+    await manager.locator('.od-notices').waitFor({state: 'hidden'});
+    assert.equal(await manager.locator('.od-notices').count(), 0, 'Escape dismisses notifications');
+    assert(await manager.getByRole('button', {name: 'Notifications', exact: true})
+      .evaluate((button) => button === document.activeElement), 'Notifications restores launcher focus');
+    await manager.getByRole('button', {name: 'Booking reviews', exact: true}).focus();
+    await manager.keyboard.press('Enter');
+    const dialog = manager.getByRole('dialog', {name: 'Booking reviews', exact: true});
+    await dialog.waitFor();
+    await manager.keyboard.press('Escape');
+    await dialog.waitFor({state: 'hidden'});
+    assert(await manager.getByRole('button', {name: 'Booking reviews', exact: true})
+      .evaluate((button) => button === document.activeElement), 'Dialog restores launcher focus');
+    await manager.getByRole('button', {name: 'New ticket', exact: true}).click();
+    const intakeDialog = manager.getByRole('dialog', {name: 'Start a conversation', exact: true});
+    await intakeDialog.getByRole('button', {name: 'Older Booking', exact: true}).waitFor();
+    const intakeWidth = await intakeDialog.evaluate((element) => ({
+      client: element.clientWidth, scroll: element.scrollWidth,
+    }));
+    assert(intakeWidth.scroll <= intakeWidth.client + 1,
+      `Intake requires horizontal scrolling at ${width}px: ${JSON.stringify(intakeWidth)}`);
+    await manager.keyboard.press('Escape');
+  }
+  await manager.setViewportSize({width: 1280, height: 800});
+  console.log('Reflow and keyboard: header controls, notification bounds/Escape/focus, booking dialog focus and intake pagination passed at 320, 375, 640, 900 and 1024px.');
   await manager.getByRole('button', {name: 'Booking reviews', exact: true}).click();
   const reviews = manager.getByRole('dialog', {name: 'Booking reviews', exact: true});
   await reviews.waitFor();

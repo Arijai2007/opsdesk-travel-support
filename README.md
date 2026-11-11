@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+The workspace header and Notifications panel now reflow on narrow screens, Notifications supports Escape with focus return, and paginated form controls wrap inside dialogs. [Accessibility checks and remaining manual acceptance](docs/OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026). Screen-reader announcements and actual browser zoom still require acceptance; automated scans do not establish full accessibility compliance. Deployment remains paused.
+
 Agency users can open **Booking requests** to propose a booking or request a cancellation. Customers can request cancellation for their own bookings. Managers decide in **Booking reviews**. [Booking workflow](docs/OPSDESK_BOOKING_APPROVALS.md)
 
 The [synthetic mail outbox](docs/OPSDESK_MAIL_OUTBOX.md) starts paused. Managers can inspect and manage queued staff replies. The optional synthetic worker sends no external mail.
