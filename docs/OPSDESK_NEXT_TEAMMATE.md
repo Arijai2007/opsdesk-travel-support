@@ -78,7 +78,7 @@ A development setup can avoid new service subscription costs by using local tool
 4. Select a booking provider. The user explicitly said none is selected. Duffel test mode was suggested for flight sandbox development, not adopted or connected. Use provider-neutral/synthetic tests meanwhile. Build credentialed read/reconciliation and eventual provider command handling with manager review, stable ownership mapping, retries/idempotency and confirmed cancellation outcomes. Fee and refund handling remain open.
 5. Complete verified mail sending/receiving domains, credentials and a real send/receive/receipt/reply rehearsal. Synthetic and provider-fixture tests do not prove live delivery.
 6. Obtain independently labelled evaluation data and evaluate classification, privacy/linking and grounded summaries/drafts. Current deterministic record briefs and synthetic keyword fixtures do not satisfy independent AI acceptance.
-7. Extend load tests to representative data volumes, skew, long threads, cold caches and sustained concurrent readers/writers, with agreed latency/throughput targets.
+7. Reproduce the [sustained synthetic load rehearsal](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal). Extend it to representative booking and role distributions and a cold-cache run, with owner-approved latency and throughput targets. See the [observed results](OPSDESK_VALIDATION.md#sustained-synthetic-load).
 8. Complete operational recovery acceptance: named incident/recovery owners, approved live-data tenancy and retention, managed backups/monitoring/alerts and an approved staging restore. Existing synthetic recovery/worker-restart CI evidence remains useful but is not operational acceptance. Keep deployment paused.
 
 ## ClamAV checkpoint

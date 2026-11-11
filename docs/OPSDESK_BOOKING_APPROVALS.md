@@ -28,8 +28,20 @@ All reasons require at least ten meaningful characters. Repeating the same reque
 
 Run `npm run ops:test:booking-requests` against the isolated preview. The harness covers concurrent approvals, exact audit counts, wrong-agency access, invalid timezone, changed-booking rejection and preservation of existing case status/deadlines. Run `npm run ops:test:booking-requests:browser` for the agency request, customer cancellation and manager decision flow, including a retry after a dropped response. Standard API and browser test commands include both harnesses. Do not run policy-mutating suites simultaneously.
 
-## Exploratory load harness
+## Synthetic load rehearsal
 
-`npm run ops:load` runs 200 mixed queue, booking, thread and Insights reads with internal-note writes at concurrency eight. It creates and removes its own case fixtures and checks that every acknowledged write persists exactly once. `OPSDESK_LOAD_REQUESTS` (20–10000) and `OPSDESK_LOAD_CONCURRENCY` (1–32) control the run. The target must be a local synthetic preview. Output includes baseline row counts, throughput and latency percentiles.
+Run `npm run ops:load` against the isolated synthetic preview. The default sends 200 mixed queue, booking, history and Insights reads and internal-note writes with eight concurrent workers. Each run creates uniquely named cases and verifies that every acknowledged note is stored exactly once on its intended case. The fixtures are removed on completion.
 
-One local run on 60 seeded cases and 192 messages completed 200 requests and 40 writes in 1383 ms, with p50 49 ms, p95 95 ms and p99 179 ms. This is exploratory evidence. Representative volumes, long threads, workload skew, cold caches, sustained traffic and owner-approved acceptance targets remain open.
+To run a sustained rehearsal with a larger dataset and a shared, long message thread, set the following variables before running the same command.
+
+```powershell
+$env:OPSDESK_LOAD_DURATION_SECONDS = '60'
+$env:OPSDESK_LOAD_CASES = '3000'
+$env:OPSDESK_LOAD_HISTORY = '1200'
+$env:OPSDESK_LOAD_CONCURRENCY = '12'
+npm run ops:load
+```
+
+Duration mode keeps the workers active for up to 180 seconds and drains in-flight requests. Without a duration, `OPSDESK_LOAD_REQUESTS` selects 20–10,000 requests. Case and history options accept up to 18,000 and 5,000 rows respectively. Concurrency accepts 1–32 workers. The harness verifies deep queue and history pages, directs most writes to the same case, and reports aggregate and per-operation p50, p95, p99 and maximum latency. Set `OPSDESK_TEST_URL` when using a custom API port. Run it separately from fixture-mutating suites.
+
+The workload uses one synthetic manager and one local host. See the [validation record](OPSDESK_VALIDATION.md) for observed results and the remaining acceptance work.

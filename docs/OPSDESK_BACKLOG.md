@@ -125,7 +125,7 @@ The inbox returns authorized case rows, and Insights, assignment load counts and
 
 Acceptance:
 - Retire the legacy full-workspace endpoint after migrating compatibility/test callers. Booking and people directory pagination is implemented; realistic-volume query plans and load measurements remain open.
-- Initial 6,000-booking/18,000-case/54,000-message profiles and a covering message index are implemented; extend to representative skew, deep pages, long threads, cold caches and concurrent readers/writers. See [query profile](OPSDESK_QUERY_PROFILE.md).
+- The query profile and covering message index are implemented. The synthetic HTTP rehearsal now covers sustained concurrent reads and writes, skew toward a shared case, deep pages and a long thread. Representative booking diversity, a cold-cache run and owner-approved performance targets remain open. See [query profile](OPSDESK_QUERY_PROFILE.md).
 - Replace global contention with appropriately scoped locks and robust worker/outbox scheduling.
 - Define reporting metrics/timezones and incremental data updates.
 - Measure concurrent assignment, repeated escalation and worker-restart behavior.
