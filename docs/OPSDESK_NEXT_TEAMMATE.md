@@ -1,5 +1,11 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Current checkpoint after PR #57
+
+Main `0310cd5` includes the startup profiler. Both PR and main CI passed, including startup smoke, five-role load, recovery, Chromium, Firefox and dependency audit. This follow-up adds a populated and scope-checked supplier list in the disposable startup fixture. Review its separate hosted results before reporting them. [PR #57 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Main CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463)
+
+> Continue from latest main. Check open PRs and CI. Run the local blind form with `npm run ops:review-classifier`, then ask a human reviewer to complete and adjudicate labels, save and freeze the exported JSON under ignored `.opsdesk/`, and run the evaluator in `--dataset` mode. Obtain observable spoken screen-reader evidence using the acceptance guide. Continue representative booking/identity workloads and controlled-cache testing. Use Node 22.23.x and isolated synthetic data. Keep deployment paused and leave merging to collaborators.
+
 ## API process-start continuation
 
 PR #56 is merged in main `8c1d546`; PR and post-merge validation both passed. This follow-up adds `npm run ops:startup-profile` to compare the first scoped workload GET after a fresh API starts with repeat reads, using migrated/seeded disposable database copies and generated runtime secrets. A local two-round/five-role run completed ten fresh API starts and 110 workload GETs; cleanup and interruption cleanup passed. [Run procedure](OPSDESK_STARTUP_PROFILE.md) · [Exact evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)

@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Populated supplier startup follow-up
+
+PR #57 is merged at `0310cd5` with passing PR and post-merge CI. The supplier startup scenario now exercises a populated first page and verifies that every item belongs to the authenticated supplier. The fixture exists only in the disposable profiler databases. [Procedure](OPSDESK_STARTUP_PROFILE.md) · [Validation](OPSDESK_VALIDATION.md#populated-supplier-startup-follow-up)
+
+Independent human labels and spoken screen-reader acceptance remain pending. Use the [acceptance review guide](OPSDESK_ACCEPTANCE_REVIEW.md). Deployment remains paused.
+
 ## API process-start continuation
 
 Main `8c1d546` includes merged PR #56, with both PR and post-merge CI passing. The new synthetic startup profiler uses a separate template/clone per probe and a fresh owned API process. It reports readiness, login, first GET and repeat reads without changing existing application data. Ten five-role/two-round process starts, 110 workload GETs and normal/interruption cleanup passed locally. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md) · [Recorded evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)

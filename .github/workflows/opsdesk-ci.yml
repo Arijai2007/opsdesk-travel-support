@@ -82,7 +82,7 @@ jobs:
       - name: Synthetic API process-start smoke
         env:
           OPSDESK_STARTUP_DATABASE_URL: postgresql://opsdesk:opsdesk-ci-only@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/postgres
-          OPSDESK_STARTUP_ROLES: manager
+          OPSDESK_STARTUP_ROLES: manager,supplier
           OPSDESK_STARTUP_ROUNDS: '1'
           OPSDESK_STARTUP_REPEATS: '2'
         run: npm run ops:startup-profile
