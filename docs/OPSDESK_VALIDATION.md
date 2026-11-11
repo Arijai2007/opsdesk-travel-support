@@ -1,3 +1,9 @@
+# ClamAV preview validation
+
+On Windows with Node 22.23.0 and isolated PostgreSQL 18, both builds, all 91 backend unit tests and changed-file lint passed. The verified ClamAV 1.5.4 Windows archive ran with a loopback TCP listener and a private EICAR test signature. All 23 attachment HTTP checks passed through the real daemon, including detection, clean upload and byte-for-byte download. The daemon log recorded `OpsDesk.Acceptance.Eicar.UNOFFICIAL FOUND`. With the daemon stopped, the same API returned 503 and stored no file. All 23 attachment checks also passed on a separate local API using the default synthetic scanner.
+
+The first full archive download stalled. Verified byte ranges yielded the official release SHA-256. An early outage probe ran before the API started and received connection refused. The completed probes ran after the API became ready. The daemon run validated the test signature rather than the official signature-update pipeline. No production configuration or migration was required.
+
 # Accessibility contrast follow-up
 
 Seven foreground colors in `frontend/app/globals.css` were darkened without changing the palette or disabling rules. Both application builds passed on the isolated Node 22.23.0 preview. `npm run ops:test:a11y` passed all ten Chromium states with axe WCAG A/AA tags. The scan is now included in `ops:test:browser`, so hosted browser runs exercise it. Manual keyboard/screen-reader/zoom acceptance and latest hosted validation remain open.

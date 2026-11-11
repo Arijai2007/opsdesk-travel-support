@@ -1,5 +1,7 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+ClamAV follow-up on main `66b43b8` verified a real Windows ClamAV 1.5.4 daemon with a local EICAR test signature. Both scanner modes and the fail-closed outage check passed. PR #45 separately adds requester booking forms. Check both PRs and their CI before starting from the current main. Deployment remains paused.
+
 This checkpoint supersedes older remaining-work statements in the historical handoff. Deployment is paused. No PR was merged by this session.
 
 ## Published work and merge state
@@ -45,7 +47,7 @@ A development setup can avoid new service subscription costs by using local tool
 
 1. Check latest main/PR #43 validation and retain the booking migration and policy evidence. Do not infer latest-main acceptance solely from earlier branch runs. There are 28 migrations including the attachment table, booking requests and booking decision constraints. Both booking migrations applied locally.
 2. The seven contrast colors in `frontend/app/globals.css` are fixed, and `npm run ops:test:a11y` passes all ten Chromium states. The scan now runs in the standard browser command. Check latest hosted Chromium/Firefox results, then obtain manual keyboard, screen-reader and zoom acceptance. Do not treat an automated pass as full accessibility acceptance.
-3. Validate a real ClamAV daemon with clean, infected and unavailable-scanner cases; agree live file/backup retention and deletion policies. Review whether incoming/outgoing email attachments are required as a separate increment.
+3. Validate official scanner signature updates and agree live file/backup retention and deletion policies. The local daemon protocol, clean upload, test-signature detection and outage checks are complete. Review whether incoming/outgoing email attachments are required as a separate increment.
 4. Select a booking provider. The user explicitly said none is selected. Duffel test mode was suggested for flight sandbox development, not adopted or connected. Use provider-neutral/synthetic tests meanwhile. Build credentialed read/reconciliation and eventual provider command handling with manager review, stable ownership mapping, retries/idempotency and confirmed cancellation outcomes. Fee/refund handling and agency/customer browser forms remain open.
 5. Complete verified mail sending/receiving domains, credentials and a real send/receive/receipt/reply rehearsal. Synthetic and provider-fixture tests do not prove live delivery.
 6. Obtain independently labelled evaluation data and evaluate classification, privacy/linking and grounded summaries/drafts. Current deterministic record briefs and synthetic keyword fixtures do not satisfy independent AI acceptance.

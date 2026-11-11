@@ -46,8 +46,10 @@ export function inspectAttachment(bytes: Buffer, claimedType: string) {
 }
 
 async function scan(bytes: Buffer): Promise<void> {
-  // Synthetic preview has no external scanner. EICAR catches accidental test uploads.
+  const host = process.env.OPSDESK_CLAMD_HOST;
+  // Use the synthetic scanner only when a local demo has no daemon configured.
   if (
+    !host &&
     process.env.OPSDESK_DEMO === 'true' &&
     process.env.NODE_ENV !== 'production'
   ) {
@@ -55,7 +57,6 @@ async function scan(bytes: Buffer): Promise<void> {
       throw new BadRequestException('Attachment failed malware scanning.');
     return;
   }
-  const host = process.env.OPSDESK_CLAMD_HOST;
   const port = Number(process.env.OPSDESK_CLAMD_PORT || 3310);
   if (!host || !Number.isInteger(port) || port < 1 || port > 65535)
     throw new ServiceUnavailableException(
