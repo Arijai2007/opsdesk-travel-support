@@ -25,11 +25,11 @@ The script rejects non-local hosts, non-maintenance databases, non-PostgreSQL UR
 2. Apply migrations and confirm the synthetic source has 60 cases.
 3. Create a custom-format logical archive using pg_dump.
 4. Read back the saved archive and verify SHA-256.
-5. Restore into the separate empty target with pg_restore using one transaction and exit-on-error.
-6. Compare every public table's row count and canonical row-content checksum, plus index definitions and constraints.
-7. Confirm restored unique and foreign-key constraints reject invalid writes, and that the rejected writes leave the target contents unchanged.
+5. Send a truncated copy of the synthetic archive to pg_restore using one transaction. Require a truncation error after table creation begins and compare the target's public tables, indexes, constraints and type names with its original empty snapshot.
+6. Retry in the same target with the intact archive. Compare every public table's row count and canonical row-content checksum, index definitions, constraints and type names with the source.
+7. Confirm restored unique and foreign-key constraints reject invalid writes and leave the target contents unchanged.
 8. On the disposable restored target, interrupt a worker after one ticket commits and the next has an uncommitted event. Kill the process, verify rollback, then start a replacement and require one committed escalation per ticket.
-9. Close connections and drop only databases created by this invocation; delete its temporary archive.
+9. Close connections and drop only databases created by this invocation. Delete the temporary intact archive. The truncated copy exists only in memory.
 
 A summary without connection strings, row contents or password hashes is saved at `.opsdesk/recovery/latest-report.json` (ignored by Git). It includes table counts and timings. The temporary archive is private to the local filesystem and deleted after the test. It is not a retained operational backup. A forced process termination can leave generated databases or an archive: inspect the exact generated names before removing leftovers; never replace a real database with a rehearsal target.
 
@@ -39,7 +39,7 @@ A summary without connection strings, row contents or password hashes is saved a
 - Define recovery-point and recovery-time targets with the owner; observed fixture timings are not service commitments.
 - Rehearse restore using authorized staging data and the actual production roles, extensions, configuration, size and restore destination.
 - Account for roles, server configuration, external files/attachments and secrets. This rehearsal compares public application tables, indexes and constraints; it is not cluster-wide recovery, point-in-time recovery or crash recovery.
-- Independently test backup corruption, unavailable storage, insufficient disk, interruption and recovery procedures. The current checksum check establishes archive readback integrity, not resilience to every failure.
+- Rehearse corruption beyond the synthetic truncation case, unavailable storage, insufficient disk and interruption against the approved backup pipeline. The synthetic check exercises transactional rollback and retry in one local target.
 - Put the restored service behind a controlled cutover, verify access boundaries and end-to-end workflows, and assign recovery/incident ownership.
 - Never use this disposable-fixture command as an operational restore command.
 

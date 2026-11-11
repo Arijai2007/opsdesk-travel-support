@@ -1,5 +1,15 @@
 # OpsDesk developer handoff
 
+## Supplier message-history follow-up
+
+The startup profiler includes a separate deep supplier-history probe in addition to the populated list probe from PR #58. It checks scope on every timed read and tests the other supplier thread after timing. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md) · [Validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)
+
+## Populated supplier startup follow-up
+
+PR #57 is merged at `0310cd5` with passing PR and post-merge CI. The supplier startup scenario now exercises a populated first page and verifies that every item belongs to the authenticated supplier. The fixture exists only in the disposable profiler databases. [Procedure](OPSDESK_STARTUP_PROFILE.md) · [Validation](OPSDESK_VALIDATION.md#populated-supplier-startup-follow-up)
+
+Independent human labels and spoken screen-reader acceptance remain pending. Use the [acceptance review guide](OPSDESK_ACCEPTANCE_REVIEW.md). Deployment remains paused.
+
 ## API process-start continuation
 
 The startup profiler records readiness, login and scoped reads using a fresh API process and disposable database clone for each probe. [Profiler procedure](OPSDESK_STARTUP_PROFILE.md)
@@ -449,7 +459,13 @@ Continue in this order. P0 live-data gates remain mandatory before live use; dep
 
 > **Current and next.** Membership administration merged in PR #28 with passing hosted validation. The current local increment adds agency calendars, explicit pause/resume, duty coverage and manager escalation handoffs. Review its migration, test evidence and policy limits before merging. Next complete remaining contract/supplier calendars and workload-handoff policies, then email/attachments and a provider-neutral booking adapter with explicit owner policy for new bookings and cancellations. Independent evaluation, accessibility, load and live-data/recovery gates remain open. Deployment stays paused.
 
+## Query-level shared-buffer rehearsal
+
+Use the [message buffer experiment](OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment) for PostgreSQL 18 evidence on one deep message query in a disposable database. Full application cold-cache acceptance remains open.
+
 ## Release and incident checks
+
+The synthetic logical recovery rehearsal exercises truncated archive rejection, rollback and retry in the same disposable target. Use its report to verify that the target was empty after the rejected restore and that the intact retry passed the original integrity and worker restart checks. [Recovery procedure](OPSDESK_RECOVERY.md)
 
 1. The release owner records the deployed commit, last known healthy commit, migration versions, backup location, recovery objectives and rollback authority before staging deployment. Contact names and hosting details still need an owner.
 2. Poll `GET /health/ready` for database and counter-service readiness and `GET /health/worker` for a recent successful escalation sweep. Both return 200 when healthy and 503 when unavailable. Monitor each instance so a healthy peer cannot hide a stalled worker.
@@ -499,3 +515,7 @@ Each candidate runs under the shared capacity lock followed by the parent ticket
 ## Synthetic load follow-up
 
 The isolated HTTP harness now supports duration, background case volume and long-thread controls. It measures latency by operation, verifies each acknowledged write on its intended case, and removes its fixtures. Use the [rehearsal instructions](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) and [observed results](OPSDESK_VALIDATION.md#sustained-synthetic-load). Next agree representative booking and traffic distributions, cold-cache procedures and owner-approved thresholds. Deployment remains paused.
+
+## Expanded load identity rehearsal
+
+The load harness can rotate reads among seeded identities within a role while preserving role weights and the existing manager-only write mix. The expanded synthetic run exercises two supplier scopes and records per-identity traffic. [Procedure](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)

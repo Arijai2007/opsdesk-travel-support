@@ -1,5 +1,17 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Supplier message-history continuation
+
+This follow-up builds on the populated supplier-list probe in PR #58. Select `supplier-history` to measure page 12 of a 240-message thread after a fresh API process starts. The probe checks the returned scope and confirms that another supplier history returns HTTP 404 after timing. [Procedure](OPSDESK_STARTUP_PROFILE.md) · [Local validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)
+
+The next acceptance inputs remain a human-labelled, adjudicated classifier export and observable spoken screen-reader review. The local blind form is available through `npm run ops:review-classifier`. Representative performance targets, controlled caches, live integration and operational acceptance remain open. Leave merge decisions to collaborators. Deployment remains paused.
+
+## Current checkpoint after PR #57
+
+Main `0310cd5` includes the startup profiler. Both PR and main CI passed, including startup smoke, five-role load, recovery, Chromium, Firefox and dependency audit. This follow-up adds a populated and scope-checked supplier list in the disposable startup fixture. Review its separate hosted results before reporting them. [PR #57 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Main CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463)
+
+> Continue from latest main. Check open PRs and CI. Run the local blind form with `npm run ops:review-classifier`, then ask a human reviewer to complete and adjudicate labels, save and freeze the exported JSON under ignored `.opsdesk/`, and run the evaluator in `--dataset` mode. Obtain observable spoken screen-reader evidence using the acceptance guide. Continue representative booking/identity workloads and controlled-cache testing. Use Node 22.23.x and isolated synthetic data. Keep deployment paused and leave merging to collaborators.
+
 ## API process-start continuation
 
 Use the startup profiler procedure to reproduce the local measurements and interpret their scope. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md)
@@ -129,6 +141,10 @@ PR #40 merged into main directly; #41 and #42 merged into their original base br
 
 **Existing AI baseline:** synthetic development classification scored 27/30 and synthetic holdout scored 17/18. No independent evaluation or external LLM acceptance is claimed.
 
+## Message buffer continuation
+
+The optional query profiler controls the message table and index shared buffers in a disposable database. Use the [procedure and limits](OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment) and [validation](OPSDESK_VALIDATION.md#message-shared-buffer-experiment). Continue representative traffic design, observable spoken screen-reader review and independent human classifier labels. Deployment remains paused and merges remain with collaborators.
+
 ## Free-first options for remaining work
 
 Options below were checked on 11 November 2026. They are development/testing choices, not newly connected services or proof of live acceptance. Recheck provider pricing and access requirements before selecting a live plan. No booking provider has been selected.
@@ -161,6 +177,10 @@ A development setup can avoid new service subscription costs by using local tool
 
 PR #46 enables the real scanner when the local preview has a ClamAV host configured. Local Windows validation passed with ClamAV 1.5.4 and both a private test signature and official databases verified and installed by FreshClam. Clean files uploaded and downloaded byte-for-byte, EICAR was rejected, and stopping the daemon caused uploads to fail with HTTP 503 without storing files. The default synthetic attachment suite also passed. See the [attachment guide](OPSDESK_ATTACHMENTS.md) and [validation record](OPSDESK_VALIDATION.md). Production scanner operation, recurring signature monitoring and retention approval remain open.
 
+## Synthetic recovery follow-up
+
+The logical recovery rehearsal now checks that a truncated synthetic archive fails after table creation begins, leaves the disposable target empty, and allows an intact retry in that same database. Hosted CI runs the rehearsal through the existing recovery step. Review the exact validation before merging. Approved staging restore, backup storage and retention, recovery targets and on-call ownership remain pending. Continue the independent classifier and spoken accessibility reviews with human evidence. Deployment remains paused. [Recovery guide](OPSDESK_RECOVERY.md)
+
 ## Reproduce locally
 
 Use Node.js **22.23.x**, `npm ci`, and `npm run ops:preview`. Keep the demo isolated and credential-free. This checkout used PostgreSQL port **55439**, API **3141**, and frontend **3140** because default ports were occupied. Local env files are ignored and were not committed. `LOCAL_POSTGRES_PORT` now supports an isolated database port; the preview derives the web port from `FRONTEND_URL`.
@@ -172,3 +192,9 @@ The preview generates a temporary attachment signing key if none is set; restart
 ## Copy-ready next-teammate message
 
 > Continue OpsDesk in DhruvKhanna7777/opsdesk-travel-support. Fetch main and check open PRs and CI first. This accessibility increment starts from main 84aa88e with PRs #45/#46 merged and combined post-merge CI passing. Review PR #47 (https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/47; implementation commit 50b83b6) and its latest CI before basing further work on it. Local preview services were stopped after verification. It fixes header/notification reflow, notification Escape/focus return and intake pagination overflow. Read docs/OPSDESK_NEXT_TEAMMATE.md first, then the handoff, backlog, validation, booking and attachment guides and README. Use the exact new results in the validation record; do not treat historical counts as new runs. Next verify actual screen-reader announcements and browser zoom, then broaden manual acceptance across roles. Announcements were explicitly left unverified at the user's request; viewport checks do not prove actual zoom. Real ClamAV acceptance passed in PR #46; production monitoring and retention approval remain open. No booking provider is selected. Live booking/email acceptance, independent AI evaluation, representative load and operational recovery remain open. Use Node 22.23.x, npm ci and the isolated synthetic preview, and run API/browser fixtures sequentially. Preserve unrelated work, authorization, agency isolation, sessions, saved deadlines and audit history. Commit verified changes and open a PR targeting main for collaborators to merge. Deployment remains paused.
+
+## Expanded load continuation
+
+PR #57 is merged at `0310cd5` with passing PR and post-merge validation. PRs #58 and #59 passed hosted Chromium and Firefox and remain available for collaborator review. This independent follow-up extends `npm run ops:load` to 12 seeded identities across five roles with per-identity counts. [Run options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)
+
+> Fetch latest main and check open PRs and CI. Continue with a human-labelled and adjudicated classifier export and observable spoken screen-reader review. Use Node 22.23.x and the isolated synthetic preview. Run mutating fixtures sequentially. Representative booking/identity populations, controlled caches, performance targets, live provider acceptance and operational recovery remain open. Keep deployment paused and leave merging to collaborators.

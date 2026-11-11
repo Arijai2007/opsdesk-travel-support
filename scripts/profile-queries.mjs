@@ -17,6 +17,16 @@ assert(
   "Set OPSDESK_PROFILE_DATABASE_URL to a local /postgres maintenance connection",
 );
 const adminUrl = new URL(process.env.OPSDESK_PROFILE_DATABASE_URL);
+assert(["postgres:", "postgresql:"].includes(adminUrl.protocol));
+assert(
+  !adminUrl.search && !adminUrl.hash,
+  "Connection options and fragments are not permitted.",
+);
+const messageBuffers = process.env.OPSDESK_PROFILE_MESSAGE_BUFFERS;
+assert(
+  [undefined, "0", "1"].includes(messageBuffers),
+  "OPSDESK_PROFILE_MESSAGE_BUFFERS must be 0 or 1.",
+);
 assert(
   ["127.0.0.1", "localhost"].includes(adminUrl.hostname),
   "Profiling requires local PostgreSQL",
@@ -33,6 +43,7 @@ const admin = new pg.Pool({ connectionString: adminUrl.href });
 const url = new URL(adminUrl);
 url.pathname = `/${database}`;
 let pool, db;
+let created = false;
 const output = {
   node: process.version,
   bookings: size,
@@ -43,6 +54,7 @@ const output = {
 };
 try {
   await admin.query(`CREATE DATABASE "${database}"`);
+  created = true;
   pool = new pg.Pool({ connectionString: url.href });
   for (const dir of readdirSync(
     new URL("../backend/prisma/migrations/", import.meta.url),
@@ -183,6 +195,123 @@ try {
       `${before.name}: indexes must preserve results`,
     );
   }
+  if (messageBuffers === "1") {
+    assert.equal(
+      (await pool.query("SELECT current_database() AS name")).rows[0].name,
+      database,
+      "Shared-buffer experiment requires the owned disposable database.",
+    );
+    await pool.query("CREATE EXTENSION pg_buffercache");
+    assert(
+      (
+        await pool.query(
+          "SELECT to_regprocedure('pg_buffercache_evict_relation(regclass)') IS NOT NULL AS available",
+        )
+      ).rows[0].available,
+      "Message buffer profiling requires PostgreSQL 18 pg_buffercache.",
+    );
+    const ticket = "profile-ticket-1";
+    const added = await pool.query(
+      `
+      INSERT INTO "TravelMessage" (id, "ticketId", "senderId", visibility, content, "createdAt")
+      SELECT $1 || '-deep-' || i, $1, 'manager', 'CUSTOMER',
+             'Synthetic deep history ' || i, now() - i * interval '1 minute'
+      FROM generate_series(1, 1200) i
+    `,
+      [ticket],
+    );
+    assert.equal(added.rowCount, 1200);
+    await pool.query('VACUUM ANALYZE "TravelMessage"');
+
+    queries = [];
+    const sample = await service.messages("manager", ticket, { page: 60 });
+    assert.equal(sample.total, 1203);
+    assert.equal(sample.items.length, 20);
+    const reads = queries.filter(
+      ({ sql }) =>
+        sql.includes('"TravelMessage"') &&
+        /\bOFFSET\b/i.test(sql) &&
+        /\bORDER BY\b/i.test(sql),
+    );
+    assert.equal(reads.length, 1, "Expected one paged TravelMessage query.");
+    const [{ sql, params }] = reads;
+
+    const relation = '"TravelMessage"';
+    const { rows: relations } = await pool.query(
+      `
+      SELECT $1::regclass::oid AS oid
+      UNION
+      SELECT indexrelid AS oid FROM pg_index WHERE indrelid = $1::regclass
+    `,
+      [relation],
+    );
+    assert(relations.length > 1, "Expected the message table and its indexes.");
+
+    async function evictMessageRelations() {
+      const { rows } = await pool.query(
+        `
+        SELECT coalesce(sum(buffers_evicted), 0)::int evicted,
+               coalesce(sum(buffers_flushed), 0)::int flushed,
+               coalesce(sum(buffers_skipped), 0)::int skipped
+        FROM unnest($1::oid[]) ids(oid)
+        CROSS JOIN LATERAL pg_buffercache_evict_relation(ids.oid::regclass)
+      `,
+        [relations.map(({ oid }) => oid)],
+      );
+      assert.equal(
+        rows[0].skipped,
+        0,
+        "A message relation buffer could not be evicted.",
+      );
+      return rows[0];
+    }
+
+    async function explainMessagePage() {
+      const { rows } = await pool.query(
+        "EXPLAIN (ANALYZE, BUFFERS, TIMING OFF, FORMAT JSON) " + sql,
+        params,
+      );
+      const plan = rows[0]["QUERY PLAN"][0];
+      return {
+        executionMs: plan["Execution Time"],
+        rows: plan.Plan["Actual Rows"],
+        sharedHits: plan.Plan["Shared Hit Blocks"],
+        sharedReads: plan.Plan["Shared Read Blocks"],
+      };
+    }
+
+    const pairs = [];
+    for (let i = 0; i < 3; i++) {
+      const eviction = await evictMessageRelations();
+      assert.equal(
+        (await evictMessageRelations()).evicted,
+        0,
+        "Message buffers were still resident.",
+      );
+      const afterEviction = await explainMessagePage();
+      const warm = await explainMessagePage();
+      assert.equal(afterEviction.rows, sample.items.length);
+      assert.equal(warm.rows, sample.items.length);
+      assert(
+        afterEviction.sharedReads > 0,
+        "Expected shared-buffer reads after eviction.",
+      );
+      pairs.push({ eviction, afterEviction, warm });
+    }
+    output.messageBufferExperiment = {
+      page: sample.page,
+      items: sample.items.length,
+      messagesInCase: sample.total,
+      relationCount: relations.length,
+      scope: "TravelMessage table and its indexes in the disposable database",
+      osCache: "not reset",
+      pairs,
+    };
+    console.log(
+      "Message buffer experiment",
+      JSON.stringify(output.messageBufferExperiment),
+    );
+  }
   const first = await pool.connect(),
     second = await pool.connect();
   try {
@@ -211,6 +340,6 @@ try {
 } finally {
   await db?.$disconnect();
   await pool?.end();
-  await admin.query(`DROP DATABASE IF EXISTS "${database}" WITH (FORCE)`);
+  if (created) await admin.query(`DROP DATABASE "${database}" WITH (FORCE)`);
   await admin.end();
 }

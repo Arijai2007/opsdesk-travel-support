@@ -1,5 +1,13 @@
 # OpsDesk — prioritized remaining work
 
+## Supplier history startup rehearsal
+
+The synthetic profiler covers page 12 of a populated supplier history and verifies that another supplier thread is denied. Representative traffic, controlled-cache runs, agreed thresholds, human classifier labels and spoken screen-reader evidence remain open. [Validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)
+
+## Supplier startup and reviewer acceptance
+
+The populated supplier startup probe covers the first conversation page with a separate supplier fixture to verify scope. Supplier message-history performance, representative populations, controlled cache testing and agreed thresholds remain open. Human classifier labels and spoken screen-reader evidence are the next acceptance inputs. [Procedure](OPSDESK_STARTUP_PROFILE.md) · [Review guide](OPSDESK_ACCEPTANCE_REVIEW.md)
+
 ## API process-start continuation
 
 PR #56 and its post-merge CI passed. Fresh-API process profiling is now reproducible with isolated synthetic database copies, per-role first/repeat timings and verified cleanup. [Run and interpret it](OPSDESK_STARTUP_PROFILE.md). True database/OS cold-cache procedures, populated/representative booking and identity workloads and owner-approved performance targets remain open; a process restart does not satisfy them. Human classifier labels and observable spoken-output review remain pending. Check this follow-up's hosted result; deployment stays paused. Earlier priorities below are historical where superseded.
@@ -91,6 +99,8 @@ Start: backend/src/travel/travel.service.ts, travel.dto.ts, Prisma schema, scrip
 
 [GitHub issue #3](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/3)
 
+The logical recovery rehearsal checks that a truncated synthetic archive leaves an empty target and that the intact archive restores successfully in the same database. Staging restore, managed backups, retention, recovery targets and on-call ownership remain open. [Recovery procedure](OPSDESK_RECOVERY.md)
+
 The delivered launcher is a localhost synthetic demo. No production environment is configured. Deployment is explicitly paused while features are completed; the selected free-demo stack and its saved preparation are not an active deployment.
 
 Acceptance:
@@ -169,6 +179,10 @@ Acceptance:
 
 Keep privacy filtering server-side. Case and conversation pages are capped at 20 rows; composite indexes support booking and supplier history reads, but realistic-volume query-plan evidence is still needed.
 
+### Message buffer experiment
+
+The optional query profiler now compares targeted PostgreSQL shared-buffer eviction with immediate warm repeats for a deep synthetic message page. OS-cache control, representative traffic and owner-approved performance targets remain open. [Procedure](OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment)
+
 ## [P2] Add grounded optional AI with a measured evaluation
 
 [GitHub issue #8](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/8)
@@ -221,3 +235,7 @@ The merged application checkpoint is `6e97b6f`, including PRs #25-#28. [PR #28 C
 See the [handoff](OPSDESK_HANDOFF.md) for the developer transfer message and the [validation guide](OPSDESK_VALIDATION.md) for measurements and known limits.
 
 Workload-handoff follow-up reconstructed from the missing-checkout handoff is in progress. Local builds, 62 unit tests, 548 existing HTTP checks, 19 existing concurrency checks, 33 workload checks, six browser flows, offline regressions and changed-file lint passed. Publication and hosted checks are tracked separately. Multi-contract and supplier calendars, rotations, live email, attachments and provider adapters remain open.
+
+## Expanded load coverage
+
+The synthetic load harness now supports multiple seeded accounts per role. Representative booking and account distributions, controlled-cache runs and performance targets remain open. Independent classifier evaluation and spoken screen-reader acceptance still require human input. [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)

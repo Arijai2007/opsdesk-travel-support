@@ -1,10 +1,10 @@
 # OpsDesk - connected travel support
 
-Use `npm run ops:startup-profile` for isolated fresh-API process experiments with first/repeat read timings and verified cleanup. [Setup, observations and cache limits](docs/OPSDESK_STARTUP_PROFILE.md). Database/OS cold-cache acceptance and performance targets remain open.
+Use `npm run ops:startup-profile` for isolated fresh-API process experiments with first/repeat read timings, a populated supplier conversation list, a deep supplier-history probe and verified cleanup. [Setup, observations and cache limits](docs/OPSDESK_STARTUP_PROFILE.md). Database/OS cold-cache acceptance and performance targets remain open.
 
 Use `npm run ops:review-classifier` to review the blind classifier pack in a local browser form, save drafts and export reviewer-labelled JSON. It runs without the application/database or model credentials and shows no classifier predictions. [Reviewer instructions](docs/OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form). Human acceptance remains pending.
 
-The synthetic load rehearsal now supports five-role read weights, manager writes and per-role latency reports. [Run options and scope](docs/OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [New validation evidence](docs/OPSDESK_VALIDATION.md#five-role-load-and-ci-port-isolation---11-november-2026). Representative traffic, cold-cache acceptance and agreed performance targets remain open.
+The synthetic load rehearsal now supports five-role read weights, opt-in rotation across seeded identities, manager writes and per-role latency reports. [Run options and scope](docs/OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Expanded-load evidence](docs/OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal). Representative traffic, cold-cache acceptance and agreed performance targets remain open.
 
 The classifier evaluator now accepts a reviewer-labelled local dataset with provenance/hashes, per-category metrics and a confusion matrix. A blank synthetic review pack and spoken screen-reader checklist are in the [acceptance review guide](docs/OPSDESK_ACCEPTANCE_REVIEW.md). Independent evaluation and spoken-output acceptance remain open. Base main CI ended cancelled at browser installation; hosted browsers and its final audit were skipped. [Current validation evidence](docs/OPSDESK_VALIDATION.md#validation-continuation---11-november-2026). Deployment remains paused.
 
@@ -101,6 +101,8 @@ The [full demo guide](OPSDESK_README.md#show-the-main-scenario) also covers dead
 
 ## Validation and query profiling
 
+The optional PostgreSQL 18 query profiler compares targeted message-buffer eviction with warm repeats on a deep synthetic message page. [Procedure and limits](docs/OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment)
+
 Run the local sustained-load rehearsal with `npm run ops:load`. [Options and fixture scope](docs/OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal)
 
 Run checks in a second terminal against the isolated seeded demo:
@@ -152,6 +154,8 @@ The original repository history and authorship are retained. The included Bitext
 Lock contention follow-up: ticket messages and supplier operations now serialize per ticket; routing retains its capacity lock. Escalation uses fresh-state transactions in batches of 100 candidates. `npm run ops:test` includes the multi-connection lock regression harness. See [lock protocol and limitations](docs/OPSDESK_VALIDATION.md).
 
 ## Historical synthetic recovery rehearsal - 10 November 2026
+
+The current rehearsal rejects a truncated synthetic archive, verifies rollback, and restores the intact archive in the same disposable database. [Run the recovery rehearsal](docs/OPSDESK_RECOVERY.md)
 
 Added `npm run ops:recovery` and five connection-safety tests. The rehearsal creates two disposable local databases, migrates/seeds the source, dumps/restores a custom archive, compares all public row data/indexes/constraints and tests restored integrity enforcement. See [runbook and limitations](docs/OPSDESK_RECOVERY.md). Local safety tests passed on Node 22.23.0; full archive/restore validation runs in CI using PostgreSQL 18 client tools because this Windows machine has only the embedded server binaries. CI results must be checked before claiming recovery validation. This is partial progress on issue #3; operational backups, retention, staging restore and production recovery ownership remain open. The branch is based on merged main and has no dependency on unmerged PR #17.
 

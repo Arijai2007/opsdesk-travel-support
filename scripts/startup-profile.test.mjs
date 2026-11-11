@@ -18,6 +18,11 @@ test("requires a loopback maintenance database and bounded distinct role samples
     "agent",
     "supplier",
   ]);
+  assert.deepEqual(
+    startupConfig({ ...local, OPSDESK_STARTUP_ROLES: "supplier-history" })
+      .roles,
+    ["supplier-history"],
+  );
   for (const url of [
     undefined,
     "invalid",
@@ -33,6 +38,8 @@ test("requires a loopback maintenance database and bounded distinct role samples
   for (const [key, value] of [
     ["OPSDESK_STARTUP_ROUNDS", "0"],
     ["OPSDESK_STARTUP_ROUNDS", "6"],
+    ["OPSDESK_STARTUP_READY_SECONDS", "0"],
+    ["OPSDESK_STARTUP_READY_SECONDS", "181"],
     ["OPSDESK_STARTUP_REPEATS", "51"],
     ["OPSDESK_STARTUP_REPEATS", "1.5"],
     ["OPSDESK_STARTUP_ROLES", "manager,manager"],
@@ -47,7 +54,7 @@ test("database names cannot escape the run-specific synthetic namespace", () => 
     startupDatabase(run, "template"),
     `opsdesk_startup_${run}_template`,
   );
-  assert(startupDatabase(run, "probe_24").length <= 63);
+  assert(startupDatabase(run, "probe_29").length <= 63);
   for (const [id, slot] of [
     ["invalid", "template"],
     [run, "opsdesk"],

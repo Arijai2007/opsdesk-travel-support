@@ -1,3 +1,19 @@
+# Supplier message-history startup
+
+The local manager, supplier-list and supplier-history run used Node 22.23.4 and loopback PostgreSQL 18.6 with one round, two repeats and a 150-second readiness limit. Three new processes completed nine timed GETs. Page 12 returned 20 of 240 messages, all in the selected supplier thread. A separate request after timing returned HTTP 404 for the other supplier thread. The first history read took 54.53 ms, with repeats of 21.81 and 27.83 ms.
+
+The template held 37 conversations and 433 messages. A separate maintenance query found zero remaining profiler databases and verified the original counts of 60 cases, 192 messages and 12 conversations. Three startup guard tests, script formatting and syntax, workflow YAML parsing and Git whitespace checks passed. The local run used a longer readiness limit than CI. Cache state and representative performance acceptance remain open.
+
+# Populated supplier startup follow-up
+
+Main `0310cd5463428c467a9f7e470eea89496a5dc288` contains merged PR #57. The PR and main workflows both passed startup smoke, API and recovery, five-role load, Chromium, Firefox and the dependency audit. [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463)
+
+On Windows with Node 22.23.4 and loopback PostgreSQL 18.6, the first pre-fix probe timed out at 30 seconds before API readiness. With a temporary longer readiness limit, the same pre-fix assertion reached the API and rejected the empty supplier page. The updated manager/supplier run with a 150-second limit completed two fresh API starts and six scoped workload GETs. Manager returned 20 of 60 cases. Supplier returned 20 of 24 conversations, all in scope, with a separate supplier fixture in the database. Supplier first read took 58.34 ms, with two repeats at 16.32 and 21.72 ms. All owned processes and databases were cleaned up.
+
+The CI-equivalent rerun passed with the default 30-second readiness limit. Supplier first read took 42.05 ms and repeats took 11.48 and 18.58 ms. A separate maintenance query found zero profiler databases. The original database retained 60 cases, 192 messages and 12 conversations. The CI workflow YAML parsed and selected manager and supplier.
+
+The three startup guard tests and six classifier tooling tests passed. Syntax, formatting and whitespace checks passed. The loopback blind review form served 18 unlabelled examples. Human labels and spoken screen-reader acceptance remain pending. The populated probe exercises the supplier list. Representative traffic, supplier history reads and controlled caches remain open. Deployment remains paused.
+
 # API process-start profile - 11 November 2026
 
 Started from main `8c1d546925ff67400f59d1c946ab57ff1ab96d1f` after PR #56 merged. Both its [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071338763) and [post-merge main run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071756560) passed, including Chromium, Firefox, the reviewer form, API/recovery/load and audit.
@@ -129,6 +145,16 @@ Actual browser zoom passed at **200% and 400%** in Chrome for Testing 151.0.7922
 
 Windows Narrator started, but its window ran at a higher integrity level than the computer-use helper. The helper could not inspect the window or observe spoken output. Spoken acceptance remains open. Live provider acceptance, production scanner monitoring, retention approval, independent AI evaluation, sustained representative load and operational recovery remain open. Deployment remains paused.
 
+# Expanded load identity rehearsal
+
+Based on merged PR #57 at `0310cd5`. The existing startup PRs passed hosted Chromium and Firefox. [PR #58 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088904262) · [PR #59 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088962237)
+
+Local Windows and Node.js 22.23.4. The isolated synthetic preview built both applications. Four load profile guard tests, syntax, formatting, workflow YAML and Git whitespace checks passed. The default run completed 200 manager requests and verified 40 writes. The expanded 200-request smoke ran all 12 identities and verified 40 writes. Both supplier accounts successfully read their own temporary histories and received HTTP 404 for each other's histories before timing.
+
+The 60-second expanded rehearsal used 12 workers, 3,074 total cases and 1,394 starting messages. It completed 4,605 requests in 60.194 seconds at 76.5 requests/second, with p50/p95/p99 of 105/500/681 ms. The manager handled 1,658 requests including 921 writes. Each write persisted exactly once on its intended case. Agency, customer and agent each handled 737 reads, and supplier handled 736. Every identity received traffic. A separate database query confirmed restoration of the baseline 60 cases, 192 messages and 12 conversations. After adding the per-role rotation assertion, the expanded 200-request smoke passed again.
+
+These are local synthetic observations. Real booking and account distributions, traffic targets and controlled-cache performance remain open. Human classifier labels and spoken screen-reader acceptance remain pending. Deployment remains paused.
+
 # Case detail and Insights reference follow-up — 11 November 2026
 
 Base: merged main `a2d65cd440fabf1e9c268b6888dcdab01e4317e4`, after PR #48. [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43018682596) and [post-merge validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43018765372) both succeeded. No PRs were open when this branch started. A separate worktree used Node 22.23.0, `npm ci` (1,166 packages added, 1,170 audited, 28 existing advisories), and a fresh isolated synthetic `ops:preview` database. Both application builds passed on startup.
@@ -138,6 +164,19 @@ The user-provided Stitch case-detail and Insights screens were visual reference 
 The expanded browser regression first failed on dark Insights and case-detail contrast (chart labels, context text, badges and status text) and the message-visibility target size. After the first fixes, it still found low-contrast supplier success, metric-note, journey and context text; targeted colors addressed those findings. A first attempted run timed out signing in because it started before the backend was ready; the next run reached the new assertions. The final focused Chromium run passed **24 axe WCAG A/AA states**, five reflow widths, cross-role keyboard/focus checks, the three data-driven Insights columns and four saved-state journey steps. Final `npm run ops:test:browser` passed all **six Chromium workflows** and repeated the **24 axe states** and five widths. `npm run ops:test` passed **91 backend unit tests**, then 121 main HTTP, 124 pagination, 177 directory, 13 lock, 80 membership, 56 SLA plus 6 concurrency, 33 workload, 20 supplier-calendar, 52 contract, 63 rotation plus 54 policy/state, 23 synthetic attachment and 40 booking checks. Signed inbound mail scenarios passed. API and browser suites ran sequentially.
 
 Actual spoken screen-reader announcements and 200%/400% browser zoom remain unverified; prior viewport scans and key probes do not establish them. Local Firefox still cannot launch with `spawn UNKNOWN`; hosted Firefox CI must be checked after PR publication. Live integrations, scanner operations, retention approval, independent AI evaluation, representative load, operational recovery and deployment were not tested here. Deployment remains paused.
+
+# Message shared-buffer experiment
+
+On Windows with Node 22.23.4 and PostgreSQL 18.6, the query profiler passed at 100 and 6,000 generated bookings. In both disposable datasets it captured the actual manager query for page 60 of a 1,203-message case. The query returned 20 rows in every explain run. Each of the three pairs evicted the message table and four indexes only. No eviction was skipped, and each verification pass found zero additional message buffers to evict.
+
+| Generated bookings | Shared reads after eviction, three runs | Shared reads on warm repeats | SQL time after eviction (ms) | Warm SQL time (ms) |
+| ---: | --- | --- | --- | --- |
+| 100 | 38, 38, 38 | 0, 0, 0 | 2.262, 1.040, 1.719 | 0.679, 0.479, 0.759 |
+| 6,000 | 37, 37, 37 | 0, 0, 0 | 1.626, 1.277, 0.966 | 0.852, 0.626, 0.393 |
+
+The 100-booking control with the option disabled completed the standard query profile and omitted the experiment from its report. After the three runs, no disposable profile databases remained. The source database retained 60 cases, 192 messages and 12 supplier conversations. The application and browser suites were not rerun locally for this profiler-only change.
+
+The experiment leaves the OS cache uncontrolled and measures one SQL statement. Neither the timings nor the difference establish application-level cold-cache or production acceptance. [Reproduction and scope](OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment)
 
 # Historical Stitch workspace and cross-role accessibility follow-up — 11 November 2026
 
@@ -598,6 +637,12 @@ A controlled 150ms blocker measured about 165ms for a shared-lock control query 
 
 Validation completed on Node.js 22.23.0 / Windows / PostgreSQL 18.6: backend and optimized frontend builds passed; 9 unit tests, 400 HTTP checks (99 workflow + 124 pagination + 177 directory), 13 multi-connection concurrency checks and the five-role Chromium browser suite passed. Changed backend-file ESLint and whitespace checks passed. These results apply to the rebuilt branch, not the unavailable uncommitted work. Drain old-version workers before deploying the new protocol; mixed legacy global-lock workers and new row-lock workers were not validated. No issue is declared production-complete by these tests.
 
+## Truncated archive recovery rehearsal
+
+Started from main `0310cd5` after PR #57. On Windows with Node 22.23.4 and PostgreSQL 18.6 server and client tools, all five recovery connection-safety tests and all nine logical recovery checks passed. The rehearsal removed the final byte from a newly generated synthetic archive. PostgreSQL rejected the truncated stream after table creation began, and the target matched its original public catalog snapshot. Restoring the intact archive in the same database matched the source across 26 public tables, including 60 cases and 192 messages, plus indexes, constraints and type names. Unique and foreign-key rejection, worker termination rollback and exactly-once completion after restart passed.
+
+A control run without single-transaction restore failed the rollback assertion because committed objects remained. After the control and the passing run, a separate check found zero rehearsal databases and zero temporary dump files. Syntax, formatting and whitespace checks passed. The application and browser suites were not rerun locally. The rehearsal uses local synthetic data and covers one truncation failure. Approved staging restore, backup storage and retention, recovery targets and operational ownership remain open. [Recovery procedure](OPSDESK_RECOVERY.md)
+
 ## Historical synthetic recovery rehearsal - 10 November 2026
 
 Added `npm run ops:recovery` and five connection-safety tests. The rehearsal creates two disposable local databases, migrates/seeds the source, dumps/restores a custom archive, compares all public row data/indexes/constraints and tests restored integrity enforcement. See [runbook and limitations](OPSDESK_RECOVERY.md). Local safety tests passed on Node 22.23.0; full archive/restore validation runs in CI using PostgreSQL 18 client tools because this Windows machine has only the embedded server binaries. CI results must be checked before claiming recovery validation. This is partial progress on issue #3; operational backups, retention, staging restore and production recovery ownership remain open. The branch is based on merged main and has no dependency on unmerged PR #17.
@@ -637,3 +682,7 @@ The sustained scenario used 12 workers, 3,000 background cases and 1,200 existin
 | Insights | 781 | 137 | 204 | 225 | 293 |
 
 These figures come from a single local host, a synthetic manager session and duplicated case fixtures. The harness made initial queue and history reads before measurement. Cold-cache performance, representative booking and role distributions, sustained production traffic and owner-approved latency and throughput targets remain open. Reproduce the run with the [load rehearsal options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal).
+
+## Blind review import test timing
+
+PR #58's first hosted Chromium run read the last example's rationale immediately after uploading a draft. The browser was still processing the asynchronous file read. The assertion expected the first example's saved rationale and failed. Hosted Firefox was skipped. The test now waits for the imported completion count and for the canceled replacement dialog and input reset. The two focused tests passed locally in both Chromium and Firefox on Node 22.23.4. [Initial hosted run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43086250976)
