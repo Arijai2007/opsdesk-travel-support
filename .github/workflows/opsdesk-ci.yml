@@ -17,6 +17,9 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # Keep the image version aligned with package.json's exact Playwright version.
+      PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
     services:
       postgres:
         image: postgres:18
@@ -70,13 +73,29 @@ jobs:
         run: npm run ops:recovery
       - run: npm run ops:test
       - run: node scripts/booking-ownership.integration.mjs
-      - run: npx playwright install --with-deps chromium firefox
+      - name: Pull preinstalled browser runtime
+        timeout-minutes: 5
+        run: docker pull "$PLAYWRIGHT_IMAGE"
       - name: Chromium workspace smoke
-        run: npm run ops:test:browser
+        timeout-minutes: 6
+        # Host networking preserves the synthetic API/database loopback guards.
+        # Mount setup-node's binary so browser fixtures still use Node 22.23.x.
+        run: |
+          docker run --rm --init --network host --ipc host \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            --volume "$(command -v node):/usr/local/bin/node:ro" \
+            --workdir /workspace --env CI=true \
+            --env OPSDESK_BROWSER_ENGINE=chromium \
+            "$PLAYWRIGHT_IMAGE" sh -c 'node --version && npm run ops:test:browser'
       - name: Firefox workspace smoke
-        run: npm run ops:test:browser
-        env:
-          OPSDESK_BROWSER_ENGINE: firefox
+        timeout-minutes: 6
+        run: |
+          docker run --rm --init --network host --ipc host \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            --volume "$(command -v node):/usr/local/bin/node:ro" \
+            --workdir /workspace --env CI=true \
+            --env OPSDESK_BROWSER_ENGINE=firefox \
+            "$PLAYWRIGHT_IMAGE" sh -c 'node --version && npm run ops:test:browser'
       - run: npm audit --omit=dev
       - name: Show startup diagnostics
         if: failure()

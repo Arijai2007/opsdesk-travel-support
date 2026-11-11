@@ -1,3 +1,11 @@
+# CI browser runtime follow-up - 11 November 2026
+
+Started from main `b7bfa3a0197614ccbc432eeee516a4f17ab4a945` after PR #53 merged. Its [PR validation run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43059552387) ended cancelled at the 20-minute job limit. The browser installation logs repeatedly reported `Temporary failure resolving` for Ubuntu's Azure, archive and security package hosts while installing OS dependencies. Neither browser suite ran. The [post-merge run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43063889002) was still active when this follow-up began; do not infer its final result from the earlier failure.
+
+The workflow now pulls the official Playwright **1.62.1 noble** image, pinned to manifest digest `sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`, instead of downloading OS packages during validation. Chromium and Firefox still run as separate sequential steps after recovery and API fixtures. Each container uses host networking so the existing API/database `127.0.0.1` guards stay intact. The repository and setup-node's Node 22.23.x executable are mounted into the disposable runtime; each browser step prints its actual Node version. Browser processes use host IPC as recommended by the [Playwright container guide](https://playwright.dev/docs/docker). API/recovery and the dependency audit remain on the runner. The image pull and browser steps have explicit time limits and no fallback that skips a failed suite.
+
+Registry verification returned HTTP 200 for the pinned version, confirmed linux/amd64 and linux/arm64 manifests, and confirmed `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright` in its config. The image version matches the repository's exact Playwright dependency. Local workflow validation uses actionlint 1.7.12, downloaded from its official release and checked against the published SHA-256; external shellcheck/pyflakes are unavailable and disabled for that lint invocation. No Docker runtime is installed on this Windows host, so actual container/browser acceptance requires this PR's hosted run. No local browser, API, load or application build result is claimed for this workflow-only change. Deployment remains paused.
+
 # Validation continuation - 11 November 2026
 
 ## Base main CI and access limits
