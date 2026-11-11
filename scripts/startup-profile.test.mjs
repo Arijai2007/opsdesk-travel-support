@@ -33,6 +33,8 @@ test("requires a loopback maintenance database and bounded distinct role samples
   for (const [key, value] of [
     ["OPSDESK_STARTUP_ROUNDS", "0"],
     ["OPSDESK_STARTUP_ROUNDS", "6"],
+    ["OPSDESK_STARTUP_READY_SECONDS", "0"],
+    ["OPSDESK_STARTUP_READY_SECONDS", "181"],
     ["OPSDESK_STARTUP_REPEATS", "51"],
     ["OPSDESK_STARTUP_REPEATS", "1.5"],
     ["OPSDESK_STARTUP_ROLES", "manager,manager"],

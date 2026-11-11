@@ -67,6 +67,7 @@ export function startupConfig(env) {
     roles,
     rounds: integer("OPSDESK_STARTUP_ROUNDS", 2, 5),
     repeats: integer("OPSDESK_STARTUP_REPEATS", 10, 50),
+    readySeconds: integer("OPSDESK_STARTUP_READY_SECONDS", 30, 180),
   };
 }
 
@@ -184,6 +185,7 @@ export async function profileStartup(env = process.env) {
     repeatReads: config.repeats,
     readinessEndpoint: "/health/ready",
     readinessPollMs: 100,
+    readinessTimeoutSeconds: config.readySeconds,
     roles: config.roles,
     probes: [],
     acceptance:
@@ -255,11 +257,48 @@ export async function profileStartup(env = process.env) {
       [require.resolve("tsx/cli"), "prisma/seed-travel.ts"],
       "seed",
     );
+    let supplierScope;
     const fixture = new pg.Pool({ connectionString: connection(template) });
     try {
+      if (config.roles.includes("supplier")) {
+        const inserted = await fixture.query(`
+          INSERT INTO "TravelConversation"
+            (id, "ticketId", "supplierId", subject, "dueAt", "createdAt")
+          SELECT 'startup-' || p."userId" || '-' || i, linked.id, p."supplierId",
+                 'Synthetic startup conversation ' || i,
+                 now() + interval '1 year', now() - i * interval '1 minute'
+          FROM "TravelProfile" p
+          JOIN LATERAL (
+            SELECT t.id FROM "TravelTicket" t
+            JOIN "TravelBooking" b ON b.id = t."bookingId"
+            WHERE b."supplierId" = p."supplierId"
+            ORDER BY t.id
+            LIMIT 1
+          ) linked ON true
+          CROSS JOIN LATERAL generate_series(
+            1, CASE WHEN p."userId" = 'supplier-user' THEN 24 ELSE 1 END
+          ) i
+          WHERE p.kind = 'SUPPLIER' AND p.status = 'ACTIVE'
+            AND p."userId" IN ('supplier-user', 'supplier-other')
+        `);
+        assert.equal(
+          inserted.rowCount,
+          25,
+          "Expected 24 supplier conversations and one other-supplier fixture.",
+        );
+        supplierScope = (
+          await fixture.query(`
+          SELECT p."supplierId", count(c.id)::int total
+          FROM "TravelProfile" p
+          JOIN "TravelConversation" c ON c."supplierId" = p."supplierId"
+          WHERE p."userId" = 'supplier-user'
+          GROUP BY p."supplierId"
+        `)
+        ).rows[0];
+      }
       report.dataset = (
         await fixture.query(
-          `SELECT (SELECT count(*) FROM "TravelBooking")::int bookings, (SELECT count(*) FROM "TravelTicket")::int cases, (SELECT count(*) FROM "TravelMessage")::int messages`,
+          `SELECT (SELECT count(*) FROM "TravelBooking")::int bookings, (SELECT count(*) FROM "TravelTicket")::int cases, (SELECT count(*) FROM "TravelMessage")::int messages, (SELECT count(*) FROM "TravelConversation")::int conversations`,
         )
       ).rows[0];
       report.postgres = (
@@ -315,7 +354,7 @@ export async function profileStartup(env = process.env) {
         child.stderr.on("data", capture);
         try {
           let ready = false;
-          while (performance.now() - started < 30000) {
+          while (performance.now() - started < config.readySeconds * 1000) {
             abort.signal.throwIfAborted();
             assert(
               !owned.exited,
@@ -341,7 +380,7 @@ export async function profileStartup(env = process.env) {
           }
           assert(
             ready && !owned.exited,
-            "Owned API did not become ready in 30 seconds.",
+            `Owned API did not become ready in ${config.readySeconds} seconds.`,
           );
           const readyMs = performance.now() - started;
           const [account, path] = scenarios[role];
@@ -376,6 +415,24 @@ export async function profileStartup(env = process.env) {
               Array.isArray(body.items),
               "Expected a paged scoped workload response.",
             );
+            if (role === "supplier") {
+              assert.equal(
+                body.total,
+                supplierScope.total,
+                "Unexpected supplier conversation total.",
+              );
+              assert.equal(
+                body.items.length,
+                20,
+                "Expected a full first supplier page.",
+              );
+              assert(
+                body.items.every(
+                  (item) => item.supplierId === supplierScope.supplierId,
+                ),
+                "Supplier startup returned a conversation from another supplier.",
+              );
+            }
             if (total === undefined) total = body.total;
             assert.equal(
               body.total,

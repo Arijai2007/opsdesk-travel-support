@@ -1,3 +1,13 @@
+# Populated supplier startup follow-up
+
+Main `0310cd5463428c467a9f7e470eea89496a5dc288` contains merged PR #57. The PR and main workflows both passed startup smoke, API and recovery, five-role load, Chromium, Firefox and the dependency audit. [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463)
+
+On Windows with Node 22.23.4 and loopback PostgreSQL 18.6, the first pre-fix probe timed out at 30 seconds before API readiness. With a temporary longer readiness limit, the same pre-fix assertion reached the API and rejected the empty supplier page. The updated manager/supplier run with a 150-second limit completed two fresh API starts and six scoped workload GETs. Manager returned 20 of 60 cases. Supplier returned 20 of 24 conversations, all in scope, with a separate supplier fixture in the database. Supplier first read took 58.34 ms, with two repeats at 16.32 and 21.72 ms. All owned processes and databases were cleaned up.
+
+The CI-equivalent rerun passed with the default 30-second readiness limit. Supplier first read took 42.05 ms and repeats took 11.48 and 18.58 ms. A separate maintenance query found zero profiler databases. The original database retained 60 cases, 192 messages and 12 conversations. The CI workflow YAML parsed and selected manager and supplier.
+
+The three startup guard tests and six classifier tooling tests passed. Syntax, formatting and whitespace checks passed. The loopback blind review form served 18 unlabelled examples. Human labels and spoken screen-reader acceptance remain pending. The populated probe exercises the supplier list. Representative traffic, supplier history reads and controlled caches remain open. Deployment remains paused.
+
 # API process-start profile - 11 November 2026
 
 Started from main `8c1d546925ff67400f59d1c946ab57ff1ab96d1f` after PR #56 merged. Both its [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071338763) and [post-merge main run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071756560) passed, including Chromium, Firefox, the reviewer form, API/recovery/load and audit.
@@ -635,3 +645,7 @@ The sustained scenario used 12 workers, 3,000 background cases and 1,200 existin
 | Insights | 781 | 137 | 204 | 225 | 293 |
 
 These figures come from a single local host, a synthetic manager session and duplicated case fixtures. The harness made initial queue and history reads before measurement. Cold-cache performance, representative booking and role distributions, sustained production traffic and owner-approved latency and throughput targets remain open. Reproduce the run with the [load rehearsal options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal).
+
+## Blind review import test timing
+
+PR #58's first hosted Chromium run read the last example's rationale immediately after uploading a draft. The browser was still processing the asynchronous file read. The assertion expected the first example's saved rationale and failed. Hosted Firefox was skipped. The test now waits for the imported completion count and for the canceled replacement dialog and input reset. The two focused tests passed locally in both Chromium and Firefox on Node 22.23.4. [Initial hosted run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43086250976)

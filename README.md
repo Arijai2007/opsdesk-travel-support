@@ -1,6 +1,6 @@
 # OpsDesk - connected travel support
 
-Use `npm run ops:startup-profile` for isolated fresh-API process experiments with first/repeat read timings and verified cleanup. [Setup, observations and cache limits](docs/OPSDESK_STARTUP_PROFILE.md). Database/OS cold-cache acceptance and performance targets remain open.
+Use `npm run ops:startup-profile` for isolated fresh-API process experiments with first/repeat read timings, a populated supplier conversation list and verified cleanup. [Setup, observations and cache limits](docs/OPSDESK_STARTUP_PROFILE.md). Database/OS cold-cache acceptance and performance targets remain open.
 
 Use `npm run ops:review-classifier` to review the blind classifier pack in a local browser form, save drafts and export reviewer-labelled JSON. It runs without the application/database or model credentials and shows no classifier predictions. [Reviewer instructions](docs/OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form). Human acceptance remains pending.
 
