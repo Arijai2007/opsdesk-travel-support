@@ -43,3 +43,25 @@ export function readRoleProfile(raw) {
   }
   return { weights, schedule };
 }
+
+export function loadAccounts(mode = "single") {
+  assert(
+    ["single", "expanded"].includes(mode),
+    "OPSDESK_LOAD_IDENTITIES must be single or expanded.",
+  );
+  const accounts = {
+    manager: ["manager"],
+    agency: ["agency", "horizon"],
+    customer: ["maya", "traveler2", "traveler3"],
+    agent: ["asia", "europe", "americas", "global"],
+    supplier: ["supplier", "skyline"],
+  };
+  return mode === "expanded"
+    ? accounts
+    : Object.fromEntries(
+        Object.entries(accounts).map(([role, names]) => [
+          role,
+          names.slice(0, 1),
+        ]),
+      );
+}

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readRoleProfile, loadRoles } from "./load-profile.mjs";
+import { readRoleProfile, loadRoles, loadAccounts } from "./load-profile.mjs";
 
 test("preserves manager-only defaults and distributes all five roles evenly", () => {
   assert.deepEqual(readRoleProfile().schedule, ["manager"]);
@@ -40,4 +40,20 @@ test("rejects malformed, empty, unknown, fractional, negative and excessive prof
     '{"manager":100,"supplier":1}',
   ])
     assert.throws(() => readRoleProfile(input), undefined, input);
+});
+
+test("preserves single accounts and exposes distinct seeded identities in expanded mode", () => {
+  const single = loadAccounts();
+  const expanded = loadAccounts("expanded");
+  assert.deepEqual(
+    Object.values(single).map((accounts) => accounts.length),
+    [1, 1, 1, 1, 1],
+  );
+  assert.deepEqual(
+    Object.values(expanded).map((accounts) => accounts.length),
+    [1, 2, 3, 4, 2],
+  );
+  const identities = Object.values(expanded).flat();
+  assert.equal(new Set(identities).size, identities.length);
+  assert.throws(() => loadAccounts("unknown"), /single or expanded/);
 });

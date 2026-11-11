@@ -77,6 +77,7 @@ jobs:
       - run: node scripts/booking-ownership.integration.mjs
       - name: Synthetic five-role load smoke
         env:
+          OPSDESK_LOAD_IDENTITIES: expanded
           OPSDESK_LOAD_ROLE_WEIGHTS: '{"manager":1,"agency":1,"customer":1,"agent":1,"supplier":1}'
         run: npm run ops:load
       - name: Synthetic API process-start smoke

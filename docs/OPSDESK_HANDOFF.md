@@ -493,3 +493,7 @@ Each candidate runs under the shared capacity lock followed by the parent ticket
 ## Synthetic load follow-up
 
 The isolated HTTP harness now supports duration, background case volume and long-thread controls. It measures latency by operation, verifies each acknowledged write on its intended case, and removes its fixtures. Use the [rehearsal instructions](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) and [observed results](OPSDESK_VALIDATION.md#sustained-synthetic-load). Next agree representative booking and traffic distributions, cold-cache procedures and owner-approved thresholds. Deployment remains paused.
+
+## Expanded load identity rehearsal
+
+The load harness can rotate reads among seeded identities within a role while preserving role weights and the existing manager-only write mix. The expanded synthetic run exercises two supplier scopes and records per-identity traffic. [Procedure](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [Evidence](OPSDESK_VALIDATION.md#expanded-load-identity-rehearsal)
