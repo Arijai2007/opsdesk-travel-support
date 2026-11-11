@@ -1,7 +1,5 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
-ClamAV follow-up on main `66b43b8` verified a real Windows ClamAV 1.5.4 daemon with a local EICAR test signature and then with official databases verified and installed by FreshClam. Both scanner modes and the fail-closed outage check passed. PR #45 separately adds requester booking forms. Check both PRs and their CI before starting from the current main. Deployment remains paused.
-
 This checkpoint supersedes older remaining-work statements in the historical handoff. Deployment is paused. No PR was merged by this session.
 
 ## Published work and merge state
@@ -33,7 +31,7 @@ Options below were checked on 11 November 2026. They are development/testing cho
 | --- | --- | --- |
 | Agency/customer booking forms | Extend the existing Next.js/NestJS application and synthetic booking APIs. | No new paid service is required; implement the forms and test role/agency scopes. |
 | Accessibility | Existing axe/Playwright scans plus [NVDA](https://www.nvaccess.org/download/), a free Windows screen reader. | Manual keyboard, screen-reader and zoom testing still requires a reviewer; an automated pass is not full acceptance. |
-| Malware scanning | Run [ClamAV](https://www.clamav.net/about), the open-source scanner, against the existing INSTREAM adapter. | Local clean, EICAR detection, official database installation and outage checks passed. Production signature monitoring and retention still need approval. |
+| Malware scanning | Run [ClamAV](https://www.clamav.net/about), the open-source scanner, against the existing INSTREAM adapter. | Needs machine resources, signature updates and clean/infected/unavailable-scanner validation. Live file and backup retention still need approval. |
 | Email | [Resend's free plan](https://resend.com/pricing): currently 3,000 emails/month and 100/day. The project already has an opt-in adapter. | Quotas apply. A sending domain under the team's control may cost money; domain verification, credentials and actual send/receive acceptance remain necessary. Local fixtures do not prove delivery. |
 | Booking integration | Continue with the local synthetic adapter, or evaluate [Duffel test mode](https://duffel.com/docs/api/overview/test-mode) for flights. | Sandbox bookings do not spend money or create real reservations. [Live Duffel use has fees](https://duffel.com/pricing). Do not treat this suggestion as provider selection or access to arbitrary bookings made elsewhere. |
 | Independent AI evaluation | Existing local classifier evaluator and publicly available [Bitext travel data](https://huggingface.co/datasets/bitext/Bitext-travel-llm-chatbot-training-dataset/blob/main/README.md). | Respect the dataset licence and holdout separation. Independently labelled examples and human review are still needed. External model inference may have separate costs; no paid model API is needed to evaluate the current rules. |
@@ -47,12 +45,16 @@ A development setup can avoid new service subscription costs by using local tool
 
 1. Check latest main/PR #43 validation and retain the booking migration and policy evidence. Do not infer latest-main acceptance solely from earlier branch runs. There are 28 migrations including the attachment table, booking requests and booking decision constraints. Both booking migrations applied locally.
 2. The seven contrast colors in `frontend/app/globals.css` are fixed, and `npm run ops:test:a11y` passes all ten Chromium states. The scan now runs in the standard browser command. Check latest hosted Chromium/Firefox results, then obtain manual keyboard, screen-reader and zoom acceptance. Do not treat an automated pass as full accessibility acceptance.
-3. Agree live file/backup retention and deletion policies and plan scanner monitoring. Local ClamAV checks passed with both a test signature and official databases installed by FreshClam. Review whether incoming/outgoing email attachments are required as a separate increment.
+3. Validate a real ClamAV daemon with clean, infected and unavailable-scanner cases; agree live file/backup retention and deletion policies. Review whether incoming/outgoing email attachments are required as a separate increment.
 4. Select a booking provider. The user explicitly said none is selected. Duffel test mode was suggested for flight sandbox development, not adopted or connected. Use provider-neutral/synthetic tests meanwhile. Build credentialed read/reconciliation and eventual provider command handling with manager review, stable ownership mapping, retries/idempotency and confirmed cancellation outcomes. Fee/refund handling and agency/customer browser forms remain open.
 5. Complete verified mail sending/receiving domains, credentials and a real send/receive/receipt/reply rehearsal. Synthetic and provider-fixture tests do not prove live delivery.
 6. Obtain independently labelled evaluation data and evaluate classification, privacy/linking and grounded summaries/drafts. Current deterministic record briefs and synthetic keyword fixtures do not satisfy independent AI acceptance.
 7. Extend load tests to representative data volumes, skew, long threads, cold caches and sustained concurrent readers/writers, with agreed latency/throughput targets.
 8. Complete operational recovery acceptance: named incident/recovery owners, approved live-data tenancy and retention, managed backups/monitoring/alerts and an approved staging restore. Existing synthetic recovery/worker-restart CI evidence remains useful but is not operational acceptance. Keep deployment paused.
+
+## ClamAV checkpoint
+
+PR #46 enables the real scanner when the local preview has a ClamAV host configured. Local Windows validation passed with ClamAV 1.5.4 and both a private test signature and official databases verified and installed by FreshClam. Clean files uploaded and downloaded byte-for-byte, EICAR was rejected, and stopping the daemon caused uploads to fail with HTTP 503 without storing files. The default synthetic attachment suite also passed. See the [attachment guide](OPSDESK_ATTACHMENTS.md) and [validation record](OPSDESK_VALIDATION.md). Production scanner operation, recurring signature monitoring and retention approval remain open.
 
 ## Reproduce locally
 
