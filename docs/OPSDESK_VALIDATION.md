@@ -1,3 +1,32 @@
+# Validation continuation - 11 November 2026
+
+## Base main CI and access limits
+
+Started from main `f29ce705d4cb1ced1a3d9440b43e872336994d60`, with no open PRs at the initial GitHub check.
+
+- [Combined application run 43044393887](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43044393887), at `b667d12`, ended cancelled during browser installation.
+- [Base main run 43045613008](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43045613008), at `f29ce70`, also ended cancelled during Playwright installation. Checkout, Node setup, install, booking-export checks, synthetic classifier regressions, isolated build/start, recovery safety/rehearsal, `ops:test` and booking ownership steps passed. Chromium, Firefox and the final production dependency audit were skipped.
+- The base's separate release workflow was skipped. It is not validation evidence.
+- Re-running validate job `130608803004` through the GitHub connector returned **HTTP 403, Resource not accessible by integration**. No retry was started and no workflow file was modified.
+
+The historical statement below that combined main CI was still installing browsers is superseded by these observed final states. A cancelled job does not establish hosted browser acceptance.
+
+## Classifier evaluation tooling
+
+The new `--dataset PATH [--json]` mode evaluates reviewed local JSON without changing `classify`. It validates version/provenance, labels, rationales, all-category coverage and duplicate/fixture overlap; reports dataset and rule SHA-256, accuracy, macro F1, per-category support/precision/recall/F1, confusion matrix and error IDs. The existing fixed fixtures and thresholds are preserved. Metadata is a reviewer declaration, not proof of independence. There is no agreed acceptance threshold for custom datasets.
+
+The 18-row starter pack has blank human labels/rationales and provenance fields. It was authored synthetically in this continuation and was not scored as independent evidence. [Review instructions and remaining acceptance](OPSDESK_ACCEPTANCE_REVIEW.md)
+
+Local checks on Node **22.23.0**: `npm ci` installed 1,175 packages and built shared types; six evaluator tests passed, including known confusion-matrix arithmetic, incomplete/invalid inputs, normalized duplicates, fixture overlap, CLI JSON/hash generation and incompatible flags. Synthetic development regression remained **27/30**; synthetic holdout remained **17/18**. These are new runs of the existing synthetic fixtures, not new independent evaluation results.
+
+No preview or API/browser suite was run for this scripts/documentation change. Application builds, browser runs and load counts in older sections are historical evidence. New hosted PR results must be checked separately.
+
+## Screen-reader observation
+
+The Windows app inventory showed no NVDA entry. Built-in Narrator initially returned no targetable window; a refreshed window inventory found its process window. Capture then reported: "Accessibility is limited because the target window has higher Windows integrity than the Computer Use helper." No OpsDesk spoken-output transcript/audio was observed. No security setting was changed. Spoken screen-reader acceptance remains **unverified**; the new cross-role checklist is a review plan only. Previous customer Chrome zoom acceptance is retained as historical evidence.
+
+Deployment remains paused. Independently labelled evaluation, representative/cold-cache load with agreed targets, live booking/mail, production scanner monitoring, approved retention and operational recovery remain open.
+
 # Merged customer portal and load checkpoint
 
 Verified main `b667d12a24c3dc091000f7a5d703a19b463888b1` contains both PR commits. [PR #50](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/50) passed local Chromium and Firefox and actual customer Chrome tab zoom. [PR #51](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/51) passed its 200-request and 60-second local rehearsals. Detailed local results appear in the customer portal and sustained synthetic load sections.

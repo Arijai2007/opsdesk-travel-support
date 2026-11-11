@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "name": "OpsDesk blind review starter - synthetic wording",
+  "source": "Assistant-authored synthetic examples, 11 November 2026; not customer traffic or independently sourced data.",
+  "labelledBy": "",
+  "labelledAt": "",
+  "reviewNotes": "",
+  "examples": [
+    {
+      "id": "review-01",
+      "text": "The promised reimbursement for the coach journey still hasn't reached my account.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-02",
+      "text": "My middle name is missing from the passenger details; can you put it right?",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-03",
+      "text": "The bag from the hold came out soaked and its contents are ruined.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-04",
+      "text": "We won't be taking the excursion. Please remove our reservation entirely.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-05",
+      "text": "The property wants a deposit that wasn't mentioned when I booked.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-06",
+      "text": "I'm standing at reception and they refuse to give me the key.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-07",
+      "text": "Cancel tomorrow's airport pickup, but leave the hotel booking alone.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-08",
+      "text": "Can I get a receipt showing the business address?",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-09",
+      "text": "The return flight should be on Sunday, not Saturday. Keep the outbound as it is.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-10",
+      "text": "The carrier says my suitcase is at another airport and I need it delivered.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-11",
+      "text": "Online check in keeps rejecting the reservation code even though the details match.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-12",
+      "text": "You charged me for a cancelled activity. Please return the payment.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-13",
+      "text": "I need help getting my wheelchair onto the shuttle.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-14",
+      "text": "Please don't cancel the room; I want to arrive a day later.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-15",
+      "text": "The airline lost both checked bags and hasn't given us a tracking number.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-16",
+      "text": "I have already abandoned the tour. How do I get my money back?",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-17",
+      "text": "Please void the rail reservation; I will make other arrangements.",
+      "label": "",
+      "rationale": ""
+    },
+    {
+      "id": "review-18",
+      "text": "At the departure gate my boarding document is rejected by the scanner.",
+      "label": "",
+      "rationale": ""
+    }
+  ]
+}

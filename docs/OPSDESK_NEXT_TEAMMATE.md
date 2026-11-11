@@ -1,5 +1,17 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Validation continuation - 11 November 2026
+
+This continuation starts from main `f29ce705d4cb1ced1a3d9440b43e872336994d60` (PR #52). There were no open PRs at the initial check. The combined application workflow and the documentation commit's validation both ended **cancelled during Playwright installation**. On `f29ce70`, recovery, API and booking ownership checks passed; hosted Chromium/Firefox and the final dependency audit were skipped. The integration rejected a retry with HTTP 403 (Actions write permission unavailable). Do not describe either cancelled run as passing. [Exact evidence](OPSDESK_VALIDATION.md#validation-continuation---11-november-2026)
+
+The evaluator now accepts a reviewer-labelled local dataset and emits provenance/hashes, per-category metrics and a confusion matrix. A blank synthetic review pack and [review procedures](OPSDESK_ACCEPTANCE_REVIEW.md) are available. No independent dataset was scored. Narrator launched but its captured window reported a Windows integrity restriction; spoken output remains unverified.
+
+**Copy-ready continuation**
+
+> Continue OpsDesk from latest main and inspect open PRs plus CI first. Read this section, the handoff, backlog, validation record and acceptance review guide. At base f29ce70, combined main CI was cancelled during browser installation; recovery/API checks passed but hosted browsers and the final audit were skipped. The retry was denied with HTTP 403. Check this continuation PR's hosted results separately and leave merge to collaborators. Obtain an observable spoken screen-reader review and independently assigned human labels before running the new --dataset evaluation mode. The supplied review pack is unlabelled synthetic wording, not independent acceptance. Existing synthetic regression scores remain 27/30 and 17/18. Keep representative/cold-cache load, agreed targets, live booking/mail, scanner monitoring, retention and operational recovery open. Use Node 22.23.x and the isolated synthetic preview; run API/browser suites sequentially. Preserve authorization, agency isolation, sessions, saved deadlines, idempotency and audit. No provider is selected. Deployment remains paused.
+
+Earlier checkpoints below remain historical; their pending-CI wording is superseded by this section.
+
 ## Current checkpoint after PRs #50 and #51
 
 The latest application checkpoint is `b667d12a24c3dc091000f7a5d703a19b463888b1`. The customer portal and sustained-load rehearsal are merged. There were no open PRs when this handoff was prepared. The combined main workflow reached Playwright installation, with hosted Chromium and Firefox pending at that check. The portal passed both engines locally. [Combined main CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43044393887)

@@ -1,5 +1,14 @@
 # OpsDesk — prioritized remaining work
 
+## Validation continuation - 11 November 2026
+
+1. Check the continuation PR's hosted CI. Base main `f29ce70` and the combined application run both ended cancelled during browser installation. Hosted Chromium/Firefox and the final audit were skipped; an Actions retry returned HTTP 403. [Exact evidence](OPSDESK_VALIDATION.md#validation-continuation---11-november-2026)
+2. Obtain observable spoken screen-reader evidence across roles. Narrator launched here but exposed a Windows integrity restriction; no spoken acceptance was observed. Use the [review checklist](OPSDESK_ACCEPTANCE_REVIEW.md#observable-screen-reader-review).
+3. Obtain independently assigned labels, freeze the dataset and run the new evaluator's `--dataset` mode. Input validation, provenance/hashes, per-category metrics and a blank synthetic review pack are implemented; independent evaluation remains open. [Procedure and limits](OPSDESK_ACCEPTANCE_REVIEW.md#reviewer-labelled-classifier-evaluation)
+4. Keep representative/cold-cache load and targets, live booking/mail, scanner monitoring, retention approval and operational recovery pending. Deployment remains paused.
+
+The earlier priorities below are historical where they conflict with this continuation.
+
 ## Priorities after the customer portal and load rehearsal
 
 PRs #50 and #51 are merged. Customer portal implementation, its local Chromium and Firefox checks, and customer Chrome zoom at 200% and 400% are complete. The local load harness now covers sustained concurrent reads and writes, deep pages and a long shared thread. [Recorded evidence](OPSDESK_VALIDATION.md#merged-customer-portal-and-load-checkpoint)

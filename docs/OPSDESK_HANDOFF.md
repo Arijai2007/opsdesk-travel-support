@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Validation continuation - 11 November 2026
+
+Started from main `f29ce70` after PR #52. Both the combined application run and this base's validation ended cancelled at browser installation. Recovery/API checks passed on the base; hosted Chromium/Firefox and the final audit were skipped. Retrying was denied by GitHub with HTTP 403. [Exact evidence and local checks](OPSDESK_VALIDATION.md#validation-continuation---11-november-2026)
+
+The classifier evaluator now supports reviewed local datasets, provenance and hashes, per-category metrics and a confusion matrix, with guards against incomplete labels and existing-fixture overlap. The [acceptance review guide](OPSDESK_ACCEPTANCE_REVIEW.md) includes a blank synthetic labelling pack and a cross-role spoken-output checklist. Neither independent evaluation nor spoken screen-reader acceptance is complete. No application classifier, access policy, provider integration or deployment behavior changed. Deployment remains paused. Use the newest [continuation prompt](OPSDESK_NEXT_TEAMMATE.md#validation-continuation---11-november-2026); older checkpoint sections below are historical.
+
 ## Current application checkpoint
 
 PRs #50 and #51 are merged at `b667d12`. The customer portal uses authenticated booking cards and scoped case history. Existing ticket intake and booking-request actions are available. Local Chromium and Firefox passed, and actual Chrome tab zoom passed at 200% and 400% on the customer workspace. The local load rehearsal completed 3,904 requests with 12 workers and verified 781 writes exactly once. [Validation details](OPSDESK_VALIDATION.md#merged-customer-portal-and-load-checkpoint)
