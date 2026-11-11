@@ -1,5 +1,13 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Customer portal continuation
+
+Start from main `5956e1f` after PR #49. The PR and post-merge workflows passed, including both hosted Firefox steps. The customer workspace now summarizes scoped cases and presents authenticated bookings as cards with on-demand support history. Existing new-ticket and cancellation-request controls remain available. The original Stitch ZIP was unavailable in this checkout, so the adaptation follows the merged cobalt/navy design.
+
+**Copy-ready continuation prompt.** Continue OpsDesk in DhruvKhanna7777/opsdesk-travel-support. Fetch main and review open PRs and CI. Read this checkpoint, then the handoff, backlog, validation record, booking approval guide, attachment guide and README. Review the customer portal PR and leave merge to collaborators. Actual Chrome tab zoom passed at 200% and 400% on the customer workspace. Use the validation record for the tested interactions. Obtain spoken screen-reader acceptance on an observable setup. Continue independent AI evaluation and representative sustained load and recovery acceptance. No live booking provider is selected. Live email and booking acceptance, scanner monitoring and retention approval remain open. Use Node.js 22.23.x, an isolated synthetic preview and sequential API/browser suites. Preserve access scopes, sessions, saved deadlines, idempotency and audit. Deployment remains paused.
+
+The earlier sections are historical checkpoints.
+
 ## Latest follow-up — case detail and Insights reference adaptation
 
 Started from merged main `a2d65cd440fabf1e9c268b6888dcdab01e4317e4` after PR #48. Both [PR #48 validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43018682596) and [its post-merge run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43018765372) passed, including hosted Chromium and Firefox. No PRs were open at the start of this follow-up. A separate worktree preserved the merged branch and all unrelated work.

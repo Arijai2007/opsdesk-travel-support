@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+Customers can view their case summary and browse their authenticated bookings as cards. Each card opens the existing scoped case history. New tickets and booking cancellation requests remain available through their existing controls. [Customer portal validation](docs/OPSDESK_VALIDATION.md)
+
 Case detail now shows a four-step journey from saved case state; Insights shows isometric issue columns from authorized category counts. These extend the supplied reference design without importing its fictional flight, provider, voucher or financial data. The existing conversation, supplier, audit and report controls remain available. [Current validation and remaining accessibility acceptance](docs/OPSDESK_VALIDATION.md#case-detail-and-insights-reference-follow-up--11-november-2026). Deployment remains paused.
 
 The workspace now adopts the supplied travel-operations design's cobalt palette and manager dashboard hierarchy. A decorative 3D route globe appears on the manager view, and the header offers a persistent Light/Dark switch. The design uses real role-scoped records; reference-screen figures and unsupported actions are not live features. Cross-role keyboard and dark-theme axe checks are documented in the [current validation record](docs/OPSDESK_VALIDATION.md#stitch-workspace-and-cross-role-accessibility-follow-up--11-november-2026). Actual screen-reader speech and 200%/400% browser zoom remain unverified. Deployment remains paused.

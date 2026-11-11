@@ -167,6 +167,39 @@ try {
     await page.getByRole('button', {name: 'Workspace guide', exact: true}).click();
     await scan(page, `${role} guide dark theme`);
     await page.keyboard.press('Escape');
+    if (role === 'maya') {
+      await page.getByRole('heading', {name: 'Your travel support', exact: true}).waitFor();
+      await page.getByRole('button', {name: 'Switch to light theme'}).click();
+      await page.getByRole('button', {name: 'View your bookings', exact: true}).click();
+      await page.getByRole('heading', {name: 'Your bookings', exact: true}).waitFor();
+      const cards = page.getByRole('list', {name: 'Your bookings'}).getByRole('listitem');
+      await cards.first().waitFor();
+      const expected = await page.evaluate(async () => {
+        const result = await fetch('/api/backend/ops/bookings?page=1');
+        if (!result.ok) throw new Error('Could not load scoped bookings');
+        return (await result.json()).items.map((booking) => booking.reference);
+      });
+      assert.deepEqual(await cards.locator('.od-booking-ref').allTextContents(), expected);
+      await scan(page, 'customer booking cards');
+      await page.getByRole('button', {name: 'Switch to dark theme'}).click();
+      await scan(page, 'customer booking cards dark theme');
+      await page.setViewportSize({width: 320, height: 800});
+      const overflow = await cards.first().evaluate((card) => card.scrollWidth > card.clientWidth + 1);
+      assert.equal(overflow, false, 'Customer booking card fits at 320px');
+      const history = cards.first().getByRole('button', {name: /case history/});
+      await history.focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await history.getAttribute('aria-expanded'), 'true');
+      await cards.first().getByRole('navigation', {name: 'booking cases pagination'}).waitFor();
+      await page.getByRole('button', {name: 'Booking requests', exact: true}).click();
+      await page.getByRole('dialog', {name: 'Booking requests'}).waitFor();
+      await page.keyboard.press('Escape');
+      await page.getByRole('dialog').waitFor({state: 'hidden'});
+      await page.getByRole('button', {name: 'New ticket', exact: true}).click();
+      await page.getByRole('dialog', {name: 'Start a conversation'}).waitFor();
+      await page.keyboard.press('Escape');
+      await page.getByRole('dialog').waitFor({state: 'hidden'});
+    }
     await page.close();
   }
   assert.equal(failures.length, 0, JSON.stringify(failures, null, 2));
