@@ -489,6 +489,34 @@ export function TicketDetail({
           {active(t) ? (staff ? "Resolve case" : "Close case") : "Reopen case"}
         </button>
       </div>
+      <section className="od-trajectory" aria-label="Case journey">
+        <div className="od-trajectory-heading">
+          <h2>Case journey</h2>
+          <span>{t.reference} · saved case state</span>
+        </div>
+        <ol className="od-trajectory-stages">
+          <li className="complete">
+            <span className="od-stage-glyph" aria-hidden="true">1</span>
+            <b>Intake recorded</b>
+            <small>The request is saved in this workspace.</small>
+          </li>
+          <li className={owner ? "complete" : "pending"}>
+            <span className="od-stage-glyph" aria-hidden="true">2</span>
+            <b>Team ownership</b>
+            <small>{owner ? owner.name : "Awaiting an eligible owner"}</small>
+          </li>
+          <li className={t.supplierReplied ? "complete" : "pending"}>
+            <span className="od-stage-glyph" aria-hidden="true">3</span>
+            <b>Supplier coordination</b>
+            <small>{t.supplierReplied ? "Supplier reply recorded" : "Available when needed"}</small>
+          </li>
+          <li className={active(t) ? "pending" : "complete"}>
+            <span className="od-stage-glyph" aria-hidden="true">4</span>
+            <b>Outcome</b>
+            <small>{active(t) ? "Case remains active" : human(t.status)}</small>
+          </li>
+        </ol>
+      </section>
       <div className="od-detail-grid">
         <div>
           <section className="od-case-brief">
