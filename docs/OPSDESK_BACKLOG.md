@@ -51,6 +51,8 @@ Start: scripts/local-setup.mjs, backend/src/main.ts, RedisService, infra/, docs/
 
 ## [P1] Connect real email and secure attachments
 
+Local ClamAV acceptance covers clean upload, EICAR detection with official databases verified by FreshClam and fail-closed outages. Production scanner operation and retention remain open. [Attachment guide](OPSDESK_ATTACHMENTS.md)
+
 [GitHub issue #4](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/4)
 
 Supplier and customer messages currently persist inside OpsDesk only.

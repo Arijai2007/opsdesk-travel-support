@@ -53,42 +53,53 @@ describe('travel attachments', () => {
     expect(db.travelAttachment.findUnique).not.toHaveBeenCalled();
   });
 
-  it('fails closed when no scanner is configured', async () => {
-    const oldDemo = process.env.OPSDESK_DEMO;
-    const oldHost = process.env.OPSDESK_CLAMD_HOST;
-    delete process.env.OPSDESK_DEMO;
-    delete process.env.OPSDESK_CLAMD_HOST;
-    const db = {
-      travelProfile: {
-        findUnique: jest
-          .fn()
-          .mockResolvedValue({ status: 'ACTIVE', kind: 'MANAGER' }),
-      },
-      travelMessage: {
-        findUnique: jest.fn().mockResolvedValue({
-          conversationId: null,
-          senderId: 'user',
-          visibility: 'INTERNAL',
-          ticket: { region: 'GLOBAL' },
-        }),
-      },
-      travelAttachment: { create: jest.fn() },
-    };
-    try {
-      const service = new TravelAttachmentsService(db as never);
-      await expect(
-        service.upload('user', 'message', {
-          filename: 'x.txt',
-          mimeType: 'text/plain',
-          base64: Buffer.from('safe').toString('base64'),
-        }),
-      ).rejects.toThrow('scanner is not configured');
-      expect(db.travelAttachment.create).not.toHaveBeenCalled();
-    } finally {
-      if (oldDemo === undefined) delete process.env.OPSDESK_DEMO;
-      else process.env.OPSDESK_DEMO = oldDemo;
-      if (oldHost === undefined) delete process.env.OPSDESK_CLAMD_HOST;
-      else process.env.OPSDESK_CLAMD_HOST = oldHost;
-    }
-  });
+  it.each(['unconfigured', 'invalid port in demo'])(
+    'fails closed when the scanner is %s',
+    async (mode) => {
+      const oldDemo = process.env.OPSDESK_DEMO;
+      const oldHost = process.env.OPSDESK_CLAMD_HOST;
+      const oldPort = process.env.OPSDESK_CLAMD_PORT;
+      delete process.env.OPSDESK_DEMO;
+      delete process.env.OPSDESK_CLAMD_HOST;
+      if (mode === 'invalid port in demo') {
+        process.env.OPSDESK_DEMO = 'true';
+        process.env.OPSDESK_CLAMD_HOST = '127.0.0.1';
+        process.env.OPSDESK_CLAMD_PORT = '0';
+      }
+      const db = {
+        travelProfile: {
+          findUnique: jest
+            .fn()
+            .mockResolvedValue({ status: 'ACTIVE', kind: 'MANAGER' }),
+        },
+        travelMessage: {
+          findUnique: jest.fn().mockResolvedValue({
+            conversationId: null,
+            senderId: 'user',
+            visibility: 'INTERNAL',
+            ticket: { region: 'GLOBAL' },
+          }),
+        },
+        travelAttachment: { create: jest.fn() },
+      };
+      try {
+        const service = new TravelAttachmentsService(db as never);
+        await expect(
+          service.upload('user', 'message', {
+            filename: 'x.txt',
+            mimeType: 'text/plain',
+            base64: Buffer.from('safe').toString('base64'),
+          }),
+        ).rejects.toThrow('scanner is not configured');
+        expect(db.travelAttachment.create).not.toHaveBeenCalled();
+      } finally {
+        if (oldDemo === undefined) delete process.env.OPSDESK_DEMO;
+        else process.env.OPSDESK_DEMO = oldDemo;
+        if (oldHost === undefined) delete process.env.OPSDESK_CLAMD_HOST;
+        else process.env.OPSDESK_CLAMD_HOST = oldHost;
+        if (oldPort === undefined) delete process.env.OPSDESK_CLAMD_PORT;
+        else process.env.OPSDESK_CLAMD_PORT = oldPort;
+      }
+    },
+  );
 });

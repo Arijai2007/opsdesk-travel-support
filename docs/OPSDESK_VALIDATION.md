@@ -1,3 +1,9 @@
+# ClamAV preview validation
+
+On Windows with Node 22.23.0 and isolated PostgreSQL 18, both builds, all 91 backend unit tests and changed-file lint passed. The verified ClamAV 1.5.4 Windows archive ran with a loopback TCP listener and a private EICAR test signature. All 23 attachment HTTP checks passed through the real daemon, including detection, clean upload and byte-for-byte download. The daemon log recorded `OpsDesk.Acceptance.Eicar.UNOFFICIAL FOUND`. With the daemon stopped, the same API returned 503 and stored no file. All 23 attachment checks also passed on a separate local API using the default synthetic scanner.
+
+The first full archive download stalled. Verified byte ranges yielded the official release SHA-256. An early outage probe ran before the API started and received connection refused. The completed probes ran after the API became ready. FreshClam subsequently verified and installed the official daily (28180), main (63) and bytecode (339) databases in an isolated directory. The full 23-check attachment suite passed again with only those databases loaded. The daemon logged `Eicar-Test-Signature FOUND`. No production configuration or migration was required.
+
 # Accessibility contrast follow-up
 
 ## Requester booking forms

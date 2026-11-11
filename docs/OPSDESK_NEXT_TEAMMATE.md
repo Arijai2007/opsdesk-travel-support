@@ -51,6 +51,10 @@ A development setup can avoid new service subscription costs by using local tool
 7. Extend load tests to representative data volumes, skew, long threads, cold caches and sustained concurrent readers/writers, with agreed latency/throughput targets.
 8. Complete operational recovery acceptance: named incident/recovery owners, approved live-data tenancy and retention, managed backups/monitoring/alerts and an approved staging restore. Existing synthetic recovery/worker-restart CI evidence remains useful but is not operational acceptance. Keep deployment paused.
 
+## ClamAV checkpoint
+
+PR #46 enables the real scanner when the local preview has a ClamAV host configured. Local Windows validation passed with ClamAV 1.5.4 and both a private test signature and official databases verified and installed by FreshClam. Clean files uploaded and downloaded byte-for-byte, EICAR was rejected, and stopping the daemon caused uploads to fail with HTTP 503 without storing files. The default synthetic attachment suite also passed. See the [attachment guide](OPSDESK_ATTACHMENTS.md) and [validation record](OPSDESK_VALIDATION.md). Production scanner operation, recurring signature monitoring and retention approval remain open.
+
 ## Reproduce locally
 
 Use Node.js **22.23.x**, `npm ci`, and `npm run ops:preview`. Keep the demo isolated and credential-free. This checkout used PostgreSQL port **55439**, API **3141**, and frontend **3140** because default ports were occupied. Local env files are ignored and were not committed. `LOCAL_POSTGRES_PORT` now supports an isolated database port; the preview derives the web port from `FRONTEND_URL`.
