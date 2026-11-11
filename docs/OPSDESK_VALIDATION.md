@@ -137,6 +137,19 @@ The expanded browser regression first failed on dark Insights and case-detail co
 
 Actual spoken screen-reader announcements and 200%/400% browser zoom remain unverified; prior viewport scans and key probes do not establish them. Local Firefox still cannot launch with `spawn UNKNOWN`; hosted Firefox CI must be checked after PR publication. Live integrations, scanner operations, retention approval, independent AI evaluation, representative load, operational recovery and deployment were not tested here. Deployment remains paused.
 
+# Message shared-buffer experiment
+
+On Windows with Node 22.23.4 and PostgreSQL 18.6, the query profiler passed at 100 and 6,000 generated bookings. In both disposable datasets it captured the actual manager query for page 60 of a 1,203-message case. The query returned 20 rows in every explain run. Each of the three pairs evicted the message table and four indexes only. No eviction was skipped, and each verification pass found zero additional message buffers to evict.
+
+| Generated bookings | Shared reads after eviction, three runs | Shared reads on warm repeats | SQL time after eviction (ms) | Warm SQL time (ms) |
+| ---: | --- | --- | --- | --- |
+| 100 | 38, 38, 38 | 0, 0, 0 | 2.262, 1.040, 1.719 | 0.679, 0.479, 0.759 |
+| 6,000 | 37, 37, 37 | 0, 0, 0 | 1.626, 1.277, 0.966 | 0.852, 0.626, 0.393 |
+
+The 100-booking control with the option disabled completed the standard query profile and omitted the experiment from its report. After the three runs, no disposable profile databases remained. The source database retained 60 cases, 192 messages and 12 supplier conversations. The application and browser suites were not rerun locally for this profiler-only change.
+
+The experiment leaves the OS cache uncontrolled and measures one SQL statement. Neither the timings nor the difference establish application-level cold-cache or production acceptance. [Reproduction and scope](OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment)
+
 # Historical Stitch workspace and cross-role accessibility follow-up — 11 November 2026
 
 Base: clean main `bc5f69630b7ddf78685e58d7de248c1d8ddbbae2`. PR #47 was merged, no PRs were open, and its [post-merge run succeeded](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42995341740). Work used an isolated clone and synthetic PostgreSQL preview on Node 22.23.0. The user-provided Stitch ZIP was treated as design reference. Its invented case counts, provider status, automated rebooking and unsupported controls were not imported. No backend, migration, live integration or deployment changes were made.
