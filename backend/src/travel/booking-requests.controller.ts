@@ -16,6 +16,7 @@ import {
   CancelBookingRequestDto,
   ReviewBookingRequestDto,
 } from './booking-requests.dto';
+import { TravelDirectoryDto } from './travel-directory.dto';
 import { TravelPageDto } from './travel-page.dto';
 @Controller('ops')
 @UseGuards(JwtAuthGuard)
@@ -26,6 +27,19 @@ export class BookingRequestsController {
     @Query() query: TravelPageDto,
   ) {
     return this.bookings.list(req.user.userId, query);
+  }
+  @Get('booking-requests/customers/:agencyId') customers(
+    @Req() req: AuthenticatedRequest,
+    @Param('agencyId') agencyId: string,
+    @Query() query: TravelDirectoryDto,
+  ) {
+    return this.bookings.customerOptions(req.user.userId, agencyId, query);
+  }
+  @Get('booking-requests/suppliers') suppliers(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: TravelDirectoryDto,
+  ) {
+    return this.bookings.supplierOptions(req.user.userId, query);
   }
   @Post('booking-requests') create(
     @Req() req: AuthenticatedRequest,

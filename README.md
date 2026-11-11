@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+Agency users can open **Booking requests** to propose a booking or request a cancellation. Customers can request cancellation for their own bookings. Managers decide in **Booking reviews**. [Booking workflow](docs/OPSDESK_BOOKING_APPROVALS.md)
+
 The [synthetic mail outbox](docs/OPSDESK_MAIL_OUTBOX.md) starts paused. Managers can inspect and manage queued staff replies. The optional synthetic worker sends no external mail.
 
 Managers can configure ordered **Escalation rotations** for each region, with a Global fallback, UTC slot cadence and on-duty backup managers. Case controls support manual coverage holds and explicit timed expiry; coverage loss always ends a hold. Existing response policies and deadlines are preserved. [Rotation, fallback and override behavior](docs/OPSDESK_SLA_CALENDARS.md#escalation-rotations-and-manual-holds)

@@ -13,6 +13,7 @@ import {
   CancelBookingRequestDto,
   ReviewBookingRequestDto,
 } from './booking-requests.dto';
+import { TravelDirectoryDto } from './travel-directory.dto';
 import { readPage, TravelPageDto } from './travel-page.dto';
 type Tx = Prisma.TransactionClient;
 const fingerprint = (value: unknown) =>
@@ -86,6 +87,81 @@ export class BookingRequestsService {
       Date.parse(dto.departureAt) < Date.parse(dto.checkInAt)
     )
       throw new BadRequestException('Departure cannot precede check-in.');
+  }
+  async customerOptions(
+    userId: string,
+    agencyId: string,
+    query: TravelDirectoryDto,
+  ) {
+    const member = await this.member(userId);
+    if (
+      member.kind !== 'MANAGER' &&
+      (member.kind !== 'AGENCY' || member.agencyId !== agencyId)
+    )
+      throw new ForbiddenException(
+        'Agency or manager creation access required.',
+      );
+    const search = query.search?.trim() ?? '';
+    const where: Prisma.TravelProfileWhereInput = {
+      agencyId,
+      kind: 'CUSTOMER',
+      status: 'ACTIVE',
+      user: {
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+        ],
+      },
+    };
+    return readPage(
+      query,
+      () => this.db.travelProfile.count({ where }),
+      async (skip, take) =>
+        (
+          await this.db.travelProfile.findMany({
+            where,
+            skip,
+            take,
+            orderBy: [
+              { user: { firstName: 'asc' } },
+              { user: { lastName: 'asc' } },
+              { userId: 'asc' },
+            ],
+            select: {
+              userId: true,
+              user: { select: { firstName: true, lastName: true } },
+            },
+          })
+        ).map(({ userId, user }) => ({
+          id: userId,
+          name: user.firstName + ' ' + user.lastName,
+        })),
+    );
+  }
+  async supplierOptions(userId: string, query: TravelDirectoryDto) {
+    const member = await this.member(userId);
+    if (
+      member.kind !== 'MANAGER' &&
+      (member.kind !== 'AGENCY' || !member.agencyId)
+    )
+      throw new ForbiddenException(
+        'Agency or manager creation access required.',
+      );
+    const where: Prisma.TravelSupplierWhereInput = {
+      name: { contains: query.search?.trim() ?? '', mode: 'insensitive' },
+    };
+    return readPage(
+      query,
+      () => this.db.travelSupplier.count({ where }),
+      (skip, take) =>
+        this.db.travelSupplier.findMany({
+          where,
+          skip,
+          take,
+          orderBy: [{ name: 'asc' }, { id: 'asc' }],
+          select: { id: true, name: true },
+        }),
+    );
   }
   async list(userId: string, query: TravelPageDto) {
     const member = await this.member(userId);

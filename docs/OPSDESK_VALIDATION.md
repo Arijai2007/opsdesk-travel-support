@@ -1,5 +1,11 @@
 # Accessibility contrast follow-up
 
+## Requester booking forms
+
+Started from main `66b43b8` with PRs #43 and #44 merged and [main CI passing](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42896535687). On Windows with Node 22.23.0 and isolated PostgreSQL 18, both production builds, all 90 backend unit tests, changed-file lint and 40 booking HTTP checks passed. The existing database applied its eight outstanding migrations to reach 28. This increment adds no migration.
+
+The booking browser flow passed locally in Chromium and Firefox. It covers agency creation, a lost response and same-ID retry, manager approval, customer cancellation, decision control visibility, the customer's scoped request list and persisted cancellation. All ten existing Chromium axe states passed. Full integrated validation runs in hosted CI. Live provider and manual accessibility acceptance remain open.
+
 Seven foreground colors in `frontend/app/globals.css` were darkened without changing the palette or disabling rules. Both application builds passed on the isolated Node 22.23.0 preview. `npm run ops:test:a11y` passed all ten Chromium states with axe WCAG A/AA tags. The scan is now included in `ops:test:browser`, so hosted browser runs exercise it. Manual keyboard/screen-reader/zoom acceptance and latest hosted validation remain open.
 
 # Attachment increment validation
