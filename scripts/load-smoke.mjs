@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import dotenv from "dotenv";
 import pg from "pg";
+import { readRoleProfile } from "./load-profile.mjs";
 
 const env = dotenv.parse(
   readFileSync(new URL("../backend/.env", import.meta.url)),
@@ -32,22 +33,26 @@ const concurrency = integer("OPSDESK_LOAD_CONCURRENCY", 8, 1, 32);
 const duration = integer("OPSDESK_LOAD_DURATION_SECONDS", 0, 0, 180);
 const backgroundCases = integer("OPSDESK_LOAD_CASES", 0, 0, 18_000);
 const historyLength = integer("OPSDESK_LOAD_HISTORY", 0, 0, 5_000);
+const readProfile = readRoleProfile(process.env.OPSDESK_LOAD_ROLE_WEIGHTS);
 const prefix = "LOAD-" + randomUUID() + "-";
 const ids = Array.from({ length: concurrency }, (_, index) => prefix + index);
 const hot = ids[0];
+const supplierConversation = prefix + "supplier";
 const pool = new pg.Pool({ connectionString: env.DATABASE_URL });
 const stats = new Map();
+const roleStats = new Map();
 const expectedWrites = new Map();
 let fixturesCreated = false;
 let next = 0;
+let nextRead = 0;
 let token;
 
-async function request(path, expectedStatus, body) {
+async function request(path, expectedStatus, body, authToken = token) {
   const response = await fetch(new URL(path, api), {
     method: body ? "POST" : "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(authToken && { Authorization: `Bearer ${authToken}` }),
     },
     body: body && JSON.stringify(body),
     signal: AbortSignal.timeout(20_000),
@@ -129,6 +134,21 @@ try {
       [hot, historyLength],
     );
   }
+  if (readProfile.weights.supplier) {
+    const conversation = await pool.query(
+      `INSERT INTO "TravelConversation" (id, "ticketId", "supplierId", subject, status, "dueAt", "createdAt")
+       SELECT $1, $2, "supplierId", 'Disposable supplier load thread', 'AWAITING_REPLY',
+              now() + interval '1 year', now()
+       FROM "TravelProfile" WHERE "userId"='supplier-user' AND kind='SUPPLIER' AND "supplierId" IS NOT NULL`,
+      [supplierConversation, hot],
+    );
+    assert.equal(conversation.rowCount, 1, "Missing seeded supplier profile.");
+    await pool.query(
+      `INSERT INTO "TravelMessage" (id, "ticketId", "conversationId", "senderId", visibility, content, "createdAt")
+       VALUES ($1, $2, $3, 'manager', 'SUPPLIER', 'Disposable supplier load context.', now())`,
+      [prefix + "supplier-message", hot, supplierConversation],
+    );
+  }
   const loaded = await rowCounts();
   const deepHistory = Math.max(1, Math.ceil(historyLength / 20));
   const deepQueue = backgroundCases
@@ -147,13 +167,73 @@ try {
   const queue = await request(`/ops/queue?tab=all&page=${deepQueue}`, 200);
   assert.equal(queue.page, deepQueue);
 
-  const started = performance.now();
   const operations = [
     ["queue", `/ops/queue?tab=all&page=${deepQueue}`],
     ["bookings", "/ops/bookings?page=1"],
     ["hot history", `/ops/tickets/${hot}/messages?page=${deepHistory}`],
     ["insights", "/ops/insights"],
   ];
+  const actors = new Map([["manager", { token, operations, nextRead: 0 }]]);
+  const accounts = {
+    agency: "agency",
+    customer: "maya",
+    agent: "asia",
+    supplier: "supplier",
+  };
+  for (const role of new Set(readProfile.schedule)) {
+    if (role === "manager") continue;
+    const session = await request(
+      "/auth/login",
+      200,
+      {
+        email: `${accounts[role]}@opsdesk.demo`,
+        password: "OpsDeskDemo!2026",
+      },
+      null,
+    );
+    const actorToken = session.accessToken;
+    let routes;
+    if (role === "supplier") {
+      const conversations = await request(
+        "/ops/conversations?page=1",
+        200,
+        undefined,
+        actorToken,
+      );
+      assert(
+        conversations.items.some(
+          (conversation) => conversation.id === supplierConversation,
+        ),
+        "Supplier must see its disposable thread in the same synthetic database.",
+      );
+      routes = [
+        ["conversations", "/ops/conversations?page=1"],
+        [
+          "supplier history",
+          `/ops/conversations/${supplierConversation}/messages?page=1`,
+        ],
+      ];
+    } else {
+      const scopedQueue = await request(
+        "/ops/queue?tab=all&page=1",
+        200,
+        undefined,
+        actorToken,
+      );
+      const ticket = scopedQueue.items[0];
+      assert(ticket, `Seeded ${role} needs a scoped case for load reads.`);
+      routes = [
+        ["queue", "/ops/queue?tab=all&page=1"],
+        ["bookings", "/ops/bookings?page=1"],
+        ["case history", `/ops/tickets/${ticket.id}/messages?page=1`],
+        ["booking history", `/ops/bookings/${ticket.bookingId}/tickets?page=1`],
+      ];
+    }
+    for (const [, route] of routes)
+      await request(route, 200, undefined, actorToken);
+    actors.set(role, { token: actorToken, operations: routes, nextRead: 0 });
+  }
+  const started = performance.now();
   const results = await Promise.allSettled(
     ids.map(async (id) => {
       while (true) {
@@ -166,19 +246,29 @@ try {
           break;
         const write = index % 5 === 0;
         const target = index % 4 === 0 ? id : hot;
+        const role = write
+          ? "manager"
+          : readProfile.schedule[nextRead++ % readProfile.schedule.length];
+        const actor = actors.get(role);
         const [operation, route] = write
           ? ["internal note", `/ops/tickets/${target}/messages`]
-          : operations[index % operations.length];
+          : actor.operations[actor.nextRead++ % actor.operations.length];
         const content = prefix + "write-" + index;
         const before = performance.now();
         await request(
           route,
           write ? 201 : 200,
           write ? { content, visibility: "INTERNAL" } : undefined,
+          actor.token,
         );
-        const times = stats.get(operation) ?? [];
-        times.push(performance.now() - before);
-        stats.set(operation, times);
+        const elapsed = performance.now() - before;
+        const operationKey = `${role}: ${operation}`;
+        const times = stats.get(operationKey) ?? [];
+        times.push(elapsed);
+        stats.set(operationKey, times);
+        const roleTimes = roleStats.get(role) ?? [];
+        roleTimes.push(elapsed);
+        roleStats.set(role, roleTimes);
         if (write) expectedWrites.set(content, target);
       }
     }),
@@ -216,6 +306,10 @@ try {
     JSON.stringify(
       {
         scenario: "isolated synthetic mixed read/write",
+        node: process.version,
+        cacheState: "not controlled; preflight reads excluded from timings",
+        readRoleWeights: readProfile.weights,
+        writeRole: "manager",
         baseline,
         loaded,
         concurrency,
@@ -226,6 +320,9 @@ try {
         elapsedMs: Math.round(elapsedMs),
         requestsPerSecond: +((all.requests / elapsedMs) * 1000).toFixed(1),
         ...all,
+        byRole: Object.fromEntries(
+          [...roleStats].map(([role, times]) => [role, summarize(times)]),
+        ),
         byOperation: Object.fromEntries(
           [...stats].map(([name, times]) => [name, summarize(times)]),
         ),

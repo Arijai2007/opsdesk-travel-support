@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Five-role load continuation
+
+Started from main `64c5245` after PR #54, whose PR CI passed. Post-merge CI failed before tests because its fixed PostgreSQL host port was occupied; this branch uses dynamic service-port mapping. It also extends synthetic load to configurable five-role reads with manager-only writes, disposable supplier context and per-role metrics. The 60-second local run completed 8,035 requests and verified 1,607 writes exactly once; cleanup restored baseline counts. [Exact verification, CI status and limits](OPSDESK_VALIDATION.md#five-role-load-and-ci-port-isolation---11-november-2026)
+
+Check this PR's hosted run, then continue human labelling and observable spoken-output review. Representative booking/identity distributions, approved role weights, cold caches and performance targets remain open. [Latest teammate checkpoint](OPSDESK_NEXT_TEAMMATE.md#five-role-load-continuation). Deployment remains paused; earlier checkpoint sections below are historical where superseded.
+
 ## Validation continuation - 11 November 2026
 
 Started from main `f29ce70` after PR #52. Both the combined application run and this base's validation ended cancelled at browser installation. Recovery/API checks passed on the base; hosted Chromium/Firefox and the final audit were skipped. Retrying was denied by GitHub with HTTP 403. [Exact evidence and local checks](OPSDESK_VALIDATION.md#validation-continuation---11-november-2026)

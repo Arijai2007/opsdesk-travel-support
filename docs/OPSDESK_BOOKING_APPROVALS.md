@@ -44,4 +44,15 @@ npm run ops:load
 
 Duration mode keeps the workers active for up to 180 seconds and drains in-flight requests. Without a duration, `OPSDESK_LOAD_REQUESTS` selects 20–10,000 requests. Case and history options accept up to 18,000 and 5,000 rows respectively. Concurrency accepts 1–32 workers. The harness verifies deep queue and history pages, directs most writes to the same case, and reports aggregate and per-operation p50, p95, p99 and maximum latency. Set `OPSDESK_TEST_URL` when using a custom API port. Run it separately from fixture-mutating suites.
 
-The workload uses one synthetic manager and one local host. See the [validation record](OPSDESK_VALIDATION.md) for observed results and the remaining acceptance work.
+The default workload uses one synthetic manager and one local host. To distribute reads across five authenticated roles, set positive integer weights before running the same command:
+
+```powershell
+$env:OPSDESK_LOAD_ROLE_WEIGHTS = '{"manager":1,"agency":1,"customer":1,"agent":1,"supplier":1}'
+npm run ops:load
+```
+
+Weights apply to the **read requests only**. One in every five measured operations remains a manager-authored internal note; all acknowledged writes must be stored exactly once. Omitted roles have weight zero. Supported keys are `manager`, `agency`, `customer`, `agent` and `supplier`; weights must be integers from 0 to 100 with a total from 1 to 100. Clear `OPSDESK_LOAD_ROLE_WEIGHTS` to restore manager-only reads. The schedule is deterministic and interleaves roles according to their weights. The report includes declared read weights, actual per-role/per-operation counts and p50/p95/p99/max latencies, Node version and an explicit uncontrolled-cache declaration. Per-operation names now include the role. Setup, authentication and preflight requests are excluded from measured counts.
+
+Agency, customer and agent traffic rotates through their scoped queue, bookings, case messages and booking history. Supplier traffic alternates the supplier's conversation list and a disposable shared thread. The harness creates that thread and a supplier-visible context message on its own fixture case; case deletion cascades to both. No supplier/customer write capability is introduced. Manager deep queue/history and Insights reads, concentrated note contention and write verification remain available.
+
+The equal-weight example is a synthetic test choice, not an approved traffic distribution. It uses one seeded identity per active role, existing booking distributions, one host and warm/preflighted paths; it does not prove cold-cache performance or representative concurrent users. Agree those distributions, cache procedures and latency/throughput targets separately. Run `npm run ops:test:load-profile` for profile validation/scheduling tests; they also run in the standard API command. CI runs a short five-role load scenario sequentially after API/booking fixtures and before browser suites. See the [validation record](OPSDESK_VALIDATION.md#five-role-load-and-ci-port-isolation---11-november-2026) for observed results and remaining acceptance work.

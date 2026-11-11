@@ -1,5 +1,13 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Five-role load continuation
+
+PR #54 is merged in main `64c5245`; its PR workflow passed. Post-merge CI failed before tests because fixed PostgreSQL host port 55432 was occupied. This follow-up uses a dynamically assigned service port and adds a short five-role load rehearsal to CI. Check its hosted result separately.
+
+The synthetic load harness now accepts read weights for all five roles and reports actual per-role counts/latencies. A local 60-second run with 12 workers, 3,000 background cases and 1,200 history messages completed **8,035 requests** and verified **1,607 writes exactly once**. Fixture cleanup restored the original counts. These are single-host synthetic results with uncontrolled caches and one identity per role, not representative or cold-cache acceptance. [Exact evidence and limits](OPSDESK_VALIDATION.md#five-role-load-and-ci-port-isolation---11-november-2026) · [Run options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal)
+
+Next check this PR's CI, obtain human labels for the merged blind review pack and observable spoken screen-reader evidence, then agree representative booking/role distributions, cold-cache procedures and performance targets. Keep live integration and operational acceptance open. Use Node 22.23.x and the isolated synthetic preview; run mutating API/load/browser suites sequentially. Leave merging to collaborators and deployment paused. The older checkpoints below are historical where superseded.
+
 ## CI browser runtime follow-up
 
 PR #53 is merged in main `b7bfa3a`. Its CI timed out while Ubuntu package hosts repeatedly failed DNS resolution during Playwright OS-dependency installation. The follow-up workflow uses the official version/digest-pinned Playwright container for sequential Chromium/Firefox fixtures, retaining the existing loopback guards and Node 22.23.x. Check its hosted result before claiming browser acceptance. [Diagnosis, implementation and verification limits](OPSDESK_VALIDATION.md#ci-browser-runtime-follow-up---11-november-2026)

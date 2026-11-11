@@ -1,3 +1,30 @@
+# Five-role load and CI port isolation - 11 November 2026
+
+Started from main `64c5245223cab2913f5e07ab6c8f6b4543da72d6` after PR #54 merged. Its [PR workflow passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43064821827), including the pinned-runtime browser steps. The [post-merge run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43065054837) failed before checkout at PostgreSQL container startup: `failed to bind host port 0.0.0.0:55432/tcp: address already in use`. That run supplies no application test result. This follow-up requests a dynamic PostgreSQL host port and passes the assigned port to both the preview database URL and recovery maintenance URL. Browser host networking and all loopback guards remain intact.
+
+The load harness now supports declared read weights for manager, agency, customer, agent and supplier identities. Manager note writes remain one in five measured operations, with existing exact-once storage checks. Supplier reads use a disposable shared thread/context message; setup and fixture cleanup remain separate from measured timing. Per-role and per-operation latency/count reports make the actual traffic visible. No application authorization, session or classifier behavior changed.
+
+## Local verification
+
+Node **22.23.0**, a newly initialized embedded PostgreSQL **18.6** instance on port **55449**, API **3241** and frontend **3240**. The isolated preview generated Prisma, applied all **28 migrations**, seeded synthetic records and built the shared package, backend and optimized frontend successfully. No live credentials or external service were used.
+
+| Scenario | Measured requests | Exact-once writes | Observed results |
+| --- | ---: | ---: | --- |
+| Default manager, 8 workers | 200 | 40 | p50 54 ms, p95 119 ms, p99 408 ms; 117.3 requests/s. |
+| Equal five-role reads, 8 workers | 200 | 40 | 32 reads per role plus 40 manager writes; p50 72 ms, p95 213 ms, p99 381 ms; 85.6 requests/s. |
+| Equal five-role reads, 60 seconds, 12 workers, 3,000 background cases and 1,200 history messages | 8,035 | 1,607 | 60,116 ms including drain; p50 67 ms, p95 271 ms, p99 394 ms, max 671 ms; 133.7 requests/s. Queue page 150 and manager history page 60 were exercised. |
+| Supplier-only reads, 4 workers | 20 | 4 | 16 supplier reads plus 4 manager writes; verifies manager writes remain enabled with zero manager read weight. |
+
+The sustained run loaded **3,072 cases / 1,393 messages**. Its measured role totals (manager includes writes) were manager **2,893**, agency **1,286**, customer **1,286**, agent **1,285** and supplier **1,285**. Their respective p95 latencies were **350, 110, 112, 114 and 92 ms**. These timings are single-host synthetic observations, not targets or a comparison against a controlled earlier environment.
+
+After all runs, a direct database check confirmed **60 cases, 192 messages and 12 conversations**, with zero `LOAD-` cases, messages or conversations remaining. An initial five-role preflight found no seeded Aster supplier conversation; the harness now provisions and verifies its own disposable thread rather than relying on incidental seed state. The failed setup also cleaned up its fixture cases.
+
+Three profile tests passed for legacy defaults, equal five-role cycles, weighted quotas/zero manager reads and malformed/unknown/noninteger/negative/null/excessive weights. Prettier, actionlint 1.7.12 (external shellcheck/pyflakes unavailable) and `git diff --check` passed. Actionlint initially rejected numeric indexing of service-port metadata; the final workflow uses the string key `ports['5432']`. The new short five-role HTTP rehearsal is included in CI after API fixtures and before browser fixtures. This branch's hosted result must be checked separately; the full local API/browser suites were not rerun for this harness/workflow change.
+
+## Remaining limits
+
+Read weights are explicit test inputs, not owner-approved representative traffic. There is one seeded identity per active role, no newly generated booking distribution, no controlled cold-cache procedure, and no agreed performance threshold. Setup/authentication/preflights are excluded from timing. Independent human labels, observable spoken screen-reader acceptance, live booking/mail, scanner monitoring, retention and operational recovery acceptance remain open. Deployment remains paused.
+
 # CI browser runtime follow-up - 11 November 2026
 
 Started from main `b7bfa3a0197614ccbc432eeee516a4f17ab4a945` after PR #53 merged. Its [PR validation run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43059552387) ended cancelled at the 20-minute job limit. The browser installation logs repeatedly reported `Temporary failure resolving` for Ubuntu's Azure, archive and security package hosts while installing OS dependencies. Neither browser suite ran. The [post-merge run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43063889002) was still active when this follow-up began; do not infer its final result from the earlier failure.

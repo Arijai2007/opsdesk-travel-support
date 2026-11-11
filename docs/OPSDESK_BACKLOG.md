@@ -1,5 +1,11 @@
 # OpsDesk — prioritized remaining work
 
+## Five-role load continuation
+
+PR #54's pinned-browser workflow passed before merge. Its post-merge run failed before checkout due to PostgreSQL host port 55432 being occupied; this follow-up assigns the port dynamically. Check the new hosted run before reporting combined main validation.
+
+Synthetic load now covers configurable read weights across all five roles with manager writes and per-role metrics. A local 60-second run completed 8,035 requests and verified 1,607 writes exactly once. [Evidence and limits](OPSDESK_VALIDATION.md#five-role-load-and-ci-port-isolation---11-november-2026). Representative booking distributions/concurrent identities, owner-approved role weights, cold-cache procedures and performance targets remain open. Human labels and spoken screen-reader acceptance remain next reviewer-dependent work; live integrations and operational acceptance are unchanged. Deployment remains paused. Older priorities below are historical where superseded.
+
 ## Validation continuation - 11 November 2026
 
 1. Check the continuation PR's hosted CI. Base main `f29ce70` and the combined application run both ended cancelled during browser installation. Hosted Chromium/Firefox and the final audit were skipped; an Actions retry returned HTTP 403. [Exact evidence](OPSDESK_VALIDATION.md#validation-continuation---11-november-2026)

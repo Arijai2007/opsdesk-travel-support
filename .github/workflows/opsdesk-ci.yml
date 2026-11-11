@@ -28,7 +28,7 @@ jobs:
           POSTGRES_PASSWORD: opsdesk-ci-only
           POSTGRES_DB: opsdesk
         ports:
-          - 55432:5432
+          - 5432/tcp
         options: >-
           --health-cmd "pg_isready -U opsdesk -d opsdesk"
           --health-interval 5s
@@ -47,9 +47,11 @@ jobs:
           npm run ops:evaluate-classifier -- --check
           npm run ops:evaluate-classifier -- --holdout --check
       - name: Configure isolated database
+        env:
+          OPSDESK_CI_DATABASE_URL: postgresql://opsdesk:opsdesk-ci-only@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/opsdesk
         run: |
           npm run ops:setup
-          node --input-type=module -e "import fs from 'node:fs'; const p='backend/.env'; fs.writeFileSync(p, fs.readFileSync(p,'utf8').replace(/^DATABASE_URL=.*$/m, 'DATABASE_URL=postgresql://opsdesk:opsdesk-ci-only@127.0.0.1:55432/opsdesk'));"
+          node --input-type=module -e "import fs from 'node:fs'; const p='backend/.env'; fs.writeFileSync(p, fs.readFileSync(p,'utf8').replace(/^DATABASE_URL=.*$/m, 'DATABASE_URL=' + process.env.OPSDESK_CI_DATABASE_URL));"
       - name: Build and start isolated demo
         run: |
           node scripts/run-local.mjs --preview --external-db > opsdesk-ci.log 2>&1 &
@@ -68,11 +70,15 @@ jobs:
       - run: node --test scripts/recovery-safety.test.mjs
       - name: Rehearse isolated logical recovery
         env:
-          OPSDESK_RECOVERY_DATABASE_URL: postgresql://opsdesk:opsdesk-ci-only@127.0.0.1:55432/postgres
+          OPSDESK_RECOVERY_DATABASE_URL: postgresql://opsdesk:opsdesk-ci-only@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/postgres
           OPSDESK_RECOVERY_CONTAINER: ${{ job.services.postgres.id }}
         run: npm run ops:recovery
       - run: npm run ops:test
       - run: node scripts/booking-ownership.integration.mjs
+      - name: Synthetic five-role load smoke
+        env:
+          OPSDESK_LOAD_ROLE_WEIGHTS: '{"manager":1,"agency":1,"customer":1,"agent":1,"supplier":1}'
+        run: npm run ops:load
       - name: Pull preinstalled browser runtime
         timeout-minutes: 5
         run: docker pull "$PLAYWRIGHT_IMAGE"
