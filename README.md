@@ -1,5 +1,7 @@
 # OpsDesk - connected travel support
 
+Use `npm run ops:startup-profile` for isolated fresh-API process experiments with first/repeat read timings and verified cleanup. [Setup, observations and cache limits](docs/OPSDESK_STARTUP_PROFILE.md). Database/OS cold-cache acceptance and performance targets remain open.
+
 Use `npm run ops:review-classifier` to review the blind classifier pack in a local browser form, save drafts and export reviewer-labelled JSON. It runs without the application/database or model credentials and shows no classifier predictions. [Reviewer instructions](docs/OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form). Human acceptance remains pending.
 
 The synthetic load rehearsal now supports five-role read weights, manager writes and per-role latency reports. [Run options and scope](docs/OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal) · [New validation evidence](docs/OPSDESK_VALIDATION.md#five-role-load-and-ci-port-isolation---11-november-2026). Representative traffic, cold-cache acceptance and agreed performance targets remain open.

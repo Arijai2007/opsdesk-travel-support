@@ -1,3 +1,31 @@
+# API process-start profile - 11 November 2026
+
+Started from main `8c1d546925ff67400f59d1c946ab57ff1ab96d1f` after PR #56 merged. Both its [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071338763) and [post-merge main run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43071756560) passed, including Chromium, Firefox, the reviewer form, API/recovery/load and audit.
+
+The new `ops:startup-profile` command creates a migrated/seeded disposable template, clones it per role/round, starts a fresh API on an available port and separates readiness/login/first-workload/repeat timings. API processes use generated secrets and an explicit synthetic environment in a directory without a caller `.env`. Model/mail credentials and caller runtime flags are not inherited. Only generated run-owned databases are removed, after stopping the owned API processes. A success report is emitted only after namespace cleanup passes. [Procedure, options and limits](OPSDESK_STARTUP_PROFILE.md)
+
+## Local results
+
+Node **22.23.0**, PostgreSQL **18.6** on loopback port **55449**, using the already-built current application backend. The profiler applied all 28 migrations and seeded its own template with **30 bookings, 60 cases and 192 messages**. It did not profile or mutate the existing application database.
+
+A one-manager smoke completed readiness in **3,195.36 ms**, login in **386.39 ms**, first workload GET in **116.02 ms** and two repeats in **37.33 / 42.87 ms**, with both disposable databases removed. The full experiment then completed **two rounds × five roles**, each with a new API PID/database clone and **ten repeat reads**:
+
+| Role | First GET, rounds 1 / 2 (ms) | Repeat p50, rounds 1 / 2 (ms) | Scoped total items |
+| --- | --- | --- | ---: |
+| Manager queue | 50.15 / 54.40 | 40.80 / 25.40 | 60 |
+| Agency bookings | 142.66 / 350.71 | 18.22 / 26.54 | 11 |
+| Customer bookings | 116.71 / 139.99 | 21.54 / 25.73 | 2 |
+| Agent queue | 46.00 / 55.96 | 18.96 / 22.38 | 22 |
+| Supplier conversations | 34.64 / 23.53 | 14.07 / 13.54 | 0 |
+
+Across the full experiment, process-to-readiness ranged **2,421.61–2,670.01 ms** and login **225.14–270.36 ms**. All **110 measured workload GETs** passed and retained stable scoped totals. Ten observed PIDs were distinct. The ten probe databases and template were removed. Supplier results are explicitly empty-list observations; they do not establish populated supplier performance.
+
+An interruption rehearsal emitted SIGINT after observing a connection from an owned API to its probe database. The profiler rejected with the expected interruption, stopped its process and removed its databases. A separate maintenance query found **zero profiler databases** remaining; the original application retained **60 cases, 192 messages and 12 conversations**. The first setup attempt exposed Prisma's non-CLI default export; resolving its explicit `prisma/build/index.js` CLI fixed it, and that failed attempt also cleaned up its template.
+
+Three focused tests passed for loopback maintenance URLs, role/sample bounds, namespace construction and exclusion of inherited model/mail credentials/runtime flags. Prettier, syntax, actionlint and whitespace checks passed. CI now runs these guards in `ops:test` and a bounded one-manager integration smoke before browser suites. The full API/browser suites were not rerun locally for this harness/workflow change; check its hosted result separately.
+
+These are **fresh API process** results, not full cold-cache acceptance: database/OS caches are not reset, readiness/authentication run first, frontend/TLS are absent, and sample/population sizes are small. No latency target is accepted. Human classifier labels/adjudication, spoken-output review, representative performance, live integrations and operational acceptance remain open. Deployment stays paused.
+
 # Blind review form - 11 November 2026
 
 Rebased onto main `9503315d239c3f41d8cb327a56b7f717c84110f9` after PR #55 merged. [PR #55 validation passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43069170073), including dynamic database-port setup, API/recovery, the five-role load smoke, both browsers and audit. Its [post-merge run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43070421350) was still active when this checkpoint was checked; inspect its final result separately.
