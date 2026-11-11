@@ -40,3 +40,16 @@ Use the pinned Node.js 22.23.x runtime. Install dependencies, generate Prisma an
 The script runs no HTTP server and never populates the application database. Its disposable database is dropped in finally. An interrupted/killed process may leave a database named `opsdesk_profile_<random UUID>` for manual cleanup. Set `OPSDESK_PROFILE_BOOKINGS` (100-100000; default 6000) to change volume, and `OPSDESK_PROFILE_OUTPUT` to choose the JSON output (default `.opsdesk/query-profile.json`). Reports contain synthetic SQL parameters/results; do not repurpose this harness with real data. It deliberately installs the new covering index between its before/after phases, so the before phase uses the current people query without that index. To reproduce the old people query baseline, run the harness with the backend built from PR #15 before applying the query rewrite.
 
 The detailed JSON traces from this investigation were saved as local profiling artifacts. Re-run on target hardware with representative skew, longer message histories, deep pages, cold caches and concurrent readers/writers before choosing latency or throughput targets.
+
+## Message shared-buffer experiment
+
+On a local PostgreSQL 18 instance with the bundled `pg_buffercache` extension, use a superuser maintenance connection to run the optional experiment. Start with the setup above.
+
+```powershell
+$env:OPSDESK_PROFILE_MESSAGE_BUFFERS = '1'
+npm run ops:profile
+```
+
+The profiler adds 1,200 messages to one disposable synthetic case and captures the actual manager page-60 SQL after installing the current covering index. For each of three pairs it evicts only the message table and its indexes in that generated database, checks that a second eviction removes zero blocks, and explains the same SQL twice. The JSON report includes shared reads, hits, row counts and execution time. It records the number of skipped and flushed buffers. A skipped eviction or an evicted run with no shared reads fails the experiment.
+
+The operating-system page cache and unrelated PostgreSQL relations stay outside this measurement. Query capture and fixture preparation happen before eviction. Execution timing covers one SQL statement and excludes authentication, HTTP and the rest of the application workload. [PostgreSQL buffer eviction](https://www.postgresql.org/docs/18/pgbuffercache.html) · [Observed results](OPSDESK_VALIDATION.md#message-shared-buffer-experiment)

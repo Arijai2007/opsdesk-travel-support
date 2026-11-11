@@ -443,6 +443,10 @@ Continue in this order. P0 live-data gates remain mandatory before live use; dep
 
 > **Current and next.** Membership administration merged in PR #28 with passing hosted validation. The current local increment adds agency calendars, explicit pause/resume, duty coverage and manager escalation handoffs. Review its migration, test evidence and policy limits before merging. Next complete remaining contract/supplier calendars and workload-handoff policies, then email/attachments and a provider-neutral booking adapter with explicit owner policy for new bookings and cancellations. Independent evaluation, accessibility, load and live-data/recovery gates remain open. Deployment stays paused.
 
+## Query-level shared-buffer rehearsal
+
+Use the [message buffer experiment](OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment) for PostgreSQL 18 evidence on one deep message query in a disposable database. Full application cold-cache acceptance remains open.
+
 ## Release and incident checks
 
 1. The release owner records the deployed commit, last known healthy commit, migration versions, backup location, recovery objectives and rollback authority before staging deployment. Contact names and hosting details still need an owner.

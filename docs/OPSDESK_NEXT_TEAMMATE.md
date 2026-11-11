@@ -129,6 +129,10 @@ PR #40 merged into main directly; #41 and #42 merged into their original base br
 
 **Existing AI baseline:** synthetic development classification scored 27/30 and synthetic holdout scored 17/18. No independent evaluation or external LLM acceptance is claimed.
 
+## Message buffer continuation
+
+The optional query profiler controls the message table and index shared buffers in a disposable database. Use the [procedure and limits](OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment) and [validation](OPSDESK_VALIDATION.md#message-shared-buffer-experiment). Continue representative traffic design, observable spoken screen-reader review and independent human classifier labels. Deployment remains paused and merges remain with collaborators.
+
 ## Free-first options for remaining work
 
 Options below were checked on 11 November 2026. They are development/testing choices, not newly connected services or proof of live acceptance. Recheck provider pricing and access requirements before selecting a live plan. No booking provider has been selected.

@@ -177,6 +177,10 @@ Acceptance:
 
 Keep privacy filtering server-side. Case and conversation pages are capped at 20 rows; composite indexes support booking and supplier history reads, but realistic-volume query-plan evidence is still needed.
 
+### Message buffer experiment
+
+The optional query profiler now compares targeted PostgreSQL shared-buffer eviction with immediate warm repeats for a deep synthetic message page. OS-cache control, representative traffic and owner-approved performance targets remain open. [Procedure](OPSDESK_QUERY_PROFILE.md#message-shared-buffer-experiment)
+
 ## [P2] Add grounded optional AI with a measured evaluation
 
 [GitHub issue #8](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/8)
