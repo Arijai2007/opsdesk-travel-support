@@ -38,6 +38,8 @@ An intermediate harness timed out looking for Notifications on its second width 
 
 ## Unverified and not run
 
+Implementation commit `50b83b6` is published through [PR #47](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/47), targeting main. Local preview services were stopped after verification. Hosted validation is separate from the local results above; inspect the latest PR-head run before merging. Commit hooks (changed-file lint and commit-message checks) passed.
+
 Actual screen-reader announcements are **unverified**. Automatic approval blocked portable NVDA setup, the built-in Narrator launch timed out, and an earlier native browser inspection stopped when it could not identify the browser URL. Browser-specific controls subsequently worked. The user explicitly instructed: **“Continue; record announcements as unverified.”** Accessibility-tree/DOM inspection and axe do not prove spoken announcements.
 
 Actual 200%/400% browser zoom is **unverified**: browser-control shortcuts produced no observable viewport/scale change. The five viewport sizes above establish only the stated layout regression checks. Complete zoom, screen-reader announcements and broader manual role/workflow acceptance using an observable setup. No check interrupted during this increment is claimed as passed; failed attempts above remain recorded. The much earlier PR #28 user-stopped combined browser run remains historical and is not reclassified.
