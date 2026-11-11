@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Blind review form continuation
+
+Started from main `9503315` after PR #55 merged with passing PR CI. The existing blind classifier pack now has a local browser form: `npm run ops:review-classifier`. It imports/downloads drafts and exports validated reviewer labels/rationales with explicit provenance. No predictions or scoring run in the form, and imported files stay in the browser. [Reviewer instructions](OPSDESK_ACCEPTANCE_REVIEW.md#local-blind-review-form) · [Verification and acceptance limits](OPSDESK_VALIDATION.md#blind-review-form---11-november-2026)
+
+Standalone tests passed locally in Chromium and Firefox and now run in the standard browser command. Human labelling/adjudication, spoken-output review and the existing representative/cold-cache/live/operational acceptance remain pending. Check the latest hosted results and keep deployment paused. Older sections below are historical where superseded.
+
 ## Five-role load continuation
 
 Started from main `64c5245` after PR #54, whose PR CI passed. Post-merge CI failed before tests because its fixed PostgreSQL host port was occupied; this branch uses dynamic service-port mapping. It also extends synthetic load to configurable five-role reads with manager-only writes, disposable supplier context and per-role metrics. The 60-second local run completed 8,035 requests and verified 1,607 writes exactly once; cleanup restored baseline counts. [Exact verification, CI status and limits](OPSDESK_VALIDATION.md#five-role-load-and-ci-port-isolation---11-november-2026)

@@ -1,0 +1,261 @@
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #152846;
+  background: #f1f4f9;
+  line-height: 1.5;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+header,
+main,
+footer {
+  max-width: 1192px;
+  margin: auto;
+  padding: 24px 28px;
+}
+header {
+  padding-top: 48px;
+}
+h1 {
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  margin: 12px 0;
+}
+h2 {
+  font-size: 1.15rem;
+  margin: 0 0 18px;
+}
+header > p {
+  max-width: 750px;
+  color: #415470;
+}
+.eyebrow {
+  color: #385675;
+  font-size: 0.75rem;
+  letter-spacing: 0.13em;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.notice {
+  margin-top: 24px;
+  border-left: 3px solid #315be8;
+  padding: 12px 16px;
+  background: #e5ebff;
+  font-size: 0.9rem;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  border: 1px solid #aab7cc;
+  border-radius: 8px;
+  background: white;
+  color: #173150;
+  font-weight: 600;
+  padding: 10px 15px;
+  cursor: pointer;
+  min-height: 44px;
+}
+button:hover:enabled {
+  background: #e8edff;
+}
+button:disabled {
+  cursor: default;
+  color: #4a5870;
+  background: #e1e6ef;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible {
+  outline: 3px solid #1f50d8;
+  outline-offset: 3px;
+}
+label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 20px 0 7px;
+}
+.file-label {
+  margin: 0;
+  max-width: 350px;
+}
+.file-label input {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-top: 5px;
+  font-size: 0.8rem;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+[hidden] {
+  display: none !important;
+}
+.card {
+  background: white;
+  border: 1px solid #d4ddea;
+  border-radius: 16px;
+  padding: 28px;
+  min-width: 0;
+}
+.progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  font-size: 0.85rem;
+  margin-bottom: 22px;
+}
+progress {
+  width: 40%;
+  height: 10px;
+  accent-color: #315be8;
+}
+.navigation {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 28px;
+}
+.navigation label {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.navigation select {
+  margin-top: 5px;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  color: #152846;
+  border: 1px solid #9aabc3;
+  background: #fff;
+  border-radius: 7px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+textarea {
+  resize: vertical;
+}
+blockquote {
+  font-size: 1.3rem;
+  line-height: 1.65;
+  margin: 22px 0 30px;
+  padding: 18px 20px;
+  border-left: 3px solid #315be8;
+  background: #f5f7fc;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+details {
+  margin-top: 24px;
+  border-top: 1px solid #d4ddea;
+  padding-top: 16px;
+  font-size: 0.88rem;
+}
+summary {
+  cursor: pointer;
+  padding: 6px 0;
+  font-weight: 600;
+}
+dt {
+  font-weight: 700;
+  margin-top: 12px;
+}
+dd {
+  margin-left: 0;
+  color: #415470;
+}
+.attestation {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+  font-weight: 400;
+}
+.attestation input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  margin-top: 3px;
+  accent-color: #315be8;
+}
+.muted,
+footer,
+#export-reason {
+  font-size: 0.82rem;
+  color: #415470;
+}
+.export {
+  border-top: 1px solid #d4ddea;
+  margin-top: 24px;
+  padding-top: 20px;
+}
+#export:enabled {
+  background: #234dd2;
+  color: white;
+  border-color: #234dd2;
+}
+#status {
+  min-height: 1.5em;
+  font-size: 0.9rem;
+}
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -100px;
+  padding: 12px;
+  background: white;
+  z-index: 2;
+}
+.skip:focus {
+  top: 12px;
+}
+@media (max-width: 800px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  header,
+  main,
+  footer {
+    padding: 22px 16px;
+  }
+  .card {
+    padding: 22px 18px;
+  }
+}
+@media (max-width: 420px) {
+  .navigation {
+    flex-wrap: wrap;
+  }
+  .navigation label {
+    flex-basis: 100%;
+    order: -1;
+  }
+  .navigation button {
+    flex: 1;
+  }
+}

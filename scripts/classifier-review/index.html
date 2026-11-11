@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpsDesk · Blind classifier review</title>
+    <link rel="stylesheet" href="/review.css" />
+    <script type="module" src="/review.mjs"></script>
+  </head>
+  <body>
+    <a class="skip" href="#example-heading">Skip to example</a>
+    <header>
+      <div class="eyebrow">OPSDESK / HUMAN REVIEW</div>
+      <h1>Read the request. Choose the label.</h1>
+      <p>
+        Review complaint wording without classifier predictions. Your labels and
+        reasoning will form the evaluation dataset.
+      </p>
+      <div class="notice">
+        Work stays in this browser tab. Imported files are read locally.
+        Download a draft before closing; nothing is saved automatically.
+      </div>
+    </header>
+    <main>
+      <section class="toolbar" aria-label="Dataset files">
+        <button id="starter" type="button">Load blank starter</button>
+        <label class="file-label"
+          >Import JSON draft or dataset
+          <input id="import" type="file" accept=".json,application/json"
+        /></label>
+        <button id="draft" type="button" disabled>Download draft</button>
+      </section>
+      <p id="status" role="status" aria-live="polite">
+        Loading the unlabelled starter…
+      </p>
+      <div class="workspace" id="workspace" hidden>
+        <section class="card example" aria-labelledby="example-heading">
+          <div class="progress-row">
+            <span id="completion"></span
+            ><progress id="progress" aria-label="Examples complete"></progress>
+          </div>
+          <div class="navigation">
+            <button id="previous" type="button">Previous</button>
+            <label
+              >Example
+              <select id="example-select"></select
+            ></label>
+            <button id="next" type="button">Next</button>
+          </div>
+          <h2 id="example-heading" tabindex="-1"></h2>
+          <p id="example-id" class="eyebrow"></p>
+          <blockquote id="complaint"></blockquote>
+          <label for="label">Primary category</label>
+          <select id="label">
+            <option value="">Choose a category</option>
+            <option>REFUND</option>
+            <option>CANCELLATION</option>
+            <option>BOOKING_CHANGE</option>
+            <option>CHECK_IN</option>
+            <option>BAGGAGE</option>
+            <option>OTHER</option>
+          </select>
+          <label for="rationale">Why this label?</label>
+          <textarea
+            id="rationale"
+            rows="4"
+            placeholder="Explain the primary request. Record ambiguity and secondary intents."
+          ></textarea>
+          <details>
+            <summary>Category rubric</summary>
+            <dl>
+              <dt>REFUND</dt>
+              <dd>Returning a payment.</dd>
+              <dt>CANCELLATION</dt>
+              <dd>Ending a reservation.</dd>
+              <dt>BOOKING_CHANGE</dt>
+              <dd>Amending an existing reservation.</dd>
+              <dt>CHECK_IN</dt>
+              <dd>Gaining access or boarding at arrival.</dd>
+              <dt>BAGGAGE</dt>
+              <dd>Baggage handling or policy.</dd>
+              <dt>OTHER</dt>
+              <dd>Remaining requests.</dd>
+            </dl>
+            <p>
+              Use the primary requested action. Resolve reviewer disagreements
+              before scoring. Keep difficult examples and explain them.
+            </p>
+          </details>
+        </section>
+        <section class="card metadata" aria-labelledby="dataset-heading">
+          <h2 id="dataset-heading">Dataset &amp; reviewer</h2>
+          <label for="name">Dataset name</label><input id="name" />
+          <label for="source">Source and usage rights</label
+          ><textarea id="source" rows="3"></textarea>
+          <label for="reviewer">Reviewer identifier</label
+          ><input id="reviewer" placeholder="Use an approved reviewer ID" />
+          <label for="notes">Review notes</label
+          ><textarea
+            id="notes"
+            rows="4"
+            placeholder="Rubric version, independence declaration and adjudication details."
+          ></textarea>
+          <label class="attestation"
+            ><input id="attestation" type="checkbox" /><span
+              >I assigned these labels without viewing classifier
+              predictions.</span
+            ></label
+          >
+          <p class="muted">
+            The starter wording is synthetic. Human labels do not make it
+            representative customer traffic. This declaration does not prove
+            independence.
+          </p>
+          <div class="export">
+            <button
+              id="export"
+              type="button"
+              disabled
+              aria-describedby="export-reason"
+            >
+              Download reviewed dataset
+            </button>
+            <p id="export-reason"></p>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer>
+      No predictions, scoring or external services run here. Keep private review
+      files out of Git. Evaluate only after labels are frozen.
+    </footer>
+  </body>
+</html>
