@@ -31,6 +31,16 @@ try {
   const supplier = await login('supplier');
   const otherAgency = await login('horizon');
   const { rows: [seed] } = await pool.query(`SELECT * FROM "TravelBooking" WHERE reference='BK-1042'`);
+  const agency = await login('agency');
+  const customers = await call(`booking-requests/customers/${seed.agencyId}?search=Maya`, agency);
+  assert.deepEqual(customers.items.map(({id}) => id), [seed.customerId]); checks++;
+  await call(`booking-requests/customers/${seed.agencyId}`, otherAgency, undefined, 403);
+  await call(`booking-requests/customers/${seed.agencyId}`, customer, undefined, 403);
+  const supplierOptions = await call('booking-requests/suppliers', agency);
+  assert(supplierOptions.items.some((item) => item.id === seed.supplierId)); checks++;
+  assert(supplierOptions.items.every((item) => Object.keys(item).sort().join() === 'id,name')); checks++;
+  await call('booking-requests/suppliers', customer, undefined, 403);
+  await call('booking-requests/suppliers', supplier, undefined, 403);
   const proposal = { requestId: ids[0], agencyId: seed.agencyId, customerId: seed.customerId, supplierId: seed.supplierId,
     reference, destination: seed.destination, region: seed.region, service: seed.service,
     checkInAt: '2027-02-01T10:00:00.000Z', timezone: 'Asia/Kolkata', reason: 'Synthetic booking approval rehearsal' };

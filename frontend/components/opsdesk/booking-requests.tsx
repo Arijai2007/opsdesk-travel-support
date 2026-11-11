@@ -1,9 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal, request } from "./ui";
 import { DirectorySelect } from "./directory-select";
 import { useOpsPage, PageControls } from "./paged-data";
-import type { Booking, Person, Workspace } from "@/lib/opsdesk-types";
+import type { Booking, Workspace } from "@/lib/opsdesk-types";
 type Proposal = {
   id: string;
   kind: string;
@@ -16,23 +16,40 @@ type Proposal = {
   supplierName?: string;
 };
 export function BookingRequests({ data }: { data: Workspace }) {
+  const title =
+    data.me.kind === "MANAGER" ? "Booking reviews" : "Booking requests";
   const [open, setOpen] = useState(false);
   return (
     <>
       <button className="od-secondary" onClick={() => setOpen(true)}>
-        Booking reviews
+        {title}
       </button>
-      {open && <ReviewPanel data={data} close={() => setOpen(false)} />}
+      {open && (
+        <ReviewPanel title={title} data={data} close={() => setOpen(false)} />
+      )}
     </>
   );
 }
-function ReviewPanel({ data, close }: { data: Workspace; close: () => void }) {
+function ReviewPanel({
+  data,
+  close,
+  title,
+}: {
+  data: Workspace;
+  close: () => void;
+  title: string;
+}) {
+  const manager = data.me.kind === "MANAGER";
+  const canCreate = manager || data.me.kind === "AGENCY";
+  const pendingRequest = useRef<{ key: string; id: string } | null>(null);
   const [refresh, setRefresh] = useState("0");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [kind, setKind] = useState("CREATE");
-  const [agencyId, setAgency] = useState("");
+  const [kind, setKind] = useState(canCreate ? "CREATE" : "CANCEL");
+  const [agencyId, setAgency] = useState(
+    manager ? "" : (data.me.agencyId ?? ""),
+  );
   const [customerId, setCustomer] = useState("");
   const [supplierId, setSupplier] = useState("");
   const [bookingId, setBooking] = useState("");
@@ -40,14 +57,14 @@ function ReviewPanel({ data, close }: { data: Workspace; close: () => void }) {
     Record<string, string>
   >({});
   const page = useOpsPage<Proposal>("booking-requests", refresh);
-  async function act(work: () => Promise<unknown>) {
+  async function act(work: () => Promise<unknown>, success: string) {
     setBusy(true);
     setError("");
     setNotice("");
     try {
       await work();
       setRefresh(String(Date.now()));
-      setNotice("Booking review saved.");
+      setNotice(success);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Booking request failed.");
     } finally {
@@ -55,7 +72,7 @@ function ReviewPanel({ data, close }: { data: Workspace; close: () => void }) {
     }
   }
   return (
-    <Modal title="Booking reviews" onClose={close}>
+    <Modal title={title} onClose={close}>
       <p>
         Requests need a manager decision. Approvals change synthetic bookings
         only. Cancelling a booking keeps its support cases open.
@@ -65,72 +82,91 @@ function ReviewPanel({ data, close }: { data: Workspace; close: () => void }) {
           e.preventDefault();
           const form = new FormData(e.currentTarget);
           const reason = String(form.get("reason"));
-          void act(() =>
-            kind === "CANCEL"
-              ? request(`bookings/${bookingId}/cancellation-requests`, {
-                  requestId: crypto.randomUUID(),
-                  reason,
-                })
-              : request("booking-requests", {
-                  requestId: crypto.randomUUID(),
-                  agencyId,
-                  customerId,
-                  supplierId,
-                  reason,
-                  reference: form.get("reference"),
-                  destination: form.get("destination"),
-                  region: form.get("region"),
-                  service: form.get("service"),
-                  checkInAt: new Date(
-                    String(form.get("checkInAt")) + "Z",
-                  ).toISOString(),
-                  timezone: form.get("timezone"),
-                }),
-          );
+          void act(async () => {
+            const path =
+              kind === "CANCEL"
+                ? `bookings/${bookingId}/cancellation-requests`
+                : "booking-requests";
+            const payload =
+              kind === "CANCEL"
+                ? { reason }
+                : {
+                    agencyId,
+                    customerId,
+                    supplierId,
+                    reason,
+                    reference: form.get("reference"),
+                    destination: form.get("destination"),
+                    region: form.get("region"),
+                    service: form.get("service"),
+                    checkInAt: new Date(
+                      String(form.get("checkInAt")) + "Z",
+                    ).toISOString(),
+                    timezone: form.get("timezone"),
+                  };
+            const key = JSON.stringify([path, payload]);
+            if (pendingRequest.current?.key !== key)
+              pendingRequest.current = { key, id: crypto.randomUUID() };
+            await request(path, {
+              ...payload,
+              requestId: pendingRequest.current.id,
+            });
+            pendingRequest.current = null;
+          }, "Booking request submitted for review.");
         }}
       >
-        <label>
-          Request type
-          <select
-            aria-label="Request type"
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-          >
-            <option value="CREATE">New booking</option>
-            <option value="CANCEL">Cancel booking</option>
-          </select>
-        </label>
+        {canCreate && (
+          <label>
+            Request type
+            <select
+              aria-label="Request type"
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+            >
+              <option value="CREATE">New booking</option>
+              <option value="CANCEL">Cancel booking</option>
+            </select>
+          </label>
+        )}
         {kind === "CREATE" ? (
           <>
-            <label>
-              Booking agency
-              <select
-                aria-label="Booking agency"
+            {manager && (
+              <label>
+                Booking agency
+                <select
+                  aria-label="Booking agency"
+                  required
+                  value={agencyId}
+                  onChange={(e) => {
+                    setAgency(e.target.value);
+                    setCustomer("");
+                  }}
+                >
+                  <option value="">Select agency</option>
+                  {data.agencies.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {agencyId && (
+              <DirectorySelect<{ id: string; name: string }>
+                key={agencyId}
+                path={`booking-requests/customers/${encodeURIComponent(agencyId)}`}
+                label="Booking customer"
+                value={customerId}
+                onSelect={setCustomer}
+                text={(p) => p.name}
+                refresh={refresh}
                 required
-                value={agencyId}
-                onChange={(e) => setAgency(e.target.value)}
               >
-                <option value="">Select agency</option>
-                {data.agencies.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <DirectorySelect<Person>
-              path="people?kind=CUSTOMER"
-              label="Booking customer"
-              value={customerId}
-              onSelect={setCustomer}
-              text={(p) => p.name}
-              refresh={refresh}
-              required
-            >
-              <option value="">Select customer in this agency</option>
-            </DirectorySelect>
+                <option value="">Select customer in this agency</option>
+              </DirectorySelect>
+            )}
             <DirectorySelect<{ id: string; name: string }>
-              path="admin/suppliers"
+              path="booking-requests/suppliers"
               label="Booking supplier"
               value={supplierId}
               onSelect={setSupplier}
@@ -202,7 +238,15 @@ function ReviewPanel({ data, close }: { data: Workspace; close: () => void }) {
           Request reason
           <textarea name="reason" required minLength={10} maxLength={1000} />
         </label>
-        <button className="od-primary" disabled={busy}>
+        <button
+          className="od-primary"
+          disabled={
+            busy ||
+            (kind === "CREATE"
+              ? !agencyId || !customerId || !supplierId
+              : !bookingId)
+          }
+        >
           Submit booking request
         </button>
       </form>
@@ -224,7 +268,7 @@ function ReviewPanel({ data, close }: { data: Workspace; close: () => void }) {
               {p.payload.checkInAt} · {p.payload.timezone}
             </p>
           )}
-          {p.status === "PENDING" ? (
+          {manager && p.status === "PENDING" ? (
             <>
               <label>
                 Decision reason for {p.payload.reference}
@@ -247,11 +291,13 @@ function ReviewPanel({ data, close }: { data: Workspace; close: () => void }) {
                     busy || (decisionReasons[p.id]?.trim().length || 0) < 10
                   }
                   onClick={() =>
-                    act(() =>
-                      request(`booking-requests/${p.id}/review`, {
-                        decision,
-                        reason: decisionReasons[p.id],
-                      }),
+                    act(
+                      () =>
+                        request(`booking-requests/${p.id}/review`, {
+                          decision,
+                          reason: decisionReasons[p.id],
+                        }),
+                      "Booking review saved.",
                     )
                   }
                 >
@@ -266,7 +312,7 @@ function ReviewPanel({ data, close }: { data: Workspace; close: () => void }) {
           )}
         </article>
       ))}
-      <PageControls resource={page} label="booking reviews" />
+      <PageControls resource={page} label={title} />
     </Modal>
   );
 }

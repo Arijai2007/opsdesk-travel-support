@@ -11,9 +11,13 @@ Backend access:
 - Active customers can request cancellation of their own agency-linked bookings and read requests they submitted.
 - Agents and suppliers cannot use these endpoints.
 
-Creation and cancellation approvals are enabled only when `OPSDESK_DEMO=true` and `NODE_ENV` is not `production`. Provider-managed bookings cannot be cancelled through the synthetic adapter. No live provider is selected. The frontend currently exposes the manager flow; agency/customer submission uses the authenticated API.
+Creation and cancellation approvals are enabled only when `OPSDESK_DEMO=true` and `NODE_ENV` is not `production`. Provider-managed bookings cannot be cancelled through the synthetic adapter. No live provider is selected. Agency users open **Booking requests** to propose a booking or request a cancellation and track agency requests. Customers use the same button for their own cancellations and request history. Approval controls appear in **Booking reviews** for managers.
+
+The creation form loads paged active customer names and IDs for the selected agency and supplier names and IDs. An agency user starts with their own agency. Retrying the same form payload after a failed response reuses its UUID while the panel is open.
 
 API:
+
+- `GET /ops/booking-requests/customers/:agencyId` and `GET /ops/booking-requests/suppliers` provide search and paging for manager and agency creation forms.
 
 - `GET /ops/booking-requests?page=1`: twenty scoped requests per page, with customer, agency and supplier names for review.
 - `POST /ops/booking-requests`: a creation proposal, including a caller-generated UUID `requestId`, trusted local identity IDs, reference, destination, region, service, UTC check-in, IANA timezone and reason. Departure and cancellation cutoff are optional UTC instants.
@@ -22,7 +26,7 @@ API:
 
 All reasons require at least ten meaningful characters. Repeating the same request ID and payload returns the stored request; changing its payload conflicts. Review retries return the existing matching decision and do not create another booking, cancellation or audit. An opposing decision conflicts. The existing routing advisory lock serializes requests and decisions with booking intake/export writes. Approval rechecks the requester's active scope. A manager can review a request they submitted; separate-person approval is not enforced in this prototype.
 
-Run `npm run ops:test:booking-requests` against the isolated preview. The harness covers concurrent approvals, exact audit counts, wrong-agency access, invalid timezone, changed-booking rejection and preservation of existing case status/deadlines. Run `npm run ops:test:booking-requests:browser` for the full manager flow. Standard API and browser test commands include both harnesses. Do not run policy-mutating suites simultaneously.
+Run `npm run ops:test:booking-requests` against the isolated preview. The harness covers concurrent approvals, exact audit counts, wrong-agency access, invalid timezone, changed-booking rejection and preservation of existing case status/deadlines. Run `npm run ops:test:booking-requests:browser` for the agency request, customer cancellation and manager decision flow, including a retry after a dropped response. Standard API and browser test commands include both harnesses. Do not run policy-mutating suites simultaneously.
 
 ## Exploratory load harness
 

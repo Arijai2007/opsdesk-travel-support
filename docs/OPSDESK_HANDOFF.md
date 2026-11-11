@@ -1,14 +1,16 @@
 # OpsDesk developer handoff
 
+The requester forms follow-up starts from merged PR #44 at `66b43b8`. Agency users can propose bookings or cancellations and customers can request cancellation of their own bookings from the browser. See the [current continuation checkpoint](OPSDESK_NEXT_TEAMMATE.md) and [booking workflow](OPSDESK_BOOKING_APPROVALS.md).
+
 ## Latest continuation checkpoint
 
-PR #43 is merged: main at `4b755a4` now contains the work from #40–#42. Start new work from latest main. The [free-first resource options](OPSDESK_NEXT_TEAMMATE.md#free-first-options-for-remaining-work) list local/open-source tools, provider free tiers, limits and remaining acceptance requirements. No provider was selected or connected by this documentation update.
+PR #43 is merged: main at `4b755a4` now contains the work from #40â€“#42. Start new work from latest main. The [free-first resource options](OPSDESK_NEXT_TEAMMATE.md#free-first-options-for-remaining-work) list local/open-source tools, provider free tiers, limits and remaining acceptance requirements. No provider was selected or connected by this documentation update.
 
 Read [the complete next-teammate handoff](OPSDESK_NEXT_TEAMMATE.md) first. It records the published PR stack, exact completed behavior, validation evidence, accessibility failures, remaining work and copy-ready continuation message. It supersedes older checkpoint status below. Deployment remains paused.
 
 ## Booking approvals increment
 
-`codex/opsdesk-booking-approvals` is stacked on the attachment branch. It adds manager-reviewed synthetic booking creation and cancellation, stale-booking detection, scoped paged requests, request/review idempotency, transactionally saved audit and cancellation case events, and manager browser controls. [Policy, endpoints and limits](OPSDESK_BOOKING_APPROVALS.md). No live booking provider is selected; manager review is required before consequential changes. Live provider commands, fees/refunds and agency/customer browser forms remain open. Support cases and saved deadlines survive cancellation.
+`codex/opsdesk-booking-approvals` is stacked on the attachment branch. It adds manager-reviewed synthetic booking creation and cancellation, stale-booking detection, scoped paged requests, request/review idempotency, transactionally saved audit and cancellation case events, and manager browser controls. [Policy, endpoints and limits](OPSDESK_BOOKING_APPROVALS.md). No live booking provider is selected; manager review is required before consequential changes. Live provider commands and fees/refunds remain open. Support cases and saved deadlines survive cancellation.
 
 Attachment [PR #40](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/40) passed [hosted validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42889371405), including Firefox. It remains a draft because the connected account could not mark it ready. Leave merge to collaborators. Deployment remains paused.
 

@@ -348,7 +348,9 @@ export function OpsDeskWorkspace() {
               </button>
             )}
             {manager && <MailOutbox />}
-            {manager && <BookingRequests data={data} />}
+            {(manager || data.me.kind === "AGENCY" || data.me.kind === "CUSTOMER") && (
+              <BookingRequests data={data} />
+            )}
             <div className="od-notification-wrap">
               <button
                 className="od-icon"
