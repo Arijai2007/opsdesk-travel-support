@@ -1,5 +1,9 @@
 # OpsDesk developer handoff
 
+## Supplier message-history follow-up
+
+The startup profiler includes a separate deep supplier-history probe in addition to the populated list probe from PR #58. It checks scope on every timed read and tests the other supplier thread after timing. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md) · [Validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)
+
 ## Populated supplier startup follow-up
 
 PR #57 is merged at `0310cd5` with passing PR and post-merge CI. The supplier startup scenario now exercises a populated first page and verifies that every item belongs to the authenticated supplier. The fixture exists only in the disposable profiler databases. [Procedure](OPSDESK_STARTUP_PROFILE.md) · [Validation](OPSDESK_VALIDATION.md#populated-supplier-startup-follow-up)

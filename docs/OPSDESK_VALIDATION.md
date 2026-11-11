@@ -1,3 +1,9 @@
+# Supplier message-history startup
+
+The local manager, supplier-list and supplier-history run used Node 22.23.4 and loopback PostgreSQL 18.6 with one round, two repeats and a 150-second readiness limit. Three new processes completed nine timed GETs. Page 12 returned 20 of 240 messages, all in the selected supplier thread. A separate request after timing returned HTTP 404 for the other supplier thread. The first history read took 54.53 ms, with repeats of 21.81 and 27.83 ms.
+
+The template held 37 conversations and 433 messages. A separate maintenance query found zero remaining profiler databases and verified the original counts of 60 cases, 192 messages and 12 conversations. Three startup guard tests, script formatting and syntax, workflow YAML parsing and Git whitespace checks passed. The local run used a longer readiness limit than CI. Cache state and representative performance acceptance remain open.
+
 # Populated supplier startup follow-up
 
 Main `0310cd5463428c467a9f7e470eea89496a5dc288` contains merged PR #57. The PR and main workflows both passed startup smoke, API and recovery, five-role load, Chromium, Firefox and the dependency audit. [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463)

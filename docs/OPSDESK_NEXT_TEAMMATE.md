@@ -1,5 +1,11 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Supplier message-history continuation
+
+This follow-up builds on the populated supplier-list probe in PR #58. Select `supplier-history` to measure page 12 of a 240-message thread after a fresh API process starts. The probe checks the returned scope and confirms that another supplier history returns HTTP 404 after timing. [Procedure](OPSDESK_STARTUP_PROFILE.md) · [Local validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)
+
+The next acceptance inputs remain a human-labelled, adjudicated classifier export and observable spoken screen-reader review. The local blind form is available through `npm run ops:review-classifier`. Representative performance targets, controlled caches, live integration and operational acceptance remain open. Leave merge decisions to collaborators. Deployment remains paused.
+
 ## Current checkpoint after PR #57
 
 Main `0310cd5` includes the startup profiler. Both PR and main CI passed, including startup smoke, five-role load, recovery, Chromium, Firefox and dependency audit. This follow-up adds a populated and scope-checked supplier list in the disposable startup fixture. Review its separate hosted results before reporting them. [PR #57 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Main CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463)
