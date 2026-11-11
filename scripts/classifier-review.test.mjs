@@ -228,6 +228,7 @@ test("blind review preserves drafts, rejects malformed imports and exports a val
     assert.equal(reviewed.source, input.source);
 
     await upload(draft);
+    await page.getByText("1 of 6 complete", { exact: true }).waitFor();
     assert.equal(
       await page.getByLabel("Why this label?", { exact: true }).inputValue(),
       "Synthetic test rationale zero.",
@@ -235,8 +236,14 @@ test("blind review preserves drafts, rejects malformed imports and exports a val
     await page
       .getByLabel("Why this label?", { exact: true })
       .fill("Unsaved change.");
-    page.once("dialog", (dialog) => dialog.dismiss());
+    const replacementDismissed = page
+      .waitForEvent("dialog")
+      .then((dialog) => dialog.dismiss());
     await upload(input);
+    await replacementDismissed;
+    await page.waitForFunction(
+      () => document.querySelector("#import").value === "",
+    );
     assert.equal(
       await page.getByLabel("Why this label?", { exact: true }).inputValue(),
       "Unsaved change.",
