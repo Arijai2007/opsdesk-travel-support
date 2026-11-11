@@ -1,5 +1,23 @@
 # OpsDesk developer handoff
 
+## Current merged checkpoint
+
+**Finished and merged.** The application baseline for this handoff is main `b1b97ab`, with PRs #58–#62 merged. It includes the scoped customer portal, synthetic five-role load, classifier evaluator and blind review form, fresh API-process profiling and the follow-ups below. Main validation passed at the earlier PR #57 checkpoint. The combined application run through #62 was queued when this handoff was prepared. [PR #57 main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463) · [PR #62 main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43098229155)
+
+Hosted status below is for the listed PR commit. PR #59 was retargeted to main after #58 merged.
+
+| PR and code commit | Work and evidence | Hosted CI at handoff |
+| --- | --- | --- |
+| [#58](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/58) · `829f5db` | Populated, scoped supplier conversation list in the startup profiler | [Passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088904262) |
+| [#59](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/59) · `0b50b58` | Deep supplier history startup probe with cross-supplier denial | [Passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088962237) |
+| [#60](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/60) · `b696c5c` | Twelve synthetic identities across five roles. Local sustained run completed 4,605 requests and verified 921 writes exactly once. | [Queued](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43090996154) |
+| [#61](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/61) · `2d520e9` | Local deep-message query comparison read 37 shared blocks after each eviction at 6,000 bookings and zero on warm repeats. | [Queued](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43095738307) |
+| [#62](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/62) · `71d2bd9` | Local truncated-backup rollback and intact retry passed five connection-safety tests and nine recovery checks. | [Queued](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43096512227) |
+
+**Partially complete.** Synthetic startup, load, shared-buffer and recovery checks are reproducible. The OS cache remains uncontrolled. Representative booking and identity populations, approved traffic and performance targets, and an operational restore still need acceptance.
+
+**Next.** Recheck main CI, including Firefox. Have a human reviewer label and adjudicate the blind classifier pack, freeze the export, and run the evaluator's `--dataset` mode. Record actual screen-reader speech. Select a booking provider and arrange live booking/mail acceptance, production scanner monitoring, retention approval, and an authorized staging restore with agreed recovery targets and owners. Deployment remains paused. [Copy-ready continuation](OPSDESK_NEXT_TEAMMATE.md#current-continuation-message)
+
 ## Supplier message-history follow-up
 
 The startup profiler includes a separate deep supplier-history probe in addition to the populated list probe from PR #58. It checks scope on every timed read and tests the other supplier thread after timing. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md) · [Validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)
@@ -13,24 +31,6 @@ Independent human labels and spoken screen-reader acceptance remain pending. Use
 ## API process-start continuation
 
 The startup profiler records readiness, login and scoped reads using a fresh API process and disposable database clone for each probe. [Profiler procedure](OPSDESK_STARTUP_PROFILE.md)
-
-## Current checkpoint and review queue
-
-**Finished and merged.** Main is `0310cd5463428c467a9f7e470eea89496a5dc288` through PR #57. It includes the scoped customer portal, browser validation, synthetic five-role load, the classifier evaluator and blind review form, and the fresh API-process profiler. The profiler passed ten starts, 110 workload reads, normal cleanup and interruption cleanup locally. [PR #57 validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Post-merge main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463) · [Profiler procedure and limits](OPSDESK_STARTUP_PROFILE.md)
-
-**Published and awaiting review.** All five branches were pushed and their PRs were open when checked. Hosted status below is for the listed code commit. Fetch main and recheck before reviewing. PR #59 targets the branch from #58 and should be reviewed with that dependency in mind.
-
-| PR and code commit | Work and evidence | Hosted CI at handoff |
-| --- | --- | --- |
-| [#58](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/58) · `829f5db` | Populated, scoped supplier conversation list in the startup profiler | [Passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088904262) |
-| [#59](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/59) · `0b50b58` | Deep supplier history startup probe with cross-supplier denial | [Passed](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43088962237) |
-| [#60](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/60) · `b696c5c` | Twelve synthetic identities across five roles. Local sustained run completed 4,605 requests and verified 921 writes exactly once. | [Queued](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43090996154) |
-| [#61](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/61) · `2d520e9` | Local deep-message query comparison read 37 shared blocks after each eviction at 6,000 bookings and zero on warm repeats. | [Queued](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43095738307) |
-| [#62](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/62) · `71d2bd9` | Local truncated-backup rollback and intact retry passed five connection-safety tests and nine recovery checks. | [Queued](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43096512227) |
-
-**Partially complete.** Synthetic startup, load, shared-buffer and recovery checks are reproducible. The OS cache remains uncontrolled. Representative booking and identity populations, approved traffic and performance targets, and an operational restore still need acceptance.
-
-**Next.** Review the open PRs and recheck CI, including Firefox. Have a human reviewer label and adjudicate the blind classifier pack, freeze the export, and run the evaluator's `--dataset` mode. Record actual screen-reader speech. Select a booking provider and arrange live booking/mail acceptance, production scanner monitoring, retention approval, and an authorized staging restore with agreed recovery targets and owners. Deployment remains paused. [Copy-ready continuation](OPSDESK_NEXT_TEAMMATE.md#current-continuation-message)
 
 ## Blind review form continuation
 
