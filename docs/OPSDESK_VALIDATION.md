@@ -651,3 +651,7 @@ The sustained scenario used 12 workers, 3,000 background cases and 1,200 existin
 | Insights | 781 | 137 | 204 | 225 | 293 |
 
 These figures come from a single local host, a synthetic manager session and duplicated case fixtures. The harness made initial queue and history reads before measurement. Cold-cache performance, representative booking and role distributions, sustained production traffic and owner-approved latency and throughput targets remain open. Reproduce the run with the [load rehearsal options](OPSDESK_BOOKING_APPROVALS.md#synthetic-load-rehearsal).
+
+## Blind review import test timing
+
+PR #58's first hosted Chromium run read the last example's rationale immediately after uploading a draft. The browser was still processing the asynchronous file read. The assertion expected the first example's saved rationale and failed. Hosted Firefox was skipped. The test now waits for the imported completion count and for the canceled replacement dialog and input reset. The two focused tests passed locally in both Chromium and Firefox on Node 22.23.4. [Initial hosted run](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43086250976)
