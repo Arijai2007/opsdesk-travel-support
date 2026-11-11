@@ -1,5 +1,9 @@
 # OpsDesk developer handoff
 
+## Customer portal follow-up
+
+Main `5956e1f` includes merged PR #49. Its PR and post-merge checks passed, including hosted Firefox. The customer workspace has a scoped case summary and booking cards with check-in time, service, agency, supplier and on-demand case history. Existing support and booking-request actions retain their authorization and behavior. Actual Chrome tab zoom passed at 200% and 400% on the customer workspace. Spoken screen-reader acceptance remains open. See the [continuation checkpoint](OPSDESK_NEXT_TEAMMATE.md) and [validation record](OPSDESK_VALIDATION.md). Deployment remains paused.
+
 ## Case detail and Insights visual follow-up — 11 November 2026
 
 Merged main is `a2d65cd` after PR #48. Its PR and post-merge validation both passed, including hosted Firefox. This separate worktree extends the supplied Stitch visual adaptation to the case detail and Insights views. The four case journey steps use only persisted case ownership, supplier reply and status; the three isometric Insights columns use authorized category counts. No provider, itinerary, compensation, or invented metrics were added. A new browser regression checks both views in light/dark mode and the message-visibility target. [Exact results, failures and limits](OPSDESK_VALIDATION.md#case-detail-and-insights-reference-follow-up--11-november-2026).

@@ -149,12 +149,18 @@ function BookingHistory({
   );
   return (
     <>
-      <button className="od-text-button" onClick={() => setOpen(!open)}>
+      <button
+        type="button"
+        className="od-text-button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
         {open ? "Hide case history" : "View case history"}
       </button>
       {open && (
         <>
           <PageControls resource={history} label="booking cases" />
+          {history.data?.total === 0 && <p>No cases for this booking.</p>}
           {history.data?.items.map((t) => (
             <button
               className="od-text-button"
@@ -200,53 +206,104 @@ export function Bookings({
         </label>
         <PageControls resource={bookings} label="bookings" />
       </div>
-      <div className="od-table-wrap">
-        <table className="od-table">
-          <thead>
-            <tr>
-              <th>BOOKING</th>
-              <th>TRAVELER</th>
-              <th>AGENCY / SUPPLIER</th>
-              <th>TRAVEL DATE</th>
-              <th>CONVERSATIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((b) => {
-              return (
-                <tr key={b.id}>
-                  <td>
-                    <b className="od-booking-ref">{b.reference}</b>
-                    {b.bookingStatus === "CANCELLED" && <small>Cancelled booking · support cases remain separate</small>}
-                    <small>
-                      {b.destination} · {human(b.region)}
-                    </small>
-                  </td>
-                  <td>{b.customerName || "Traveler"}</td>
-                  <td>
-                    <b>{b.agency.name}</b>
-                    <small>{b.supplier.name}</small>
-                  </td>
-                  <td>
-                    {date(b.checkInAt)}
-                    <small>{b.timezone}</small>
-                  </td>
-                  <td>
-                    <BookingHistory id={b.id} data={data} onSelect={onSelect} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {!filtered.length && (
-          <div className="od-empty">
-            <BookOpen size={28} />
-            <h3>No matching bookings</h3>
-            <p>Try another booking reference or destination.</p>
-          </div>
-        )}
-      </div>
+      {data.me.kind === "CUSTOMER" ? (
+        <ul className="od-customer-bookings" aria-label="Your bookings">
+          {filtered.map((booking) => (
+            <li key={booking.id} className="od-customer-booking">
+              <div className="od-customer-booking-heading">
+                <BookOpen size={22} aria-hidden="true" />
+                <div>
+                  <h2>{booking.destination}</h2>
+                  <span className="od-booking-ref">{booking.reference}</span>
+                </div>
+              </div>
+              {booking.bookingStatus === "CANCELLED" && (
+                <p>Cancelled booking</p>
+              )}
+              <dl>
+                <div>
+                  <dt>Service</dt>
+                  <dd>{booking.service}</dd>
+                </div>
+                <div>
+                  <dt>Check-in</dt>
+                  <dd>
+                    <time dateTime={booking.checkInAt}>
+                      {date(booking.checkInAt)}
+                    </time>{" "}
+                    (your local time)
+                  </dd>
+                </div>
+                <div>
+                  <dt>Agency</dt>
+                  <dd>{booking.agency.name}</dd>
+                </div>
+                <div>
+                  <dt>Supplier</dt>
+                  <dd>{booking.supplier.name}</dd>
+                </div>
+              </dl>
+              <BookingHistory id={booking.id} data={data} onSelect={onSelect} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="od-table-wrap">
+          <table className="od-table">
+            <thead>
+              <tr>
+                <th>BOOKING</th>
+                <th>TRAVELER</th>
+                <th>AGENCY / SUPPLIER</th>
+                <th>TRAVEL DATE</th>
+                <th>CONVERSATIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((b) => {
+                return (
+                  <tr key={b.id}>
+                    <td>
+                      <b className="od-booking-ref">{b.reference}</b>
+                      {b.bookingStatus === "CANCELLED" && (
+                        <small>
+                          Cancelled booking · support cases remain separate
+                        </small>
+                      )}
+                      <small>
+                        {b.destination} · {human(b.region)}
+                      </small>
+                    </td>
+                    <td>{b.customerName || "Traveler"}</td>
+                    <td>
+                      <b>{b.agency.name}</b>
+                      <small>{b.supplier.name}</small>
+                    </td>
+                    <td>
+                      {date(b.checkInAt)}
+                      <small>{b.timezone}</small>
+                    </td>
+                    <td>
+                      <BookingHistory
+                        id={b.id}
+                        data={data}
+                        onSelect={onSelect}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {bookings.data && !filtered.length && (
+        <div className="od-empty">
+          <BookOpen size={28} />
+          <h3>No matching bookings</h3>
+          <p>Try another booking reference or destination.</p>
+        </div>
+      )}
     </section>
   );
 }

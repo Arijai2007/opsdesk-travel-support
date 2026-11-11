@@ -1,5 +1,9 @@
 # OpsDesk — prioritized remaining work
 
+## Customer portal follow-up
+
+The customer workspace now presents authenticated booking records as cards and provides direct access to case history and existing support actions. Obtain observable spoken screen-reader acceptance and broaden human workflow review. Use the [validation record](OPSDESK_VALIDATION.md) for exact browser zoom and automation results. Live booking and email acceptance, scanner monitoring, retention approval, independent AI evaluation, representative sustained load and operational recovery remain open.
+
 ## Case detail and Insights follow-up — 11 November 2026
 
 PR #48 and post-merge CI passed. This branch adds a record-driven isometric case journey and issue-category Insights columns, plus light/dark accessibility checks for both screens. It retains actual case and report scopes. [Verification](OPSDESK_VALIDATION.md#case-detail-and-insights-reference-follow-up--11-november-2026).

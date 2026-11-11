@@ -2328,3 +2328,86 @@ select:focus {
 .od-app[data-theme="dark"] .od-urgent-banner { background: #362b32; border-color: #9f5f62; color: #ffe1df; }
 .od-app[data-theme="dark"] .od-urgent-banner :is(b,span,button) { color: #ffe1df; }
 .od-app[data-theme="dark"] .od-info { color: #dbe6ff !important; }
+
+.od-customer-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: clamp(16px, 3vw, 28px);
+  border-radius: 16px;
+  background: linear-gradient(120deg, #122346, #233d78);
+  color: #fff;
+}
+.od-customer-summary h2,
+.od-customer-summary p,
+.od-app[data-theme="dark"] .od-customer-summary :is(h2, p) {
+  margin: 0;
+  color: #fff;
+}
+.od-customer-summary h2 {
+  font-size: 1.25rem;
+}
+.od-customer-summary button {
+  min-height: 36px;
+  white-space: normal;
+}
+.od-customer-summary button:focus-visible {
+  outline-color: #dbe6ff;
+}
+.od-customer-bookings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  align-items: start;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: clamp(12px, 2vw, 20px);
+}
+.od-customer-booking {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  border-top: 4px solid #365be5;
+  border-radius: 12px;
+  padding: 16px;
+}
+.od-customer-booking-heading {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+}
+.od-customer-booking-heading svg {
+  flex: none;
+  color: #2647b8;
+}
+.od-customer-booking h2 {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+.od-customer-booking dl {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+.od-customer-booking dt {
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 600;
+}
+.od-customer-booking dd {
+  margin: 0;
+}
+.od-customer-booking .od-text-button {
+  min-height: 32px;
+  white-space: normal;
+  text-align: start;
+}
+.od-app[data-theme="dark"] .od-customer-booking {
+  background: #1b2b47;
+}
+.od-app[data-theme="dark"] .od-customer-booking-heading svg {
+  color: #b8c8ff;
+}

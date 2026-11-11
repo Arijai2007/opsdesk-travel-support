@@ -53,6 +53,7 @@ import {
 } from "./reports";
 export function OpsDeskWorkspace() {
   const noticesButton = useRef<HTMLButtonElement>(null);
+  const focusCustomerHeading = useRef(false);
   const [data, setData] = useState<Workspace | null>(null),
     [ready, setReady] = useState(false),
     [error, setError] = useState(""),
@@ -163,7 +164,8 @@ export function OpsDeskWorkspace() {
     );
   const staff = ["AGENT", "MANAGER"].includes(data.me.kind),
     manager = data.me.kind === "MANAGER",
-    supplier = data.me.kind === "SUPPLIER";
+    supplier = data.me.kind === "SUPPLIER",
+    customer = data.me.kind === "CUSTOMER";
   const counts = data.counts;
   const person = (id: string | null) =>
     data.people.find((p) => p.id === id)?.name || "Unassigned";
@@ -471,30 +473,48 @@ export function OpsDeskWorkspace() {
             <>
               <div className="od-page-heading">
                 <div>
-                  <div className="od-eyebrow">
-                    {view === "insights"
-                      ? "THE BIGGER PICTURE"
-                      : view === "bookings"
-                        ? "EVERY JOURNEY, CONNECTED"
-                        : "YOUR TRAVEL SUPPORT, IN SYNC"}
-                  </div>
-                  <h1>
-                    {view === "insights"
-                      ? "Operational insights"
-                      : view === "bookings"
-                        ? "Booking directory"
-                        : view === "manager"
-                          ? "A little attention. A big difference."
-                          : "Every conversation. Full context."}
+                  {!customer && (
+                    <div className="od-eyebrow">
+                      {view === "insights"
+                        ? "THE BIGGER PICTURE"
+                        : view === "bookings"
+                          ? "EVERY JOURNEY, CONNECTED"
+                          : "YOUR TRAVEL SUPPORT, IN SYNC"}
+                    </div>
+                  )}
+                  <h1
+                    tabIndex={customer ? -1 : undefined}
+                    ref={(heading) => {
+                      if (heading && focusCustomerHeading.current) {
+                        focusCustomerHeading.current = false;
+                        heading.focus();
+                      }
+                    }}
+                  >
+                    {customer
+                      ? view === "bookings"
+                        ? "Your bookings"
+                        : "Your travel support"
+                      : view === "insights"
+                        ? "Operational insights"
+                        : view === "bookings"
+                          ? "Booking directory"
+                          : view === "manager"
+                            ? "A little attention. A big difference."
+                            : "Every conversation. Full context."}
                   </h1>
                   <p>
-                    {view === "insights"
-                      ? "Understand the patterns behind the cases, not just the queue."
-                      : view === "bookings"
-                        ? "One reference connects the traveler, supplier and every conversation."
-                        : view === "manager"
-                          ? "Keep time-sensitive journeys and unassigned cases moving."
-                          : "A clear view of your travelers, their bookings, and what needs to happen next."}
+                    {customer
+                      ? view === "bookings"
+                        ? "Find a booking and open its support history."
+                        : "Follow your cases or start a conversation about a booking."
+                      : view === "insights"
+                        ? "Understand the patterns behind the cases, not just the queue."
+                        : view === "bookings"
+                          ? "One reference connects the traveler, supplier and every conversation."
+                          : view === "manager"
+                            ? "Keep time-sensitive journeys and unassigned cases moving."
+                            : "A clear view of your travelers, their bookings, and what needs to happen next."}
                   </p>
                 </div>
                 <div className="od-flex">
@@ -546,49 +566,74 @@ export function OpsDeskWorkspace() {
                 <Insights />
               ) : (
                 <>
-                  <div className="od-stats">
-                    {[
-                      {
-                        label: "Open conversations",
-                        value: counts.open,
-                        icon: Inbox,
-                        note: "Across your authorized workspace",
-                        color: "green",
-                      },
-                      {
-                        label: "Urgent cases",
-                        value: counts.urgent,
-                        icon: Clock3,
-                        note: "A timely response matters",
-                        color: "orange",
-                      },
-                      {
-                        label: "Awaiting supplier",
-                        value: counts.waiting,
-                        icon: MessageSquare,
-                        note: "Keep the conversation moving",
-                        color: "blue",
-                      },
-                      {
-                        label: "Resolved cases",
-                        value: counts.total - counts.open,
-                        icon: TicketCheck,
-                        note: "Travelers back on track",
-                        color: "purple",
-                      },
-                    ].map((s) => (
-                      <div className="od-stat" key={s.label}>
-                        <div className="od-stat-label">
-                          {s.label}
-                          <span className={s.color}>
-                            <s.icon size={17} />
-                          </span>
-                        </div>
-                        <b>{s.value}</b>
-                        <small>{s.note}</small>
+                  {customer ? (
+                    <section
+                      className="od-customer-summary"
+                      aria-label="Your cases and bookings"
+                    >
+                      <div>
+                        <h2>Your support cases</h2>
+                        <p>
+                          {counts.open} open · {counts.total} total
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                      <button
+                        className="od-secondary"
+                        type="button"
+                        onClick={() => {
+                          focusCustomerHeading.current = true;
+                          navigate("bookings");
+                        }}
+                      >
+                        <BookOpen size={17} aria-hidden="true" />
+                        View your bookings
+                      </button>
+                    </section>
+                  ) : (
+                    <div className="od-stats">
+                      {[
+                        {
+                          label: "Open conversations",
+                          value: counts.open,
+                          icon: Inbox,
+                          note: "Across your authorized workspace",
+                          color: "green",
+                        },
+                        {
+                          label: "Urgent cases",
+                          value: counts.urgent,
+                          icon: Clock3,
+                          note: "A timely response matters",
+                          color: "orange",
+                        },
+                        {
+                          label: "Awaiting supplier",
+                          value: counts.waiting,
+                          icon: MessageSquare,
+                          note: "Keep the conversation moving",
+                          color: "blue",
+                        },
+                        {
+                          label: "Resolved cases",
+                          value: counts.total - counts.open,
+                          icon: TicketCheck,
+                          note: "Travelers back on track",
+                          color: "purple",
+                        },
+                      ].map((s) => (
+                        <div className="od-stat" key={s.label}>
+                          <div className="od-stat-label">
+                            {s.label}
+                            <span className={s.color}>
+                              <s.icon size={17} />
+                            </span>
+                          </div>
+                          <b>{s.value}</b>
+                          <small>{s.note}</small>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {counts.urgent > 0 && (
                     <div className="od-urgent-banner">
                       <span className="od-banner-icon">
