@@ -2,9 +2,21 @@
 
 ## API process-start continuation
 
-PR #56 is merged in main `8c1d546`; PR and post-merge validation both passed. This follow-up adds `npm run ops:startup-profile` to compare the first scoped workload GET after a fresh API starts with repeat reads, using migrated/seeded disposable database copies and generated runtime secrets. A local two-round/five-role run completed ten fresh API starts and 110 workload GETs; cleanup and interruption cleanup passed. [Run procedure](OPSDESK_STARTUP_PROFILE.md) · [Exact evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)
+Use the startup profiler procedure to reproduce the local measurements and interpret their scope. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md)
 
-Database/OS caches remain uncontrolled and login/readiness precede workload timing, so full cold-cache acceptance remains open. The seeded supplier scenario is an empty list. Check this PR's hosted smoke, then continue human labels in the local blind review form and observable screen-reader review. Representative booking/identity populations, approved traffic/targets, live services and operational acceptance still require decisions/evidence. Keep deployment paused and leave merging to collaborators. Older checkpoints below are historical where superseded.
+## Current continuation message
+
+> Continue OpsDesk in `DhruvKhanna7777/opsdesk-travel-support`. Fetch latest main, check open PRs and their CI, then read the handoff, backlog, validation record, acceptance review guide and README.
+>
+> **Finished and merged.** Main was `0310cd5` through PR #57, whose PR and post-merge validation passed. It includes the scoped customer portal, synthetic five-role load, classifier evaluator and blind review form, and fresh API-process profiling. The startup rehearsal passed ten fresh starts and 110 workload reads locally.
+>
+> **Partially complete.** PRs #58 and #59 add populated supplier startup probes and passed hosted CI. #59 builds on #58. PRs #60–#62 are also open. They add 12-identity synthetic load, message shared-buffer profiling, and truncated-backup recovery. Their local checks passed and hosted CI was queued at handoff. Synthetic evidence still needs representative data and traffic, approved performance targets, full cold-cache testing and operational recovery validation.
+>
+> **Next.** Review the open PRs and recheck CI, including Firefox. Have a human label and adjudicate the blind classifier pack in `npm run ops:review-classifier`, freeze the export, and score it with `--dataset`. Obtain observable screen-reader speech. Live booking and mail acceptance, production scanner monitoring, retention approval, and an authorized staging restore with named owners and targets remain open. No booking provider has been selected.
+>
+> Use Node 22.23.x and an isolated synthetic preview. Run mutating API, browser and load suites sequentially. Preserve authorization, agency isolation, sessions, saved deadlines, idempotency and audit history. Keep private exports and credentials out of Git. Push verified work for collaborator review. Deployment remains paused.
+
+Use the [current handoff](OPSDESK_HANDOFF.md#current-checkpoint-and-review-queue) for PR links and checked CI states. The sections below record earlier checkpoints.
 
 ## Blind review form continuation
 

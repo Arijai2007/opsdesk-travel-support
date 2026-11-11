@@ -24,6 +24,8 @@ An interruption rehearsal emitted SIGINT after observing a connection from an ow
 
 Three focused tests passed for loopback maintenance URLs, role/sample bounds, namespace construction and exclusion of inherited model/mail credentials/runtime flags. Prettier, syntax, actionlint and whitespace checks passed. CI now runs these guards in `ops:test` and a bounded one-manager integration smoke before browser suites. The full API/browser suites were not rerun locally for this harness/workflow change; check its hosted result separately.
 
+PR #57 merged at `0310cd5`. The OpsDesk validation workflow passed on the PR and on the merged main commit. The [handoff review queue](OPSDESK_HANDOFF.md#current-checkpoint-and-review-queue) records the separate statuses of follow-up PRs #58–#62. [PR validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Main validation](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463)
+
 These are **fresh API process** results, not full cold-cache acceptance: database/OS caches are not reset, readiness/authentication run first, frontend/TLS are absent, and sample/population sizes are small. No latency target is accepted. Human classifier labels/adjudication, spoken-output review, representative performance, live integrations and operational acceptance remain open. Deployment stays paused.
 
 # Blind review form - 11 November 2026
