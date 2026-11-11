@@ -1,12 +1,26 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Current continuation message
+
+> Continue OpsDesk in `DhruvKhanna7777/opsdesk-travel-support`. Fetch latest main, check open PRs and their CI, then read the handoff, backlog, validation record, acceptance review guide and README.
+>
+> **Finished and merged.** The application baseline is `b1b97ab` through PR #62. It includes the scoped customer portal, classifier review tools, populated supplier startup probes, 12-identity synthetic load, message shared-buffer profiling and truncated-backup recovery. PRs #58 and #59 passed hosted CI. Local checks passed for #60–#62. The combined main validation through #62 was queued at handoff.
+>
+> **Partially complete.** Synthetic evidence still needs representative data and traffic, approved performance targets, full cold-cache testing and operational recovery validation.
+>
+> **Next.** Recheck main CI, including Firefox. Have a human label and adjudicate the blind classifier pack in `npm run ops:review-classifier`, freeze the export, and score it with `--dataset`. Obtain observable screen-reader speech. Live booking and mail acceptance, production scanner monitoring, retention approval, and an authorized staging restore with named owners and targets remain open. No booking provider has been selected.
+>
+> Use Node 22.23.x and an isolated synthetic preview. Run mutating API, browser and load suites sequentially. Preserve authorization, agency isolation, sessions, saved deadlines, idempotency and audit history. Keep private exports and credentials out of Git. Push verified work for collaborator review. Deployment remains paused.
+
+Use the [current handoff](OPSDESK_HANDOFF.md#current-merged-checkpoint) for PR links and checked CI states. The sections below record earlier checkpoints.
+
 ## Supplier message-history continuation
 
 This follow-up builds on the populated supplier-list probe in PR #58. Select `supplier-history` to measure page 12 of a 240-message thread after a fresh API process starts. The probe checks the returned scope and confirms that another supplier history returns HTTP 404 after timing. [Procedure](OPSDESK_STARTUP_PROFILE.md) · [Local validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)
 
 The next acceptance inputs remain a human-labelled, adjudicated classifier export and observable spoken screen-reader review. The local blind form is available through `npm run ops:review-classifier`. Representative performance targets, controlled caches, live integration and operational acceptance remain open. Leave merge decisions to collaborators. Deployment remains paused.
 
-## Current checkpoint after PR #57
+## Earlier checkpoint after PR #57
 
 Main `0310cd5` includes the startup profiler. Both PR and main CI passed, including startup smoke, five-role load, recovery, Chromium, Firefox and dependency audit. This follow-up adds a populated and scope-checked supplier list in the disposable startup fixture. Review its separate hosted results before reporting them. [PR #57 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43075807792) · [Main CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43076744463)
 
@@ -14,9 +28,7 @@ Main `0310cd5` includes the startup profiler. Both PR and main CI passed, includ
 
 ## API process-start continuation
 
-PR #56 is merged in main `8c1d546`; PR and post-merge validation both passed. This follow-up adds `npm run ops:startup-profile` to compare the first scoped workload GET after a fresh API starts with repeat reads, using migrated/seeded disposable database copies and generated runtime secrets. A local two-round/five-role run completed ten fresh API starts and 110 workload GETs; cleanup and interruption cleanup passed. [Run procedure](OPSDESK_STARTUP_PROFILE.md) · [Exact evidence](OPSDESK_VALIDATION.md#api-process-start-profile---11-november-2026)
-
-Database/OS caches remain uncontrolled and login/readiness precede workload timing, so full cold-cache acceptance remains open. The seeded supplier scenario is an empty list. Check this PR's hosted smoke, then continue human labels in the local blind review form and observable screen-reader review. Representative booking/identity populations, approved traffic/targets, live services and operational acceptance still require decisions/evidence. Keep deployment paused and leave merging to collaborators. Older checkpoints below are historical where superseded.
+Use the startup profiler procedure to reproduce the local measurements and interpret their scope. [Procedure and limits](OPSDESK_STARTUP_PROFILE.md)
 
 ## Blind review form continuation
 
