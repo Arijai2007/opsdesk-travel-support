@@ -435,6 +435,8 @@ Continue in this order. P0 live-data gates remain mandatory before live use; dep
 
 ## Release and incident checks
 
+The synthetic logical recovery rehearsal exercises truncated archive rejection, rollback and retry in the same disposable target. Use its report to verify that the target was empty after the rejected restore and that the intact retry passed the original integrity and worker restart checks. [Recovery procedure](OPSDESK_RECOVERY.md)
+
 1. The release owner records the deployed commit, last known healthy commit, migration versions, backup location, recovery objectives and rollback authority before staging deployment. Contact names and hosting details still need an owner.
 2. Poll `GET /health/ready` for database and counter-service readiness and `GET /health/worker` for a recent successful escalation sweep. Both return 200 when healthy and 503 when unavailable. Monitor each instance so a healthy peer cannot hide a stalled worker.
 3. If readiness fails, take the affected instance out of rotation and check its database connectivity, counter service and configuration. If only the worker fails, inspect sweep errors and PostgreSQL lock waits. Capture timestamps, affected ticket IDs and release SHA while excluding secrets and traveler messages.

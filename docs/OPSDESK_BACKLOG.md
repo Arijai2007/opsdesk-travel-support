@@ -91,6 +91,8 @@ Start: backend/src/travel/travel.service.ts, travel.dto.ts, Prisma schema, scrip
 
 [GitHub issue #3](https://github.com/DhruvKhanna7777/opsdesk-travel-support/issues/3)
 
+The logical recovery rehearsal checks that a truncated synthetic archive leaves an empty target and that the intact archive restores successfully in the same database. Staging restore, managed backups, retention, recovery targets and on-call ownership remain open. [Recovery procedure](OPSDESK_RECOVERY.md)
+
 The delivered launcher is a localhost synthetic demo. No production environment is configured. Deployment is explicitly paused while features are completed; the selected free-demo stack and its saved preparation are not an active deployment.
 
 Acceptance:

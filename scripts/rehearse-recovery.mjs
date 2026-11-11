@@ -77,12 +77,13 @@ function runNode(args, database) {
     "Fixture migration/seed failed; inspect the disposable database locally",
   );
 }
-function tool(name, database, input) {
+function tool(name, database, input, { verbose = false } = {}) {
   const args = [
     "--host=127.0.0.1",
     `--port=${container ? "5432" : maintenance.port || "5432"}`,
     `--username=${decodeURIComponent(maintenance.username)}`,
     `--dbname=${database}`,
+    "--no-password",
   ];
   if (name === "pg_dump") args.push("--format=custom", "--no-acl");
   else
@@ -92,6 +93,7 @@ function tool(name, database, input) {
       "--no-owner",
       "--no-acl",
     );
+  if (verbose) args.push("--verbose");
   const executable = container
     ? "docker"
     : process.env[
@@ -112,18 +114,18 @@ function tool(name, database, input) {
     input,
     env: {
       ...process.env,
+      LC_ALL: "C",
       PGPASSWORD: decodeURIComponent(maintenance.password),
     },
     maxBuffer: 32 * 1024 * 1024,
     timeout: 120000,
     windowsHide: true,
   });
-  assert.equal(
-    result.status,
-    0,
-    `${name} failed; install matching PostgreSQL clients or use the CI service container`,
+  assert(
+    !result.error && result.signal === null && result.status !== null,
+    `${name} did not exit normally`,
   );
-  return result.stdout;
+  return result;
 }
 async function snapshot(pool) {
   const tables = await pool.query(
@@ -145,10 +147,14 @@ async function snapshot(pool) {
   const indexes = await pool.query(
     "SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' ORDER BY 1",
   );
+  const types = await pool.query(
+    "SELECT t.typname FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace WHERE n.nspname='public' ORDER BY 1",
+  );
   return {
     tables: result,
     constraints: constraints.rows,
     indexes: indexes.rows,
+    types: types.rows,
   };
 }
 try {
@@ -183,7 +189,9 @@ try {
   assert.equal(before.tables.TravelTicket.count, 60);
   check("fresh migrations and 60-case synthetic seed");
   const dumpStarted = performance.now();
-  const bytes = tool("pg_dump", source);
+  const dump = tool("pg_dump", source);
+  assert.equal(dump.status, 0, "pg_dump failed for the synthetic source");
+  const bytes = dump.stdout;
   assert(bytes.length > 0);
   writeFileSync(archive, bytes, { flag: "wx", mode: 0o600 });
   archiveCreated = true;
@@ -192,11 +200,44 @@ try {
   const saved = readFileSync(archive);
   assert.equal(createHash("sha256").update(saved).digest("hex"), digest);
   check("archive readback checksum");
+  const emptyTarget = await snapshot(targetPool);
+  // Cut the last data block while preserving the archive's header and TOC.
+  const truncated = saved.subarray(0, -1);
+  const failedRestore = tool("pg_restore", target, truncated, {
+    verbose: true,
+  });
+  assert.notEqual(
+    failedRestore.status,
+    0,
+    "Truncated archive restored successfully",
+  );
+  const diagnostics = failedRestore.stderr.toString();
+  assert.match(
+    diagnostics,
+    /creating TABLE "/,
+    "Restore never reached schema creation",
+  );
+  assert.match(
+    diagnostics,
+    /(?:end of file|unexpected end)/i,
+    "Restore did not report truncated input",
+  );
+  assert.deepEqual(
+    await snapshot(targetPool),
+    emptyTarget,
+    "Failed restore left committed objects in the target",
+  );
+  check(
+    "truncated archive fails after schema creation begins and leaves the target empty",
+  );
   const restoreStarted = performance.now();
-  tool("pg_restore", target, saved);
+  const restore = tool("pg_restore", target, saved);
+  assert.equal(restore.status, 0, "pg_restore failed for the intact archive");
   report.restoreMs = Math.round(performance.now() - restoreStarted);
   assert.deepEqual(await snapshot(targetPool), before);
-  check("all public table contents, indexes and constraints match");
+  check(
+    "intact retry matches public table contents, indexes, constraints and types",
+  );
   await assert.rejects(
     targetPool.query(
       `INSERT INTO "TravelAgency" (id,name,code) VALUES ('recovery-duplicate','Synthetic duplicate','ATL')`,

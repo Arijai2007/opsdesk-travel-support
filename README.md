@@ -153,6 +153,8 @@ Lock contention follow-up: ticket messages and supplier operations now serialize
 
 ## Historical synthetic recovery rehearsal - 10 November 2026
 
+The current rehearsal rejects a truncated synthetic archive, verifies rollback, and restores the intact archive in the same disposable database. [Run the recovery rehearsal](docs/OPSDESK_RECOVERY.md)
+
 Added `npm run ops:recovery` and five connection-safety tests. The rehearsal creates two disposable local databases, migrates/seeds the source, dumps/restores a custom archive, compares all public row data/indexes/constraints and tests restored integrity enforcement. See [runbook and limitations](docs/OPSDESK_RECOVERY.md). Local safety tests passed on Node 22.23.0; full archive/restore validation runs in CI using PostgreSQL 18 client tools because this Windows machine has only the embedded server binaries. CI results must be checked before claiming recovery validation. This is partial progress on issue #3; operational backups, retention, staging restore and production recovery ownership remain open. The branch is based on merged main and has no dependency on unmerged PR #17.
 
 ## Historical production configuration follow-up - 10 November 2026
