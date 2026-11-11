@@ -1,3 +1,9 @@
+# Merged customer portal and load checkpoint
+
+Verified main `b667d12a24c3dc091000f7a5d703a19b463888b1` contains both PR commits. [PR #50](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/50) passed local Chromium and Firefox and actual customer Chrome tab zoom. [PR #51](https://github.com/DhruvKhanna7777/opsdesk-travel-support/pull/51) passed its 200-request and 60-second local rehearsals. Detailed local results appear in the customer portal and sustained synthetic load sections.
+
+GitHub merged both PRs while hosted browser installation was stalled. The #51 hosted run ended canceled during installation. The #50 rerun and combined main run were still at browser installation when this handoff was checked. Review the current steps before reporting a hosted browser result. [PR #50 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43038919698) · [PR #51 CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43041641077) · [Combined main CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43044393887)
+
 # Customer portal follow-up
 
 Base main `5956e1f` includes PR #49. Both its [PR workflow](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43025515042) and [post-merge workflow](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43025626009) passed, including each Firefox step. GitHub showed zero open PRs before this work.

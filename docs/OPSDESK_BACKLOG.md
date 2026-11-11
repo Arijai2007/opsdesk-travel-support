@@ -1,5 +1,14 @@
 # OpsDesk — prioritized remaining work
 
+## Priorities after the customer portal and load rehearsal
+
+PRs #50 and #51 are merged. Customer portal implementation, its local Chromium and Firefox checks, and customer Chrome zoom at 200% and 400% are complete. The local load harness now covers sustained concurrent reads and writes, deep pages and a long shared thread. [Recorded evidence](OPSDESK_VALIDATION.md#merged-customer-portal-and-load-checkpoint)
+
+1. Confirm combined main CI and obtain observable spoken screen-reader acceptance.
+2. Run an independent classifier evaluation with independently labelled holdout examples.
+3. Agree representative booking and role distributions, cold-cache procedures and performance targets.
+4. Complete live booking and mail acceptance, production scanner monitoring, retention approval and operational recovery. No booking provider is selected. Deployment remains paused.
+
 ## Customer portal follow-up
 
 The customer workspace now presents authenticated booking records as cards and provides direct access to case history and existing support actions. Obtain observable spoken screen-reader acceptance and broaden human workflow review. Use the [validation record](OPSDESK_VALIDATION.md) for exact browser zoom and automation results. Live booking and email acceptance, scanner monitoring, retention approval, independent AI evaluation, representative sustained load and operational recovery remain open.
