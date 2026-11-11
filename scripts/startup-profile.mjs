@@ -10,12 +10,23 @@ import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
 import pg from "pg";
 
+const supplierHistory = {
+  conversation: "startup-supplier-user-1",
+  otherConversation: "startup-supplier-other-1",
+  total: 240,
+  page: 12,
+};
+
 const scenarios = {
   manager: ["manager", "/ops/queue?tab=all&page=1"],
   agency: ["agency", "/ops/bookings?page=1"],
   customer: ["maya", "/ops/bookings?page=1"],
   agent: ["asia", "/ops/queue?tab=all&page=1"],
   supplier: ["supplier", "/ops/conversations?page=1"],
+  "supplier-history": [
+    "supplier",
+    `/ops/conversations/${supplierHistory.conversation}/messages?page=${supplierHistory.page}`,
+  ],
 };
 
 export function startupConfig(env) {
@@ -54,13 +65,13 @@ export function startupConfig(env) {
   };
   const roles =
     env.OPSDESK_STARTUP_ROLES === undefined
-      ? Object.keys(scenarios)
+      ? Object.keys(scenarios).filter((role) => role !== "supplier-history")
       : env.OPSDESK_STARTUP_ROLES.split(",").map((role) => role.trim());
   assert(
     roles.length &&
       roles.every((role) => Object.hasOwn(scenarios, role)) &&
       new Set(roles).size === roles.length,
-    "Choose unique startup roles: manager, agency, customer, agent, supplier.",
+    "Choose unique startup roles: manager, agency, customer, agent, supplier, supplier-history.",
   );
   return {
     maintenance,
@@ -194,7 +205,7 @@ export async function profileStartup(env = process.env) {
   async function drop(name) {
     assert(
       name === template ||
-        Array.from({ length: 25 }, (_, i) =>
+        Array.from({ length: config.roles.length * config.rounds }, (_, i) =>
           startupDatabase(run, `probe_${i}`),
         ).includes(name),
       "Refusing to drop an unowned database.",
@@ -260,7 +271,10 @@ export async function profileStartup(env = process.env) {
     let supplierScope;
     const fixture = new pg.Pool({ connectionString: connection(template) });
     try {
-      if (config.roles.includes("supplier")) {
+      if (
+        config.roles.includes("supplier") ||
+        config.roles.includes("supplier-history")
+      ) {
         const inserted = await fixture.query(`
           INSERT INTO "TravelConversation"
             (id, "ticketId", "supplierId", subject, "dueAt", "createdAt")
@@ -295,6 +309,29 @@ export async function profileStartup(env = process.env) {
           GROUP BY p."supplierId"
         `)
         ).rows[0];
+      }
+      if (config.roles.includes("supplier-history")) {
+        const messages = await fixture.query(
+          `
+          INSERT INTO "TravelMessage"
+            (id, "ticketId", "conversationId", "senderId", visibility, content, "createdAt")
+          SELECT c.id || '-message-' || i, c."ticketId", c.id, 'manager', 'SUPPLIER',
+                 'Synthetic startup history ' || i, now() - i * interval '1 minute'
+          FROM "TravelConversation" c
+          CROSS JOIN LATERAL generate_series(1, CASE WHEN c.id = $1 THEN $3::int ELSE 1 END) i
+          WHERE c.id IN ($1, $2)
+        `,
+          [
+            supplierHistory.conversation,
+            supplierHistory.otherConversation,
+            supplierHistory.total,
+          ],
+        );
+        assert.equal(
+          messages.rowCount,
+          supplierHistory.total + 1,
+          "Expected supplier history and a separate supplier message.",
+        );
       }
       report.dataset = (
         await fixture.query(
@@ -433,6 +470,36 @@ export async function profileStartup(env = process.env) {
                 "Supplier startup returned a conversation from another supplier.",
               );
             }
+            if (role === "supplier-history") {
+              assert.equal(
+                body.total,
+                supplierHistory.total,
+                "Unexpected supplier history total.",
+              );
+              assert.equal(
+                body.page,
+                supplierHistory.page,
+                "Expected the deep supplier history page.",
+              );
+              assert.equal(
+                body.items.length,
+                20,
+                "Expected a full supplier history page.",
+              );
+              assert(
+                body.items.every(
+                  (item) =>
+                    item.conversationId === supplierHistory.conversation &&
+                    item.visibility === "SUPPLIER",
+                ),
+                "Supplier history returned a message outside the measured conversation.",
+              );
+              assert.equal(
+                new Set(body.items.map((item) => item.id)).size,
+                body.items.length,
+                "Duplicate supplier messages on the measured page.",
+              );
+            }
             if (total === undefined) total = body.total;
             assert.equal(
               body.total,
@@ -445,6 +512,27 @@ export async function profileStartup(env = process.env) {
           const repeats = [];
           for (let sample = 0; sample < config.repeats; sample++)
             repeats.push((await read()).ms);
+          let otherSupplierStatus;
+          if (role === "supplier-history") {
+            const denied = await fetch(
+              base +
+                `/ops/conversations/${supplierHistory.otherConversation}/messages?page=1`,
+              {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                signal: AbortSignal.any([
+                  abort.signal,
+                  AbortSignal.timeout(10000),
+                ]),
+              },
+            );
+            otherSupplierStatus = denied.status;
+            await denied.arrayBuffer();
+            assert.equal(
+              otherSupplierStatus,
+              404,
+              "Supplier history from another supplier must be denied.",
+            );
+          }
           report.probes.push({
             round,
             role,
@@ -455,6 +543,7 @@ export async function profileStartup(env = process.env) {
             firstReadMs: +first.ms.toFixed(2),
             returnedItems: first.items,
             totalItems: total,
+            otherSupplierStatus,
             repeatReads: summarize(repeats),
           });
         } finally {

@@ -1,5 +1,9 @@
 # OpsDesk — prioritized remaining work
 
+## Supplier history startup rehearsal
+
+The synthetic profiler covers page 12 of a populated supplier history and verifies that another supplier thread is denied. Representative traffic, controlled-cache runs, agreed thresholds, human classifier labels and spoken screen-reader evidence remain open. [Validation](OPSDESK_VALIDATION.md#supplier-message-history-startup)
+
 ## Supplier startup and reviewer acceptance
 
 The populated supplier startup probe covers the first conversation page with a separate supplier fixture to verify scope. Supplier message-history performance, representative populations, controlled cache testing and agreed thresholds remain open. Human classifier labels and spoken screen-reader evidence are the next acceptance inputs. [Procedure](OPSDESK_STARTUP_PROFILE.md) · [Review guide](OPSDESK_ACCEPTANCE_REVIEW.md)
