@@ -4,9 +4,9 @@ Customers can view their case summary and browse their authenticated bookings as
 
 Case detail now shows a four-step journey from saved case state; Insights shows isometric issue columns from authorized category counts. These extend the supplied reference design without importing its fictional flight, provider, voucher or financial data. The existing conversation, supplier, audit and report controls remain available. [Current validation and remaining accessibility acceptance](docs/OPSDESK_VALIDATION.md#case-detail-and-insights-reference-follow-up--11-november-2026). Deployment remains paused.
 
-The workspace now adopts the supplied travel-operations design's cobalt palette and manager dashboard hierarchy. A decorative 3D route globe appears on the manager view, and the header offers a persistent Light/Dark switch. The design uses real role-scoped records; reference-screen figures and unsupported actions are not live features. Cross-role keyboard and dark-theme axe checks are documented in the [current validation record](docs/OPSDESK_VALIDATION.md#stitch-workspace-and-cross-role-accessibility-follow-up--11-november-2026). Actual screen-reader speech and 200%/400% browser zoom remain unverified. Deployment remains paused.
+The workspace now adopts the supplied travel-operations design's cobalt palette and manager dashboard hierarchy. A decorative 3D route globe appears on the manager view, and the header offers a persistent Light/Dark switch. The design uses real role-scoped records; reference-screen figures and unsupported actions are not live features. Cross-role keyboard and dark-theme axe checks are documented in the [current validation record](docs/OPSDESK_VALIDATION.md#stitch-workspace-and-cross-role-accessibility-follow-up--11-november-2026). Actual Chrome zoom at 200% and 400% passed on the customer workspace. Spoken screen-reader acceptance remains open. Deployment remains paused.
 
-The workspace header and Notifications panel now reflow on narrow screens, Notifications supports Escape with focus return, and paginated form controls wrap inside dialogs. [Accessibility checks and remaining manual acceptance](docs/OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026). Screen-reader announcements and actual browser zoom still require acceptance; automated scans do not establish full accessibility compliance. Deployment remains paused.
+The workspace header and Notifications panel now reflow on narrow screens, Notifications supports Escape with focus return, and paginated form controls wrap inside dialogs. [Accessibility checks and remaining manual acceptance](docs/OPSDESK_VALIDATION.md#manual-accessibility-follow-up--11-november-2026). Spoken screen-reader acceptance remains open. Deployment remains paused.
 
 Agency users can open **Booking requests** to propose a booking or request a cancellation. Customers can request cancellation for their own bookings. Managers decide in **Booking reviews**. [Booking workflow](docs/OPSDESK_BOOKING_APPROVALS.md)
 
@@ -20,7 +20,7 @@ Managers can configure supplier response hours, weekly schedules, local holidays
 
 A local travel-support prototype that connects complaints to agencies, customers, bookings, earlier cases and private supplier conversations. Built with Next.js, NestJS, Prisma and PostgreSQL on the [IT Helpdesk foundation](https://github.com/Molnar-Zoltan/it-helpdesk).
 
-Start with the [developer handoff](docs/OPSDESK_HANDOFF.md), [full setup and demo guide](OPSDESK_README.md), and [prioritized backlog](docs/OPSDESK_BACKLOG.md). Development and pull requests belong to [DhruvKhanna7777/opsdesk-travel-support](https://github.com/DhruvKhanna7777/opsdesk-travel-support).
+Start with the [next-teammate checkpoint](docs/OPSDESK_NEXT_TEAMMATE.md), [developer handoff](docs/OPSDESK_HANDOFF.md), [full setup and demo guide](OPSDESK_README.md), and [prioritized backlog](docs/OPSDESK_BACKLOG.md). Development and pull requests belong to [DhruvKhanna7777/opsdesk-travel-support](https://github.com/DhruvKhanna7777/opsdesk-travel-support).
 
 ## Screenshots
 

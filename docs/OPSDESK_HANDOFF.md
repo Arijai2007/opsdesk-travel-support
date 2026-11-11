@@ -1,5 +1,13 @@
 # OpsDesk developer handoff
 
+## Current application checkpoint
+
+PRs #50 and #51 are merged at `b667d12`. The customer portal uses authenticated booking cards and scoped case history. Existing ticket intake and booking-request actions are available. Local Chromium and Firefox passed, and actual Chrome tab zoom passed at 200% and 400% on the customer workspace. The local load rehearsal completed 3,904 requests with 12 workers and verified 781 writes exactly once. [Validation details](OPSDESK_VALIDATION.md#merged-customer-portal-and-load-checkpoint)
+
+Review the [combined main workflow](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43044393887) for hosted browser results. Next obtain observable spoken screen-reader review and independent classifier evaluation. Cold-cache and representative load acceptance, live booking and email, production scanner monitoring, retention approval and operational recovery remain open. Deployment remains paused. [Copy-ready continuation](OPSDESK_NEXT_TEAMMATE.md#current-checkpoint-after-prs-50-and-51)
+
+The sections below record earlier checkpoints.
+
 ## Customer portal follow-up
 
 Main `5956e1f` includes merged PR #49. Its PR and post-merge checks passed, including hosted Firefox. The customer workspace has a scoped case summary and booking cards with check-in time, service, agency, supplier and on-demand case history. Existing support and booking-request actions retain their authorization and behavior. Actual Chrome tab zoom passed at 200% and 400% on the customer workspace. Spoken screen-reader acceptance remains open. See the [continuation checkpoint](OPSDESK_NEXT_TEAMMATE.md) and [validation record](OPSDESK_VALIDATION.md). Deployment remains paused.

@@ -1,5 +1,23 @@
 # OpsDesk continuation checkpoint — 11 November 2026
 
+## Current checkpoint after PRs #50 and #51
+
+The latest application checkpoint is `b667d12a24c3dc091000f7a5d703a19b463888b1`. The customer portal and sustained-load rehearsal are merged. There were no open PRs when this handoff was prepared. The combined main workflow reached Playwright installation, with hosted Chromium and Firefox pending at that check. The portal passed both engines locally. [Combined main CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/43044393887)
+
+**Copy-ready message for the next teammate**
+
+> Continue OpsDesk in DhruvKhanna7777/opsdesk-travel-support. Fetch latest main and check open PRs and CI. The verified application checkpoint is b667d12, with PRs #50 and #51 merged. Read this file first, then OPSDESK_HANDOFF.md, OPSDESK_BACKLOG.md, OPSDESK_VALIDATION.md, OPSDESK_BOOKING_APPROVALS.md, OPSDESK_ATTACHMENTS.md and the root README.
+>
+> **Finished and merged.** The customer portal shows scoped booking cards and case history with the existing ticket and cancellation-request actions. Local API and Chromium/Firefox workflows passed. Actual Chrome tab zoom passed at 200% and 400% on the customer workspace. The synthetic load harness ran for 60 seconds at 12 workers and completed 3,904 requests, with 781 writes verified exactly once.
+>
+> **Partially complete.** Load has single-host synthetic evidence. Cold-cache testing, representative booking and role distributions, and performance targets still need acceptance. Synthetic booking approvals, the email pilot, local ClamAV and recovery rehearsals work. Live booking and mail, production scanner monitoring, retention approval and operational recovery still need owners, credentials or an approved environment.
+>
+> **Next work.** First check combined main CI, including Firefox. Then arrange observable spoken screen-reader review and independently labelled classifier evaluation. Use local tools where possible. No booking provider is selected. Keep deployment paused.
+>
+> Use Node.js 22.23.x, npm ci and npm run ops:preview in an isolated synthetic environment. Run API and browser fixtures sequentially. Preserve authorization, agency isolation, sessions, saved deadlines, idempotency and audit history. Leave unrelated branches and worktrees intact. Record exact evidence in the validation docs and push a reviewable PR to main.
+
+The sections below are historical. Use this checkpoint for current status.
+
 ## Customer portal continuation
 
 Start from main `5956e1f` after PR #49. The PR and post-merge workflows passed, including both hosted Firefox steps. The customer workspace now summarizes scoped cases and presents authenticated bookings as cards with on-demand support history. Existing new-ticket and cancellation-request controls remain available. The original Stitch ZIP was unavailable in this checkout, so the adaptation follows the merged cobalt/navy design.
