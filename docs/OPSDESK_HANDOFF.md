@@ -1,5 +1,11 @@
 # OpsDesk developer handoff
 
+## Case detail and Insights visual follow-up — 11 November 2026
+
+Merged main is `a2d65cd` after PR #48. Its PR and post-merge validation both passed, including hosted Firefox. This separate worktree extends the supplied Stitch visual adaptation to the case detail and Insights views. The four case journey steps use only persisted case ownership, supplier reply and status; the three isometric Insights columns use authorized category counts. No provider, itinerary, compensation, or invented metrics were added. A new browser regression checks both views in light/dark mode and the message-visibility target. [Exact results, failures and limits](OPSDESK_VALIDATION.md#case-detail-and-insights-reference-follow-up--11-november-2026).
+
+Next adapt the customer portal reference with real scoped data and supported actions. Spoken screen-reader and actual 200%/400% zoom acceptance are still unverified. Live integrations, independent evaluation, representative sustained load and recovery ownership remain open; deployment is paused. Historical checkpoints below are superseded by this section.
+
 ## Current Stitch workspace increment — 11 November 2026
 
 Main was fetched at `bc5f696` after PR #47 merged, with no open PRs and [successful post-merge CI](https://github.com/DhruvKhanna7777/opsdesk-travel-support/actions/runs/42995341740). The user supplied a Stitch design ZIP and requested its visual language, 3D element and light/dark toggle. The workspace now uses a cobalt/navy palette, a decorative manager route globe, a queue-first manager layout and a saved theme choice. The mockup's invented figures and unavailable provider actions were not brought into the product. [Exact checks and limits](OPSDESK_VALIDATION.md#stitch-workspace-and-cross-role-accessibility-follow-up--11-november-2026).

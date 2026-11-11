@@ -143,6 +143,19 @@ try {
   await manager.getByRole('button', {name: 'Insights', exact: true}).click();
   await manager.getByText('Median first response', {exact: true}).waitFor();
   await scan(manager, 'manager insights');
+  assert.equal(await manager.locator('.od-issue-column').count(), 3, 'Insights shows three record-driven 3D columns');
+  await manager.getByRole('button', {name: 'Switch to dark theme'}).click();
+  await scan(manager, 'manager insights dark theme');
+  await manager.getByRole('button', {name: 'Switch to light theme'}).click();
+  await manager.getByRole('button', {name: /All conversations/}).click();
+  await manager.locator('.od-ticket-title').first().click();
+  await manager.getByRole('region', {name: 'Case journey'}).waitFor();
+  assert.equal(await manager.locator('.od-trajectory-stages li').count(), 4, 'Case journey has four saved-state steps');
+  await scan(manager, 'case detail');
+  await manager.getByRole('button', {name: 'Switch to dark theme'}).click();
+  await scan(manager, 'case detail dark theme');
+  await manager.getByRole('button', {name: 'Switch to light theme'}).click();
+  await manager.getByRole('button', {name: 'Back to conversations'}).click();
   await checkRoleKeyboard(manager, 'manager');
   await manager.close();
   for (const role of ['maya', 'agency', 'asia', 'supplier']) {

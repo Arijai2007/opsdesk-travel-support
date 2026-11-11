@@ -350,6 +350,15 @@ export function Insights() {
         <section className="od-panel od-chart">
           <h3>What travelers need help with</h3>
           <p>All authorized cases, grouped by issue category.</p>
+          <div className="od-issue-model" role="img" aria-label={`Top issue categories: ${categoryCounts.slice(0, 3).map((item) => `${item.label}, ${item.value} cases`).join('; ')}`}>
+            {categoryCounts.slice(0, 3).map((item) => (
+              <div className="od-issue-column" key={item.label}>
+                <span className="od-issue-prism" style={{height: `${Math.max(18, (item.value / Math.max(1, ...categoryCounts.map((x) => x.value))) * 95)}px`}} />
+                <b>{item.value}</b>
+                <small>{item.label}</small>
+              </div>
+            ))}
+          </div>
           {categoryCounts.map((c) => (
             <div className="od-bar-row" key={c.label}>
               <span>{c.label}</span>
